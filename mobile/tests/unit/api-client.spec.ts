@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { ApiError, apiRequest, NETWORK_ERROR_MESSAGE, REQUEST_TIMEOUT_MS } from '@/services/api-client';
+import { createServerClub } from '@/services/club-api.service';
+import type { ClubCreateInput } from '@/types/club';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -72,6 +74,23 @@ describe('API response handling', () => {
     const rejected = expect(pending).rejects.toEqual(new ApiError(0, NETWORK_ERROR_MESSAGE));
     await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
     await rejected;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  test('allows club photos to finish beyond the standard deadline but still aborts a stalled club save', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      signal = init.signal ?? undefined;
+      signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    })));
+    const pending = createServerClub('token', {} as ClubCreateInput);
+    const rejected = expect(pending).rejects.toMatchObject({ status: 0 });
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    expect(signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await rejected;
+    expect(signal?.aborted).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
   });
 });

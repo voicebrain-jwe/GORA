@@ -19,9 +19,10 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   token?: string | null;
+  timeoutMs?: number;
 }
 
-export async function apiRequest<T>(path: string, { method = 'GET', body, token }: RequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(path: string, { method = 'GET', body, token, timeoutMs = REQUEST_TIMEOUT_MS }: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };
 
   if (body !== undefined) {
@@ -33,7 +34,7 @@ export async function apiRequest<T>(path: string, { method = 'GET', body, token 
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(`${getApiBaseUrl()}${API_PREFIX}${path}`, {

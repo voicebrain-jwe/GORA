@@ -47,6 +47,12 @@ photos remain readable and are replaced by Cloudinary files only when re-uploade
 This change does not copy or delete existing assets. Without Cloudinary variables,
 the previous Blob/database/local behavior is preserved.
 
+Club profile/cover uploads finish in parallel before opening a database
+transaction. Only metadata writes, owner membership and chat creation happen in
+the transaction; a photo-upload failure creates no club, and a database failure
+cleans up the newly uploaded photos. Cloudinary server uploads have a bounded
+timeout and log only safe status/configuration hints, never SDK error details.
+
 Chat attachments keep their existing participant-checked database storage. They
 are not changed by this content/profile media integration.
 

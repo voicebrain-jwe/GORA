@@ -159,7 +159,7 @@ export class ClubsService {
       dto.additionalSportIds ?? [],
     );
 
-    const clubId = await this.withUsernameGuard(() =>
+    const clubId = await this.photos.withPrepared(dto, (prepared) => this.withUsernameGuard(() =>
       this.prisma.$transaction(async (tx) => {
         const club = await tx.club.create({
           data: {
@@ -204,7 +204,7 @@ export class ClubsService {
           select: { id: true },
         });
 
-        await this.photos.apply(tx, club.id, dto);
+        await this.photos.apply(tx, club.id, prepared);
 
         const ownerMembership = await tx.clubMember.findUnique({
           where: { clubId_userId: { clubId: club.id, userId: viewerId } },
@@ -225,7 +225,7 @@ export class ClubsService {
 
         return club.id;
       }, TRANSACTION_OPTIONS),
-    );
+    ));
 
     return this.get(viewerId, clubId);
   }
@@ -333,10 +333,15 @@ export class ClubsService {
           )
         : undefined;
 
-    await this.withUsernameGuard(() =>
+    await this.photos.withPrepared(dto, (prepared) => this.withUsernameGuard(() =>
       this.withCapacityGuard(clubId, () =>
         this.prisma.$transaction(async (tx) => {
           const maxMembers = await lockClub(tx, clubId);
+
+          // Ownership may have changed while the photos uploaded. Recheck after
+          // locking the club and before changing settings or photo references.
+          const currentOwner = await tx.club.findUnique({ where: { id: clubId }, select: { ownerId: true } });
+          if (currentOwner?.ownerId !== viewerId) throw new ForbiddenException(CLUB_OWNER_ONLY_MESSAGE);
 
           if (dto.maxMembers !== undefined && dto.maxMembers < maxMembers) {
             const active = await countActive(tx, clubId);
@@ -405,10 +410,10 @@ export class ClubsService {
             },
             select: { id: true },
           });
-          await this.photos.apply(tx, clubId, dto);
+          await this.photos.apply(tx, clubId, prepared);
         }, TRANSACTION_OPTIONS),
       ),
-    );
+    ));
 
     return this.get(viewerId, clubId);
   }

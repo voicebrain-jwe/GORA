@@ -52,6 +52,24 @@ test('production migrations preserve existing media and restore the complete spo
       assert.equal((await db.query('SELECT "sportId" FROM "UserSport" WHERE "userId"=$1', [owner])).rows[0].sportId, id);
     });
 
+    await t.test('creates a club with owner membership, chat and Cloudinary photo references atomically', async () => {
+      const club = randomUUID();
+      const sport = (await db.query(`SELECT "id" FROM "Sport" WHERE "name"='Volleyball'`)).rows[0].id;
+      await db.query(`INSERT INTO "Club" ("id","ownerId","name","slug","description","sportId","maxMembers","membershipType","isPublic","updatedAt")
+        VALUES ($1,$2,'Photo Club','migration-photo-club','Club photo migration test',$3,50,'APPROVAL_REQUIRED',true,now())`, [club, owner, sport]);
+      const membership = (await db.query('SELECT "role","status" FROM "ClubMember" WHERE "clubId"=$1 AND "userId"=$2', [club, owner])).rows[0];
+      assert.deepEqual(membership, { role: 'OWNER', status: 'ACTIVE' });
+      assert.equal((await db.query('SELECT "type" FROM "Conversation" WHERE "clubId"=$1', [club])).rows[0].type, 'CLUB');
+      for (const kind of ['profile', 'cover']) {
+        const revision = randomUUID();
+        await db.query(`INSERT INTO "ClubPhoto" ("clubId","kind","revision","data","storageRef","contentType","updatedAt")
+          VALUES ($1,$2,$3,NULL,$4,'image/png',now())`, [club, kind, revision, `cloudinary:gora/photos/${revision}.png`]);
+        const column = kind === 'profile' ? 'profileImageUrl' : 'coverImageUrl';
+        await db.query(`UPDATE "Club" SET "${column}"=$1 WHERE "id"=$2`, [`/api/v1/clubs/${club}/photos/${kind}/${revision}`, club]);
+      }
+      assert.equal((await db.query('SELECT count(*)::int AS count FROM "ClubPhoto" WHERE "clubId"=$1 AND "data" IS NULL', [club])).rows[0].count, 2);
+    });
+
     await t.test('retains legacy media and accepts authenticated Cloudinary references', async () => {
       assert.equal((await db.query('SELECT "mediaUrl" FROM "Story" WHERE "id"=$1', [oldStory])).rows[0].mediaUrl, `blob:${oldStory}.png`);
       assert.equal((await db.query('SELECT "videoUrl" FROM "Reel" WHERE "id"=$1', [oldReel])).rows[0].videoUrl, `upload:${oldReel}.mp4`);

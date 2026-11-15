@@ -13,7 +13,7 @@ import { apiRequest } from './api-client';
 const clubPath = (clubId: string, rest = ''): string => `/clubs/${encodeURIComponent(clubId)}${rest}`;
 
 export function createServerClub(token: string, input: ClubCreateInput): Promise<ClubApiView> {
-  return apiRequest<ClubApiView>('/clubs', { method: 'POST', body: input, token });
+  return apiRequest<ClubApiView>('/clubs', { method: 'POST', body: input, token, timeoutMs: 60_000 });
 }
 
 export function getMyServerClubs(token: string): Promise<ClubApiView[]> {
@@ -29,7 +29,7 @@ export function getServerClub(token: string, clubId: string): Promise<ClubApiVie
 }
 
 export function updateServerClub(token: string, clubId: string, input: ClubUpdateInput): Promise<ClubApiView> {
-  return apiRequest<ClubApiView>(clubPath(clubId), { method: 'PATCH', body: input, token });
+  return apiRequest<ClubApiView>(clubPath(clubId), { method: 'PATCH', body: input, token, timeoutMs: 60_000 });
 }
 
 export function joinServerClub(token: string, clubId: string): Promise<ClubApiJoinResult> {

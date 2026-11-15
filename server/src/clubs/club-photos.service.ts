@@ -16,6 +16,21 @@ interface ClubPhotoInput {
   coverImageUrl?: string | null;
 }
 
+interface PreparedClubPhotos {
+  input: ClubPhotoInput;
+  uploads: Partial<
+    Record<
+      'profile' | 'cover',
+      {
+        revision: string;
+        contentType: string;
+        data: Uint8Array<ArrayBuffer> | null;
+        storageRef: string | null;
+      }
+    >
+  >;
+}
+
 @Injectable()
 export class ClubPhotosService {
   constructor(
@@ -23,12 +38,57 @@ export class ClubPhotosService {
     private readonly cloud: CloudPhotosService,
   ) {}
 
-  /** Called only inside the authorized club create/update transaction. */
+  /** Validate and upload before opening a database transaction or locking a club. */
+  async withPrepared<T>(
+    input: ClubPhotoInput,
+    write: (prepared: PreparedClubPhotos) => Promise<T>,
+  ): Promise<T> {
+    const photos = (['profile', 'cover'] as const).map((kind) => {
+      const photo = kind === 'profile' ? input.profilePhoto : input.coverPhoto;
+      const url =
+        kind === 'profile' ? input.profileImageUrl : input.coverImageUrl;
+      if (photo != null && url != null)
+        throw new BadRequestException(
+          'Choose a photo upload or a URL, not both.',
+        );
+      return {
+        kind,
+        decoded: photo == null ? null : decodePhotoPayload(photo),
+      };
+    });
+    const prepared: PreparedClubPhotos = { input, uploads: {} };
+    try {
+      const results = await Promise.allSettled(
+        photos.map(async ({ kind, decoded }) => {
+          if (!decoded) return;
+          const stored = await this.cloud.save(decoded);
+          prepared.uploads[kind] = {
+            ...stored,
+            revision: randomUUID(),
+            contentType: decoded.contentType,
+          };
+        }),
+      );
+      const failed = results.find((result) => result.status === 'rejected');
+      if (failed?.status === 'rejected') throw failed.reason;
+      return await write(prepared);
+    } catch (error) {
+      await Promise.all(
+        Object.values(prepared.uploads).map((photo) =>
+          this.cloud.remove(photo.storageRef).catch(() => undefined),
+        ),
+      );
+      throw error;
+    }
+  }
+
+  /** Database writes only: no Cloudinary network calls inside this transaction. */
   async apply(
     tx: Prisma.TransactionClient,
     clubId: string,
-    input: ClubPhotoInput,
+    prepared: PreparedClubPhotos,
   ): Promise<void> {
+    const { input } = prepared;
     for (const kind of ['profile', 'cover'] as const) {
       const photo = kind === 'profile' ? input.profilePhoto : input.coverPhoto;
       const urlField = kind === 'profile' ? 'profileImageUrl' : 'coverImageUrl';
@@ -51,31 +111,26 @@ export class ClubPhotosService {
         });
         continue;
       }
-      const { contentType, photoData } = decodePhotoPayload(photo);
-      const stored = await this.cloud.save({ contentType, photoData });
-      const revision = randomUUID();
-      try {
-        await tx.clubPhoto.upsert({
-          where: { clubId_kind: { clubId, kind } },
-          create: {
-            clubId,
-            kind,
-            revision,
-            contentType,
-            data: stored.data,
-            storageRef: stored.storageRef,
-          },
-          update: {
-            revision,
-            contentType,
-            data: stored.data,
-            storageRef: stored.storageRef,
-          },
-        });
-      } catch (error) {
-        await this.cloud.remove(stored.storageRef).catch(() => undefined);
-        throw error;
-      }
+      const stored = prepared.uploads[kind];
+      if (!stored) throw new BadRequestException('Choose a valid club photo.');
+      const { contentType, revision } = stored;
+      await tx.clubPhoto.upsert({
+        where: { clubId_kind: { clubId, kind } },
+        create: {
+          clubId,
+          kind,
+          revision,
+          contentType,
+          data: stored.data,
+          storageRef: stored.storageRef,
+        },
+        update: {
+          revision,
+          contentType,
+          data: stored.data,
+          storageRef: stored.storageRef,
+        },
+      });
       await tx.club.update({
         where: { id: clubId },
         data: {

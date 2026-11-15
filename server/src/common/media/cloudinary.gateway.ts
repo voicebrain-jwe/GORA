@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ const PATH =
 
 @Injectable()
 export class CloudinaryGateway {
+  private readonly logger = new Logger(CloudinaryGateway.name);
   constructor(private readonly config: ConfigService) {}
 
   enabled(): boolean {
@@ -98,9 +100,23 @@ export class CloudinaryGateway {
           type: asset.type,
           overwrite: false,
           allowed_formats: [asset.format],
+          timeout: 20_000,
         },
       );
-    } catch {
+    } catch (error) {
+      const status =
+        error &&
+        typeof error === 'object' &&
+        'http_code' in error &&
+        typeof error.http_code === 'number'
+          ? error.http_code
+          : undefined;
+      // SDK error text can contain credentials or signed URLs. Log only a status.
+      this.logger.error(
+        status === 401 || status === 403
+          ? 'Cloudinary upload rejected server credentials. Verify CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.'
+          : `Cloudinary upload failed${status ? ` (HTTP ${status})` : ''}. Check storage availability and limits.`,
+      );
       throw new ServiceUnavailableException(
         'Cloudinary upload failed. Please try again.',
       );

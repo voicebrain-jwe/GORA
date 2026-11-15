@@ -217,6 +217,18 @@
             <p v-if="shown('locationName')" class="create-game__error">{{ errors.locationName }}</p>
           </div>
 
+          <button
+            type="button"
+            class="create-game__locate"
+            :disabled="isLocating"
+            @click="useMyLocation"
+          >
+            <ion-spinner v-if="isLocating" name="crescent" />
+            <ion-icon v-else :icon="navigateOutline" aria-hidden="true" />
+            {{ isLocating ? 'Finding your location…' : 'Use my current location' }}
+          </button>
+          <p v-if="locateError" class="create-game__error" role="alert">{{ locateError }}</p>
+
           <LocationMapPicker
             class="create-game__map"
             :center="mapCenter"
@@ -342,13 +354,14 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { IonContent, IonFooter, IonIcon, IonPage, IonSpinner, onIonViewDidLeave, onIonViewWillEnter } from '@ionic/vue';
-import { locationOutline, searchOutline } from 'ionicons/icons';
+import { locationOutline, navigateOutline, searchOutline } from 'ionicons/icons';
 import GameDateField from '@/components/games/GameDateField.vue';
 import GamePreviewCard from '@/components/games/GamePreviewCard.vue';
 import LocationPickerModal from '@/components/feed/LocationPickerModal.vue';
 import LocationMapPicker from '@/components/map/LocationMapPicker.vue';
-import { PHOTON_MIN_QUERY, searchPhoton, type PhotonPlace } from '@/services/photon.service';
-import { LOCATION_PICKER_CENTER } from '@/utils/location-picker';
+import { PHOTON_MIN_QUERY, reversePhoton, searchPhoton, type PhotonPlace } from '@/services/photon.service';
+import { getCurrentLocation } from '@/services/location.service';
+import { LOCATION_PICKER_CENTER, describeLocationPickerFailure } from '@/utils/location-picker';
 import SubPageHeader from '@/components/layout/SubPageHeader.vue';
 import { useClubsStore } from '@/stores/clubs';
 import { useGamesStore } from '@/stores/games';
@@ -571,6 +584,37 @@ function onPlaceBlur(): void {
   touch('locationName');
 }
 
+/* "Use my current location": GPS point, named by Photon when a place is nearby. */
+const isLocating = ref(false);
+const locateError = ref<string | null>(null);
+let locateVersion = 0;
+
+async function useMyLocation(): Promise<void> {
+  if (isLocating.value) return;
+  const version = ++locateVersion;
+  isLocating.value = true;
+  locateError.value = null;
+  try {
+    const result = await getCurrentLocation(undefined, { precise: true });
+    if (version !== locateVersion) return;
+    if (!result.ok) {
+      locateError.value = describeLocationPickerFailure(result.reason);
+      return;
+    }
+    const place = await reversePhoton(result.point).catch(() => null);
+    if (version !== locateVersion) return;
+    const area = place?.detail.split(', ')[0];
+    const name = place ? (area ? `${place.name}, ${area}` : place.name) : 'Current location';
+    applyGameLocation({ name: name.slice(0, GAME_LOCATION_MAX), ...result.point });
+    placeFocused.value = false;
+    placeResults.value = [];
+  } catch {
+    if (version === locateVersion) locateError.value = describeLocationPickerFailure('UNAVAILABLE');
+  } finally {
+    if (version === locateVersion) isLocating.value = false;
+  }
+}
+
 /** Tapping the map or dragging the pin keeps the name and moves the coordinates. */
 function onMapPoint(point: { latitude: number; longitude: number }): void {
   form.value.latitude = point.latitude.toFixed(6);
@@ -580,6 +624,7 @@ function onMapPoint(point: { latitude: number; longitude: number }): void {
 }
 
 onBeforeUnmount(() => {
+  locateVersion++;
   if (placeTimer) clearTimeout(placeTimer);
   placeAbort?.abort();
 });
@@ -994,6 +1039,43 @@ textarea.create-game__input {
 
 .create-game__map {
   margin-top: 4px;
+}
+
+.create-game__locate {
+  display: inline-flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--ion-color-primary);
+  border-radius: 999px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  transition: transform 0.15s, opacity 0.2s;
+}
+
+.create-game__locate:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.create-game__locate:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.create-game__locate ion-icon {
+  font-size: 1.15rem;
+}
+
+.create-game__locate ion-spinner {
+  width: 18px;
+  height: 18px;
 }
 
 @keyframes create-game-drop {

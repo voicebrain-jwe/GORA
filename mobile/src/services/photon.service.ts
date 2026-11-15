@@ -42,6 +42,20 @@ export async function searchPhoton(
   return toPlaces(body.features ?? []);
 }
 
+/** The nearest named place to a point (Photon /reverse), or null when nothing is close. */
+export async function reversePhoton(point: MapPoint, signal?: AbortSignal): Promise<PhotonPlace | null> {
+  const params = new URLSearchParams({
+    lat: point.latitude.toFixed(6),
+    lon: point.longitude.toFixed(6),
+    limit: '1',
+    lang: 'en',
+  });
+  const response = await fetch(`${PHOTON_URL.replace(/\/api\/?$/, '/reverse')}?${params}`, { signal });
+  if (!response.ok) throw new Error(`Photon reverse lookup failed (${response.status}).`);
+  const body = (await response.json()) as { features?: PhotonFeature[] };
+  return toPlaces(body.features ?? [])[0] ?? null;
+}
+
 export function toPlaces(features: readonly PhotonFeature[]): PhotonPlace[] {
   const seen = new Set<string>();
   const places: PhotonPlace[] = [];

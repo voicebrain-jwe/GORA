@@ -1,5 +1,7 @@
-import { describe, expect, test } from 'vitest';
-import { toPlaces } from '@/services/photon.service';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+import { reversePhoton, toPlaces } from '@/services/photon.service';
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe('Photon place results', () => {
   test('names a place and lists where it is', () => {
@@ -21,5 +23,17 @@ describe('Photon place results', () => {
 
     expect(places).toHaveLength(1);
     expect(places[0]).toMatchObject({ name: 'Rizal Ave 12', detail: 'Manila' });
+  });
+
+  test('names the current location from the nearest place', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ features: [{ geometry: { coordinates: [121.0239, 14.5556] }, properties: { name: 'Ayala Triangle Gardens', city: 'Makati' } }] })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const place = await reversePhoton({ latitude: 14.5556, longitude: 121.0239 });
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/reverse?lat=14.555600&lon=121.023900');
+    expect(place).toMatchObject({ name: 'Ayala Triangle Gardens', detail: 'Makati' });
   });
 });

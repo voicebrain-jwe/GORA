@@ -217,6 +217,21 @@
             <p v-if="shown('locationName')" class="create-game__error">{{ errors.locationName }}</p>
           </div>
 
+          <div class="create-game__field" @focusout="touch('locationDetails')">
+            <label class="create-game__label" for="game-location-details">
+              Location details <span>Optional · {{ form.locationDetails.length }}/{{ GAME_LOCATION_DETAILS_MAX }}</span>
+            </label>
+            <input
+              id="game-location-details"
+              v-model="form.locationDetails"
+              class="create-game__input"
+              :maxlength="GAME_LOCATION_DETAILS_MAX"
+              placeholder="e.g. Beside SM Mall, the covered court near the parking"
+              autocomplete="off"
+            />
+            <p v-if="shown('locationDetails')" class="create-game__error">{{ errors.locationDetails }}</p>
+          </div>
+
           <button
             type="button"
             class="create-game__locate"
@@ -300,6 +315,7 @@
               <button type="button" aria-label="Edit location" @click="goToStep(3)">Edit</button>
             </div>
             <p>{{ form.locationName.trim() }}</p>
+            <p v-if="form.locationDetails.trim()" class="create-game__review-note">{{ form.locationDetails.trim() }}</p>
             <p v-if="String(form.latitude).trim() && String(form.longitude).trim()">
               {{ form.latitude }}, {{ form.longitude }}
             </p>
@@ -372,6 +388,7 @@ import { isServerClubId } from '@/utils/club-chat';
 import { isValidPoint } from '@/utils/location-map';
 import {
   GAME_DESCRIPTION_MAX,
+  GAME_LOCATION_DETAILS_MAX,
   GAME_LOCATION_MAX,
   GAME_PLAYERS_MAX,
   GAME_TITLE_MAX,
@@ -433,7 +450,7 @@ const GAME_STEPS: readonly { title: string; hint: string; fields: readonly GameF
   {
     title: 'Location',
     hint: 'Tell players where the game will happen.',
-    fields: ['locationName', 'latitude', 'longitude'],
+    fields: ['locationName', 'locationDetails', 'latitude', 'longitude'],
   },
   { title: 'Review', hint: 'Check your game before confirming. You can edit any section.', fields: [] },
 ];
@@ -1039,6 +1056,11 @@ textarea.create-game__input {
 
 .create-game__map {
   margin-top: 4px;
+}
+
+.create-game__review-note {
+  color: var(--gora-muted);
+  font-style: italic;
 }
 
 .create-game__locate {

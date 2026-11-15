@@ -93,6 +93,7 @@ const GAME_BASE_SELECT = {
   endTime: true,
   registrationClosesAt: true,
   locationName: true,
+  locationDetails: true,
   latitude: true,
   longitude: true,
   status: true,
@@ -180,6 +181,7 @@ export class GamesService {
             ? toGameDateTime(dto.registrationClosesAt.slice(0, 10), dto.registrationClosesAt.slice(11, 16))
             : null,
           locationName: dto.locationName,
+          locationDetails: dto.locationDetails ?? null,
           latitude,
           longitude,
           status: 'OPEN',
@@ -326,6 +328,7 @@ export class GamesService {
     if (dto.title !== undefined) data.title = dto.title;
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.locationName !== undefined) data.locationName = dto.locationName;
+    if (dto.locationDetails !== undefined) data.locationDetails = dto.locationDetails;
     if (dto.requiredPlayers !== undefined) {
       data.requiredPlayers = dto.requiredPlayers;
     }
@@ -710,6 +713,7 @@ function toGameView(game: GameRow, viewerId: string): GameView {
     endTime: game.endTime ? formatGameTime(game.endTime) : null,
     registrationClosesAt: game.registrationClosesAt ? formatGameLocalDateTime(game.registrationClosesAt) : null,
     locationName: game.locationName,
+    locationDetails: game.locationDetails,
     latitude: game.latitude,
     longitude: game.longitude,
     isHost,

@@ -126,6 +126,8 @@ describe('game form rules', () => {
       startTime: '18:00',
       endTime: '20:00',
       locationName: 'BGC Court',
+      locationDetails: null,
+      registrationClosesAt: null,
       latitude: 14.55,
       longitude: 121.05,
     });

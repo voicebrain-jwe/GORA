@@ -90,6 +90,8 @@ export interface ApiGame {
   /** Venue-local cutoff as YYYY-MM-DDTHH:mm; null means game start. */
   registrationClosesAt: string | null;
   locationName: string;
+  /** Optional landmark or directions, e.g. "Beside SM City". */
+  locationDetails?: string | null;
   latitude: number | null;
   longitude: number | null;
   isHost: boolean;
@@ -116,6 +118,7 @@ export interface CreateGameInput {
   endTime: string;
   registrationClosesAt: string | null;
   locationName: string;
+  locationDetails: string | null;
   latitude: number | null;
   longitude: number | null;
 }

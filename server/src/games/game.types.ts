@@ -59,6 +59,8 @@ export interface GameView {
   /** Venue-local cutoff, formatted YYYY-MM-DDTHH:mm; null means game start. */
   registrationClosesAt: string | null;
   locationName: string;
+  /** Optional landmark or directions. */
+  locationDetails: string | null;
   latitude: number | null;
   longitude: number | null;
   isHost: boolean;

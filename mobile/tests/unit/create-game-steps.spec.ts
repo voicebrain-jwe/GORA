@@ -198,6 +198,7 @@ describe('Create Game steps', () => {
       startTime: '18:00',
       endTime: '20:00',
       locationName: 'BGC Court',
+      locationDetails: null,
       latitude: 14.5,
       longitude: 121,
     });

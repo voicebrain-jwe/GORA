@@ -163,6 +163,8 @@ model Game {
   endTime         DateTime?
   registrationClosesAt DateTime?
   locationName    String
+  /// Optional landmark / directions, e.g. "Beside SM City, near the parking".
+  locationDetails String?
   latitude        Float?
   longitude       Float?
   status          GameStatus        @default(OPEN)

@@ -14,6 +14,7 @@ export const GAME_TITLE_MAX = 80;
 export const GAME_DESCRIPTION_MAX = 500;
 export const GAME_LOCATION_MIN = 2;
 export const GAME_LOCATION_MAX = 120;
+export const GAME_LOCATION_DETAILS_MAX = 200;
 export const GAME_PLAYERS_MAX = 100;
 export const GAME_MAX_DAYS_AHEAD = 365;
 
@@ -53,6 +54,8 @@ export interface GameForm {
   endTime: string;
   registrationClosesAt: string;
   locationName: string;
+  /** Optional landmark or directions. */
+  locationDetails: string;
   latitude: number | string;
   longitude: number | string;
 }
@@ -86,6 +89,7 @@ export function emptyGameForm(): GameForm {
     endTime: '',
     registrationClosesAt: '',
     locationName: '',
+    locationDetails: '',
     latitude: '',
     longitude: '',
   };
@@ -104,6 +108,7 @@ export function gameToForm(game: ApiGame): GameForm {
     endTime: game.endTime ?? '',
     registrationClosesAt: game.registrationClosesAt ?? '',
     locationName: game.locationName,
+    locationDetails: game.locationDetails ?? '',
     latitude: game.latitude ?? '',
     longitude: game.longitude ?? '',
   };
@@ -187,6 +192,10 @@ export function validateGameForm(form: GameForm, now: LocalMoment, original?: Ap
     errors.locationName = `Location must be at least ${GAME_LOCATION_MIN} characters.`;
   } else if (location.length > GAME_LOCATION_MAX) {
     errors.locationName = `Location must be at most ${GAME_LOCATION_MAX} characters.`;
+  }
+
+  if (form.locationDetails.trim().length > GAME_LOCATION_DETAILS_MAX) {
+    errors.locationDetails = `Location details must be at most ${GAME_LOCATION_DETAILS_MAX} characters.`;
   }
 
   Object.assign(errors, scheduleErrors(form, now, original));
@@ -291,6 +300,7 @@ export function toCreateGameInput(form: GameForm): CreateGameInput {
     endTime: form.endTime,
     registrationClosesAt: form.registrationClosesAt || null,
     locationName: form.locationName.trim(),
+    locationDetails: form.locationDetails.trim() || null,
     latitude: parseCoordinate(form.latitude),
     longitude: parseCoordinate(form.longitude),
   };
@@ -308,6 +318,7 @@ export function diffGameInput(game: ApiGame, input: CreateGameInput): UpdateGame
   if (input.description !== current.description) changes.description = input.description;
   if (input.requiredPlayers !== current.requiredPlayers) changes.requiredPlayers = input.requiredPlayers;
   if (input.locationName !== current.locationName) changes.locationName = input.locationName;
+  if (input.locationDetails !== current.locationDetails) changes.locationDetails = input.locationDetails;
   if (input.registrationClosesAt !== current.registrationClosesAt) {
     changes.registrationClosesAt = input.registrationClosesAt;
   }

@@ -33,6 +33,7 @@ export const GAME_TITLE_MAX_LENGTH = 80;
 export const GAME_DESCRIPTION_MAX_LENGTH = 500;
 export const GAME_LOCATION_MIN_LENGTH = 2;
 export const GAME_LOCATION_MAX_LENGTH = 120;
+export const GAME_LOCATION_DETAILS_MAX_LENGTH = 200;
 export const GAME_MAX_PLAYERS = 100;
 export const GAME_LIST_MAX_LIMIT = 50;
 export const GAME_LIST_DEFAULT_LIMIT = 20;
@@ -103,6 +104,16 @@ const DescriptionRules = () =>
     IsString({ message: 'Description must be text.' }),
     MaxLength(GAME_DESCRIPTION_MAX_LENGTH, {
       message: `Description must be at most ${GAME_DESCRIPTION_MAX_LENGTH} characters.`,
+    }),
+  );
+
+const LocationDetailsRules = () =>
+  applyDecorators(
+    Transform(trimToNull),
+    IsOptional(),
+    IsString({ message: 'Location details must be text.' }),
+    MaxLength(GAME_LOCATION_DETAILS_MAX_LENGTH, {
+      message: `Location details must be at most ${GAME_LOCATION_DETAILS_MAX_LENGTH} characters.`,
     }),
   );
 
@@ -205,6 +216,10 @@ export class CreateGameDto {
   @LocationRules()
   locationName!: string;
 
+  /** Optional landmark or directions, e.g. "Beside SM City". */
+  @LocationDetailsRules()
+  locationDetails?: string | null;
+
   @OptionalCoordinate('Latitude', 90)
   latitude?: number | null;
 
@@ -260,6 +275,10 @@ export class UpdateGameDto {
   @whenPresent()
   @LocationRules()
   locationName?: string;
+
+  /** null or "" clears the details. */
+  @LocationDetailsRules()
+  locationDetails?: string | null;
 
   @OptionalCoordinate('Latitude', 90)
   latitude?: number | null;

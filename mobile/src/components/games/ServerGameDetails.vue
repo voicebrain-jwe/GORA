@@ -76,6 +76,7 @@
             <span class="sg-place__text">
               <small>Location</small>
               <strong>{{ game.locationName }}</strong>
+              <em v-if="game.locationDetails" class="sg-place__details">{{ game.locationDetails }}</em>
             </span>
             <span v-if="mapPath" class="sg-place__go">
               Map <ion-icon :icon="chevronForward" aria-hidden="true" />
@@ -906,6 +907,17 @@ async function confirmCancelRequest(): Promise<void> {
   padding: 14px 16px;
   color: var(--ion-text-color);
   text-decoration: none;
+}
+
+.sg-place__details {
+  color: var(--gora-muted);
+  font-size: 0.8rem;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.sg-place__details::before {
+  content: '📍 ';
 }
 
 .sg-place__go {

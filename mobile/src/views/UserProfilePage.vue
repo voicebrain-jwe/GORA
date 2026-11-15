@@ -114,6 +114,22 @@
             <p class="user-profile__note">Only what you're allowed to see is counted.</p>
           </section>
 
+          <section v-if="apiProfile" class="user-profile__card" aria-labelledby="user-profile-highlights">
+            <div class="user-profile__card-head">
+              <h2 id="user-profile-highlights" class="user-profile__title">Highlights &amp; reels</h2>
+              <span v-if="profileReels.length" class="user-profile__count-chip">{{ profileReels.length }}</span>
+            </div>
+            <p v-if="profileReelsError" class="user-profile__empty" role="alert">
+              {{ profileReelsError }}
+              <button type="button" class="user-profile__retry" @click="loadProfileReels">Try again</button>
+            </p>
+            <div v-else-if="loadingProfileReels && profileReels.length === 0" class="user-profile__empty" aria-busy="true">
+              <ion-spinner name="crescent" />
+            </div>
+            <p v-else-if="profileReels.length === 0" class="user-profile__empty">No reels you can see yet.</p>
+            <HighlightGrid v-else :highlights="profileHighlights" />
+          </section>
+
           <section v-if="apiProfile?.sections" class="user-profile__posts" aria-label="Posts">
             <SectionHeader title="Posts" />
             <p v-if="profilePostsError" class="user-profile__empty" role="alert">{{ profilePostsError }}</p>
@@ -215,6 +231,10 @@ import ProfileHeader from '@/components/profile/ProfileHeader.vue';
 import ReportUserModal from '@/components/profile/ReportUserModal.vue';
 import SportList from '@/components/profile/SportList.vue';
 import ReelThumb from '@/components/reels/ReelThumb.vue';
+import HighlightGrid from '@/components/profile/HighlightGrid.vue';
+import { listUserReels } from '@/services/reels-api.service';
+import { toHighlight, toReel } from '@/utils/media-api';
+import type { Reel } from '@/types/reel';
 import { useNow } from '@/composables/useNow';
 import { usePostActions } from '@/composables/usePostActions';
 import { fetchPublicProfile, setFollowing } from '@/services/profile.service';
@@ -332,6 +352,30 @@ async function loadProfilePosts(more = false): Promise<void> {
     if (isCurrent()) loadingProfilePosts.value = false;
   }
 }
+/** Their reels you're allowed to see (GET /users/:username/reels), shown as playable highlights. */
+const profileReels = ref<Reel[]>([]);
+const profileHighlights = computed(() => profileReels.value.map(toHighlight));
+const profileReelsError = ref<string | null>(null);
+const loadingProfileReels = ref(false);
+
+async function loadProfileReels(): Promise<void> {
+  if (!auth.accessToken || loadingProfileReels.value) return;
+  const isCurrent = captureSession(auth);
+  loadingProfileReels.value = true;
+  profileReelsError.value = null;
+  try {
+    const page = await createAuthorizedCall(auth)((token) => listUserReels(token, pageUsername));
+    if (!isCurrent()) return;
+    profileReels.value = page.reels.map(toReel);
+  } catch (caught) {
+    if (!isCurrent()) return;
+    profileReels.value = [];
+    profileReelsError.value = describeApiError(caught, 'Could not load these reels.');
+  } finally {
+    if (isCurrent()) loadingProfileReels.value = false;
+  }
+}
+
 /** A sample user from the demo feeds, used only when the API has no such account. */
 const demoProfile = ref<PublicProfile | null>(null);
 const isLoading = ref(true);
@@ -343,6 +387,7 @@ watch(
   () => {
     apiProfile.value = null;
     apiPostIds.value = [];
+    profileReels.value = [];
     demoProfile.value = null;
     loadingProfilePosts.value = false;
     loadError.value = null;
@@ -693,6 +738,7 @@ async function changeFriendship(action: Exclude<ProfileAction, 'MESSAGE'>): Prom
   }
   const result = await profileStore.fetchProfile(pageUsername);
   if (result.status === 'found' && !result.profile.isOwnProfile) apiProfile.value = result.profile;
+  void loadProfileReels();
   await loadProfilePosts();
 }
 
@@ -740,6 +786,7 @@ async function loadProfile(): Promise<void> {
       }
 
       apiProfile.value = result.profile;
+      void loadProfileReels();
       await loadProfilePosts();
       return;
     }
@@ -960,6 +1007,37 @@ onMounted(() => {
   margin: 14px 0 0;
   padding: 0;
   list-style: none;
+}
+
+.user-profile__card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.user-profile__card-head .user-profile__title {
+  margin: 0;
+}
+
+.user-profile__count-chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.user-profile__retry {
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ion-color-primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
 }
 
 .user-profile__reels {

@@ -1029,8 +1029,33 @@ async function confirmCancelRequest(): Promise<void> {
   font-weight: 600;
 }
 
-.server-game__requests {
+.server-game__requests.server-game__requests {
   display: block;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 20px;
+  background: var(--gora-surface);
+}
+
+/* Host request cards: headings match the other card titles. */
+.server-game__requests :deep(.section-header),
+.server-game__requests :deep(header) {
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.server-game__requests :deep(h2) {
+  margin: 0;
+  color: var(--ion-text-color);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.server-game__requests :deep(p) {
+  font-size: 0.8rem;
 }
 
 /* ───────── Actions (sticky on phones) ───────── */

@@ -229,3 +229,15 @@
   background: var(--gora-surface);
   color: var(--ion-text-color);
 }
+
+/* Feed comment sheet (PostCommentsSheet). */
+ion-modal.post-comments-modal {
+  --border-radius: 20px;
+  --background: var(--gora-surface);
+}
+
+@media (min-width: 768px) {
+  ion-modal.post-comments-modal {
+    --width: 560px;
+  }
+}

@@ -2,7 +2,8 @@ import { usePostsStore } from '@/stores/posts';
 import type { FeedPost } from '@/types/post';
 import { showNotice } from '@/utils/notice';
 import { useRouter } from 'vue-router';
-import { actionSheetController, alertController } from '@ionic/vue';
+import { actionSheetController, alertController, modalController } from '@ionic/vue';
+import PostCommentsSheet from '@/components/feed/PostCommentsSheet.vue';
 import { chatbubblesOutline, createOutline } from 'ionicons/icons';
 import { copyPostLink } from '@/utils/post-share';
 import { useAuthStore } from '@/stores/auth';
@@ -26,7 +27,18 @@ export function usePostActions() {
       void showNotice('Open a saved post to join the conversation.');
       return;
     }
-    void router.push(`/posts/${encodeURIComponent(post.id)}#comments`);
+    // A bottom sheet keeps the reader in the feed, like Facebook.
+    void (async () => {
+      const sheet = await modalController.create({
+        component: PostCommentsSheet,
+        componentProps: { postId: post.id, postAuthorId: post.author.id, initialCount: post.comments },
+        breakpoints: [0, 0.75, 1],
+        initialBreakpoint: 0.75,
+        handle: false,
+        cssClass: 'post-comments-modal',
+      });
+      await sheet.present();
+    })();
   }
 
   async function sharePost(post: FeedPost): Promise<void> {

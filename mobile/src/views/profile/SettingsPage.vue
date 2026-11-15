@@ -29,6 +29,10 @@
         <section class="settings-group">
           <h2 class="settings-group__title">Account</h2>
           <ion-list class="settings-list" lines="inset">
+            <ion-item button :detail="true" @click="openAccountSettings">
+              <span slot="start" class="settings-icon settings-icon--admin"><ion-icon :icon="keyOutline" aria-hidden="true" /></span>
+              <ion-label>Account &amp; security<p>Email, password, and phone number</p></ion-label>
+            </ion-item>
             <ion-item router-link="/profile/edit" :detail="true">
               <span slot="start" class="settings-icon"><ion-icon :icon="personOutline" aria-hidden="true" /></span>
               <ion-label>Edit Profile<p>Name, photo, bio, and city</p></ion-label>
@@ -284,6 +288,7 @@ import {
   cameraReverseOutline,
   colorPaletteOutline,
   helpCircleOutline,
+  keyOutline,
   languageOutline,
   locationOutline,
   lockClosedOutline,
@@ -324,7 +329,7 @@ const SETTINGS_ITEMS = [
   { id: 'notifications', label: 'Notification Settings', summary: 'Choose what updates you receive', icon: notificationsOutline },
   { id: 'privacy', label: 'Privacy', summary: 'Control who can view your profile', icon: lockClosedOutline },
   { id: 'location', label: 'Location & Distance', summary: 'Set your nearby games search preferences', icon: locationOutline },
-  { id: 'more', label: 'More Settings', summary: 'Language, display, and account options', icon: colorPaletteOutline },
+  { id: 'more', label: 'More Settings', summary: 'Language, display, and camera', icon: colorPaletteOutline },
 ] as const;
 const DISTANCE_OPTIONS = DISTANCE_FILTERS.filter((distance): distance is Exclude<typeof distance, null> => distance !== null);
 
@@ -383,6 +388,12 @@ async function enableDeviceAlerts(): Promise<void> {
   } else if (notificationPermission.value === 'denied') {
     await showNotice('Device alerts were not allowed. You can enable them later in settings.');
   }
+}
+
+/** Account & security opens straight to email, password, and phone. */
+function openAccountSettings(): void {
+  activeSetting.value = 'more';
+  void openAccount();
 }
 
 async function openAccount(): Promise<void> {

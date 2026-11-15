@@ -434,6 +434,16 @@ describe('Nearby GORA Games', () => {
 });
 
 describe('GameDiscoveryMap', () => {
+  test('counts an OPEN game on the map as one upcoming game, not zero active games', () => {
+    const wrapper = mount(GameDiscoveryMap, {
+      props: { games: [game({ status: 'OPEN' })], center: HERE, radiusKm: null, selectedGameId: null },
+      global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+    });
+    expect(wrapper.get('.discovery-map__summary').text()).toContain('1 game');
+    expect(wrapper.get('.discovery-map__summary').text()).toContain('1 upcoming');
+    expect(wrapper.text()).not.toContain('0 active');
+    wrapper.unmount();
+  });
   test('several sports at one place share a marker and switch in the preview', async () => {
     const volleyball = game();
     const basketball = game({

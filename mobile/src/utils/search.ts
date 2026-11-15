@@ -83,7 +83,7 @@ export function matchesSearchQuery(query: string, ...fields: string[]): boolean 
 export function searchCatalog(catalog: SearchCatalog, options: SearchOptions): SearchResults {
   const sport = options.sport ?? null;
   const matches = (...fields: string[]): boolean => matchesSearchQuery(options.query, ...fields);
-  const isNear = (distanceKm: number): boolean => isWithinDistance(distanceKm, options.maxDistanceKm);
+  const isNear = (distanceKm: number | null): boolean => isWithinDistance(distanceKm, options.maxDistanceKm);
   const wants = (category: SearchCategory): boolean =>
     options.category === 'ALL' || options.category === category;
 

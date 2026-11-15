@@ -5,7 +5,7 @@
       <span class="player-row__text">
         <strong>{{ player.displayName }}</strong>
         <span v-if="isServerId(player.id)">@{{ player.username }}{{ player.city ? ` · ${player.city}` : '' }}</span>
-        <span v-else>{{ player.primarySport }} · {{ player.city }} · {{ formatDistanceKm(player.distanceKm) }}</span>
+        <span v-else>{{ player.primarySport }} · {{ player.city }}<template v-if="player.distanceKm !== null"> · {{ formatDistanceKm(player.distanceKm) }}</template></span>
       </span>
       <span v-if="!isServerId(player.id)" class="player-row__meta"
         >{{ formatCompactNumber(player.followers) }} followers</span

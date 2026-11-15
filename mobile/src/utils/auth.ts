@@ -93,7 +93,9 @@ export function validateRegisterInput(raw: RegisterInput): FieldErrors<RegisterF
 export function validateLoginInput(raw: LoginInput): FieldErrors<LoginField> {
   const input = normalizeLoginInput(raw);
   const errors: FieldErrors<LoginField> = {};
-  const emailError = validateEmail(input.email);
+  const emailError = !input.email ? 'Email or username is required.'
+    : input.email.includes('@') ? validateEmail(input.email)
+    : USERNAME_PATTERN.test(input.email) ? null : 'Enter a valid email or username.';
 
   if (emailError) {
     errors.email = emailError;

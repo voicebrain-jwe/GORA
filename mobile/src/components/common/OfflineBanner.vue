@@ -1,7 +1,7 @@
 <template>
   <!-- Phone app: a full screen with Reload and Exit. -->
   <div
-    v-if="offline && isNative"
+    v-if="offline && isNative && !auth.isAuthenticated"
     class="offline-screen"
     role="alertdialog"
     aria-modal="true"
@@ -41,7 +41,9 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { IonIcon } from '@ionic/vue';
 import { cloudOfflineOutline, exitOutline, refreshOutline } from 'ionicons/icons';
+import { useAuthStore } from '@/stores/auth';
 
+const auth = useAuthStore();
 const isNative = Capacitor.isNativePlatform();
 /** iOS does not allow apps to close themselves. */
 const canExit = isNative && Capacitor.getPlatform() === 'android';

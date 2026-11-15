@@ -87,7 +87,7 @@ describe('auth form validation', () => {
   test('login needs a valid email and a password', () => {
     expect(validateLoginInput({ email: 'louis@example.com', password: 'x' })).toEqual({});
     expect(validateLoginInput({ email: '', password: '' })).toEqual({
-      email: 'Email is required.',
+      email: 'Email or username is required.',
       password: 'Password is required.',
     });
   });

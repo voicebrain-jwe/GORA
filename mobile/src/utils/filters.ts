@@ -8,8 +8,8 @@ export interface FeedFilters {
 
 export const NO_FILTERS: FeedFilters = { maxDistanceKm: null, sport: null };
 
-export function isWithinDistance(distanceKm: number, maxDistanceKm: DistanceFilter): boolean {
-  return maxDistanceKm === null || distanceKm <= maxDistanceKm;
+export function isWithinDistance(distanceKm: number | null, maxDistanceKm: DistanceFilter): boolean {
+  return maxDistanceKm === null || (distanceKm !== null && distanceKm <= maxDistanceKm);
 }
 
 export function matchesSport(sports: string | readonly string[], sport: string | null): boolean {

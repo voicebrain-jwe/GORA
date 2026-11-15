@@ -19,7 +19,7 @@
     >
       <span v-for="symbol in marker.symbols" :key="symbol" aria-hidden="true">{{ symbol }}</span>
       <span v-if="marker.gameCount > 1" class="map-canvas__count" aria-hidden="true">{{ marker.gameCount }}</span>
-      <span v-if="marker.activeCount" class="map-canvas__status map-canvas__status--active">{{ marker.activeCount }} Active</span>
+      <span v-if="marker.activeCount" class="map-canvas__status map-canvas__status--active">{{ marker.activeCount }} Live now</span>
       <span v-if="marker.upcomingCount" class="map-canvas__status map-canvas__status--upcoming">{{ marker.upcomingCount }} Upcoming</span>
     </button>
   </div>
@@ -50,7 +50,7 @@ function positionOf(marker: MapMarker): Record<string, string> {
 
 function markerLabel(marker: MapMarker): string {
   const games = marker.gameCount === 1 ? '1 game' : `${marker.gameCount} games`;
-  return `${marker.label}: ${games}; ${marker.activeCount} active, ${marker.upcomingCount} upcoming`;
+  return `${marker.label}: ${games}${marker.activeCount ? `; ${marker.activeCount} live now` : ''}; ${marker.upcomingCount} upcoming`;
 }
 </script>
 

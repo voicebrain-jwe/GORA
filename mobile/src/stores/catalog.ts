@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import {
   fetchActivities,
   fetchFriends,
@@ -10,6 +10,8 @@ import type { FeedActivity } from '@/types/feed';
 import type { PlayerSummary } from '@/types/player';
 import type { SportCategory, SportsLocation } from '@/types/sport';
 import { useSportsStore } from './sports';
+import { useAuthStore } from './auth';
+import { captureSession, createAuthorizedCall } from './authorized';
 
 export const useCatalogStore = defineStore('catalog', () => {
   const players = ref<PlayerSummary[]>([]);
@@ -19,6 +21,12 @@ export const useCatalogStore = defineStore('catalog', () => {
   const friends = ref<PlayerSummary[]>([]);
   const isLoaded = ref(false);
   const sportsApi = useSportsStore();
+  const auth = useAuthStore();
+  const authorized = createAuthorizedCall(auth);
+  watch([() => auth.sessionVersion, () => auth.accessToken], () => {
+    players.value = []; sports.value = []; locations.value = [];
+    activities.value = []; friends.value = []; isLoaded.value = false;
+  });
 
   function syncSports(): void {
     sports.value = sportsApi.activeSports.map((sport) => {
@@ -45,13 +53,15 @@ export const useCatalogStore = defineStore('catalog', () => {
       return;
     }
 
+    const isCurrent = captureSession(auth);
     const [loadedPlayers, sportsResult, loadedLocations, loadedActivities, loadedFriends] = await Promise.all([
-      fetchPlayers(),
+      auth.accessToken ? authorized(fetchPlayers).catch(() => []) : Promise.resolve([]),
       sportsApi.fetchSports(),
       fetchLocations(),
       fetchActivities(),
       fetchFriends(),
     ]);
+    if (!isCurrent()) return;
     players.value = loadedPlayers;
     locations.value = loadedLocations;
     activities.value = loadedActivities;
@@ -60,5 +70,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     isLoaded.value = sportsResult.ok;
   }
 
-  return { players, sports, locations, activities, friends, isLoaded, load, refreshSports };
+  async function refresh(): Promise<void> { isLoaded.value = false; await load(); }
+  return { players, sports, locations, activities, friends, isLoaded, load, refreshSports, refresh };
 });

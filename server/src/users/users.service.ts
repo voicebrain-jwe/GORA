@@ -33,7 +33,8 @@ export class UsersService {
 
   findCredentialsByEmail(email: string): Promise<UserCredentials | null> {
     return this.prisma.user.findUnique({
-      where: { email },
+      // Retain the existing login API field while accepting a username too.
+      where: email.includes('@') ? { email } : { username: email },
       select: { ...SAFE_USER_SELECT, passwordHash: true, isActive: true },
     });
   }

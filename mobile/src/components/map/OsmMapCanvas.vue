@@ -52,7 +52,7 @@ function placeIcon(item: MapMarker) {
   }
   const count = item.gameCount > 1 ? `<span class="osm-map-marker__count">${item.gameCount}</span>` : '';
   const statuses = [
-    item.activeCount ? `<span class="osm-map-marker__status osm-map-marker__status--active">${item.activeCount} Active</span>` : '',
+    item.activeCount ? `<span class="osm-map-marker__status osm-map-marker__status--active">${item.activeCount} Live now</span>` : '',
     item.upcomingCount ? `<span class="osm-map-marker__status osm-map-marker__status--upcoming">${item.upcomingCount} Upcoming</span>` : '',
   ].join('');
   const selected = item.key === props.selectedKey ? ' osm-map-marker--selected' : '';
@@ -75,7 +75,7 @@ function renderMarkers(): void {
   placeMarkers = props.markers.map((item) => {
     const pin = marker([item.latitude, item.longitude], {
       icon: placeIcon(item),
-      title: `${item.label}: ${item.gameCount} ${item.gameCount === 1 ? 'game' : 'games'}; ${item.activeCount} active, ${item.upcomingCount} upcoming`,
+        title: `${item.label}: ${item.gameCount} ${item.gameCount === 1 ? 'game' : 'games'}${item.activeCount ? `; ${item.activeCount} live now` : ''}; ${item.upcomingCount} upcoming`,
       keyboard: true,
       zIndexOffset: item.key === props.selectedKey ? 1000 : 0,
     }).addTo(map!);

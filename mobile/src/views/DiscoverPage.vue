@@ -344,7 +344,7 @@ async function refreshDiscoverData(): Promise<void> {
   await session.load();
   await Promise.all([
     ranking.load(true),
-    catalog.refreshSports(),
+    catalog.refresh(),
     gamesStore.refreshFeedGames(),
     reelsStore.refresh(),
     postsStore.refresh(),

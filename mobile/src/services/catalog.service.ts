@@ -1,18 +1,15 @@
 import type { FeedActivity } from '@/types/feed';
 import type { PlayerSummary } from '@/types/player';
 import type { SportsLocation } from '@/types/sport';
-import { mockLocations } from './mock/mock-catalog';
+import { apiRequest } from './api-client';
 
-export async function fetchPlayers(): Promise<PlayerSummary[]> {
-  // Real accounts are loaded through the authenticated player search API.
-  return [];
+export async function fetchPlayers(token: string): Promise<PlayerSummary[]> {
+  return apiRequest('/profiles/discover/players', { token });
 }
 
 export async function fetchLocations(): Promise<SportsLocation[]> {
-  const hiddenLocationIds = new Set(['loc-qmc', 'loc-ultra']);
-  return mockLocations
-    .filter((location) => !hiddenLocationIds.has(location.id))
-    .map((location) => ({ ...location }));
+  // Game locations come from /games/discover. Never invent nearby venues.
+  return [];
 }
 
 /** Game completions, joins, and badge unlocks from people the viewer follows or is friends with. */

@@ -78,10 +78,12 @@
                 <a
                   v-if="APP_DOWNLOAD_URL"
                   :href="APP_DOWNLOAD_URL"
-                  class="btn btn-link text-decoration-none text-body-secondary px-2 lp-nav-download"
+                  class="lp-nav-download"
                   download="GORA.apk"
+                  @click="onDownload"
                 >
-                  <ion-icon :icon="logoAndroid" class="me-1 align-middle" aria-hidden="true" />Download app
+                  <span class="lp-nav-download__dot" aria-hidden="true" />
+                  <ion-icon :icon="logoAndroid" aria-hidden="true" />Get the app
                 </a>
                 <router-link to="/login" class="btn btn-outline-light rounded-pill px-4">Sign in</router-link>
                 <router-link to="/register" class="btn btn-primary rounded-pill px-4 lp-btn-glow">
@@ -127,17 +129,30 @@
                       Explore games
                     </router-link>
                   </div>
+                  <div class="lp-hero__get lp-enter" style="--enter-delay: 540ms">
                   <a
                     v-if="APP_DOWNLOAD_URL"
                     :href="APP_DOWNLOAD_URL"
-                    class="lp-hero__download lp-enter"
-                    style="--enter-delay: 540ms"
+                    class="lp-dl lp-dl--glass"
+                    :class="{ 'is-started': downloadStarted }"
                     download="GORA.apk"
+                    @click="onDownload"
                   >
-                    <ion-icon :icon="logoAndroid" aria-hidden="true" />
-                    Download for Android
-                    <ion-icon :icon="downloadOutline" aria-hidden="true" />
+                    <span class="lp-dl__logo" aria-hidden="true"><ion-icon :icon="logoAndroid" /></span>
+                    <span class="lp-dl__text">
+                      <small>Get it on Android</small>
+                      <strong>{{ downloadStarted ? 'Downloading…' : 'Download the app' }}</strong>
+                    </span>
+                    <span class="lp-dl__action" aria-hidden="true">
+                      <Transition name="lp-pop" mode="out-in">
+                        <ion-icon :key="downloadStarted ? 'done' : 'go'" :icon="downloadStarted ? checkmarkOutline : downloadOutline" />
+                      </Transition>
+                    </span>
                   </a>
+                    <span class="lp-hero__get-note">
+                      <ion-icon :icon="checkmarkCircle" aria-hidden="true" /> Free · Android 7.0+ · Also works in your browser
+                    </span>
+                  </div>
                   <ul class="list-unstyled d-flex flex-wrap gap-2 mt-4 mb-0 lp-enter" style="--enter-delay: 600ms">
                     <li v-for="chip in heroChips" :key="chip.label" class="lp-chip">
                       <ion-icon :icon="chip.icon" aria-hidden="true" /> {{ chip.label }}
@@ -382,17 +397,28 @@
                     Get game alerts, chat with your crew, and go live from the court with the GORA app.
                   </p>
 
-                  <a v-if="APP_DOWNLOAD_URL" :href="APP_DOWNLOAD_URL" class="lp-store-btn" download="GORA.apk">
-                    <ion-icon :icon="logoAndroid" class="lp-store-btn__logo" aria-hidden="true" />
-                    <span class="lp-store-btn__text">
+                  <a
+                    v-if="APP_DOWNLOAD_URL"
+                    :href="APP_DOWNLOAD_URL"
+                    class="lp-dl lp-dl--solid lp-dl--lg"
+                    :class="{ 'is-started': downloadStarted }"
+                    download="GORA.apk"
+                    @click="onDownload"
+                  >
+                    <span class="lp-dl__logo" aria-hidden="true"><ion-icon :icon="logoAndroid" /></span>
+                    <span class="lp-dl__text">
                       <small>Download the APK</small>
-                      <strong>Download now</strong>
+                      <strong>{{ downloadStarted ? 'Downloading…' : 'Download now' }}</strong>
                     </span>
-                    <ion-icon :icon="downloadOutline" class="lp-store-btn__arrow" aria-hidden="true" />
+                    <span class="lp-dl__action" aria-hidden="true">
+                      <Transition name="lp-pop" mode="out-in">
+                        <ion-icon :key="downloadStarted ? 'done' : 'go'" :icon="downloadStarted ? checkmarkOutline : downloadOutline" />
+                      </Transition>
+                    </span>
                   </a>
-                  <span v-else class="lp-store-btn is-disabled" aria-disabled="true">
-                    <ion-icon :icon="logoAndroid" class="lp-store-btn__logo" aria-hidden="true" />
-                    <span class="lp-store-btn__text">
+                  <span v-else class="lp-dl lp-dl--lg is-disabled" aria-disabled="true">
+                    <span class="lp-dl__logo" aria-hidden="true"><ion-icon :icon="logoAndroid" /></span>
+                    <span class="lp-dl__text">
                       <small>GORA for Android</small>
                       <strong>Coming soon</strong>
                     </span>
@@ -414,12 +440,13 @@
 
                 <div class="lp-download__visual" aria-hidden="true">
                   <span class="lp-download__glow" />
+                  <span class="lp-download__ring" />
+                  <span class="lp-download__ring lp-download__ring--late" />
                   <div class="lp-phone">
                     <img src="/images/gora-court-small.webp" alt="" loading="lazy" decoding="async" />
                     <div class="lp-phone__shade" />
                     <div class="lp-phone__app">
-                      <img src="/favicon.png" alt="" width="64" height="64" />
-                      <strong>GORA</strong>
+                      <img src="/images/gora-app-icon.webp" alt="" width="72" height="72" />
                       <span>Find your game.</span>
                     </div>
                   </div>
@@ -468,6 +495,37 @@
           </div>
         </footer>
       </div>
+      <template v-if="!isNativeApp && APP_DOWNLOAD_URL">
+        <Transition name="lp-float">
+          <a
+            v-if="showFab"
+            slot="fixed"
+            :href="APP_DOWNLOAD_URL"
+            class="lp-fab"
+            download="GORA.apk"
+            aria-label="Download the GORA Android app"
+            @click="onDownload"
+          >
+            <ion-icon :icon="logoAndroid" aria-hidden="true" />
+            <span>Get the app</span>
+            <ion-icon :icon="downloadOutline" class="lp-fab__arrow" aria-hidden="true" />
+          </a>
+        </Transition>
+        <Transition name="lp-float">
+          <div v-if="downloadStarted" slot="fixed" class="lp-toast" role="status">
+            <span class="lp-toast__icon" aria-hidden="true"><ion-icon :icon="downloadOutline" /></span>
+            <span class="lp-toast__text">
+              <strong>Downloading GORA.apk</strong>
+              <span>When it finishes, open the file to install GORA.</span>
+            </span>
+            <button type="button" class="lp-toast__close" aria-label="Dismiss" @click="downloadStarted = false">
+              <ion-icon :icon="closeOutline" aria-hidden="true" />
+            </button>
+            <span class="lp-toast__bar" aria-hidden="true" />
+          </div>
+        </Transition>
+      </template>
+
     </ion-content>
   </ion-page>
 </template>
@@ -483,6 +541,7 @@ import {
   calendarOutline,
   chatbubblesOutline,
   checkmarkCircle,
+  checkmarkOutline,
   closeOutline,
   downloadOutline,
   footballOutline,
@@ -584,8 +643,27 @@ const openFaq = ref<number | null>(0);
 const navOpen = ref(false);
 const scrolled = ref(false);
 
+const scrollTop = ref(0);
+
 function onScroll(event: CustomEvent<{ scrollTop: number }>): void {
+  scrollTop.value = event.detail.scrollTop;
   scrolled.value = event.detail.scrollTop > 24;
+}
+
+/* ───────── App download ───────── */
+// The link itself downloads GORA.apk; this only shows the "Downloading" feedback.
+const downloadStarted = ref(false);
+let downloadTimer: ReturnType<typeof setTimeout> | undefined;
+/** "Get the app" floats in once the hero's download button has scrolled away. */
+const showFab = computed(() => scrollTop.value > 700 && !downloadStarted.value && !navOpen.value);
+
+function onDownload(): void {
+  navOpen.value = false;
+  downloadStarted.value = true;
+  if (downloadTimer) clearTimeout(downloadTimer);
+  downloadTimer = setTimeout(() => {
+    downloadStarted.value = false;
+  }, 7000);
 }
 
 function prefersReducedMotion(): boolean {
@@ -647,6 +725,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (welcomeTimer) clearInterval(welcomeTimer);
+  if (downloadTimer) clearTimeout(downloadTimer);
   observer?.disconnect();
   observer = null;
 });
@@ -734,32 +813,6 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 /* ───────── Download ───────── */
-.lp-hero__download {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 8px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--bs-body-color);
-  font-size: 0.88rem;
-  font-weight: 650;
-  transition: border-color 0.2s, background 0.2s;
-
-  ion-icon:first-child {
-    color: #3ddc84;
-    font-size: 1.15rem;
-  }
-
-  &:hover {
-    border-color: rgba($accent, 0.6);
-    background: rgba($accent, 0.12);
-    color: var(--bs-body-color);
-  }
-}
-
 .lp-download {
   position: relative;
   display: grid;
@@ -785,67 +838,6 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 
 .lp-download__copy {
   min-width: 0;
-}
-
-.lp-store-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 22px 12px 16px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, $accent, #ff8a3d);
-  box-shadow: 0 14px 34px -12px rgba($accent, 0.75);
-  color: #fff;
-  text-decoration: none;
-  transition: transform 0.2s $ease-out, box-shadow 0.2s $ease-out;
-
-  &:hover,
-  &:focus-visible {
-    color: #fff;
-    box-shadow: 0 18px 40px -12px rgba($accent, 0.9);
-    transform: translateY(-2px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &.is-disabled {
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: none;
-    color: var(--bs-secondary-color);
-    pointer-events: none;
-  }
-}
-
-.lp-store-btn__logo {
-  font-size: 2rem;
-}
-
-.lp-store-btn__text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-  text-align: left;
-
-  small {
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    opacity: 0.85;
-    text-transform: uppercase;
-  }
-
-  strong {
-    font-size: 1.2rem;
-    font-weight: 800;
-  }
-}
-
-.lp-store-btn__arrow {
-  margin-left: 6px;
-  font-size: 1.35rem;
-  animation: lp-download-bob 1.8s ease-in-out infinite;
 }
 
 .lp-download__meta {
@@ -952,10 +944,10 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   text-align: center;
 
   img {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 6px;
-    border-radius: 16px;
+    width: 72px;
+    height: 72px;
+    margin-bottom: 8px;
+    border-radius: 18px;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
   }
 
@@ -981,11 +973,7 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .lp-store-btn__arrow {
-    animation: none;
-  }
-}
+
 
 @media (max-width: 767.98px) {
   .lp-download {
@@ -996,9 +984,496 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
     display: none;
   }
 
-  .lp-store-btn {
+  .lp-download .lp-dl {
     width: 100%;
-    justify-content: center;
+  }
+}
+
+/* ───────── Download button ───────── */
+.lp-dl {
+  position: relative;
+  z-index: 0;
+  display: inline-flex;
+  overflow: hidden;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 18px;
+  color: #fff;
+  text-decoration: none;
+  transition: transform 0.25s $ease-out, box-shadow 0.25s $ease-out;
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+    transform: translateY(-3px);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba($accent, 0.6);
+    outline-offset: 3px;
+  }
+}
+
+.lp-dl__logo {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 13px;
+  background: rgba(61, 220, 132, 0.16);
+  color: #3ddc84;
+  font-size: 1.6rem;
+  transition: transform 0.35s $ease-out;
+}
+
+.lp-dl:hover .lp-dl__logo {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.lp-dl__text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+
+  small {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    font-size: 1.08rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+}
+
+.lp-dl__action {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: $accent;
+  color: #fff;
+  font-size: 1.25rem;
+  transition: background 0.3s;
+
+  ion-icon {
+    animation: lp-download-bob 1.6s ease-in-out infinite;
+  }
+}
+
+.lp-dl.is-started .lp-dl__action {
+  background: #2fbf71;
+
+  ion-icon {
+    animation: none;
+  }
+}
+
+/* Hero: dark glass with a rotating orange edge. */
+.lp-dl--glass {
+  box-shadow: 0 18px 40px -18px rgba($accent, 0.7);
+
+  &::before {
+    position: absolute;
+    z-index: -2;
+    top: 50%;
+    left: 50%;
+    width: 160%;
+    aspect-ratio: 1;
+    background: conic-gradient(from 0deg, transparent 0 55%, $accent 70%, $accent-2 80%, transparent 95%);
+    content: '';
+    transform: translate(-50%, -50%);
+    animation: lp-spin 3.2s linear infinite;
+  }
+
+  &::after {
+    position: absolute;
+    z-index: -1;
+    inset: 1.5px;
+    border-radius: 16.5px;
+    background:
+      linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.09) 45%, transparent 60%) -200% 0 / 250% 100% no-repeat,
+      rgba(16, 17, 19, 0.92);
+    content: '';
+    animation: lp-sheen 3.6s ease-in-out infinite;
+  }
+
+  &:hover {
+    box-shadow: 0 22px 48px -16px rgba($accent, 0.95);
+  }
+}
+
+/* Download section: solid orange with a light sweep. */
+.lp-dl--solid {
+  background: linear-gradient(135deg, $accent, #ff8a3d);
+  box-shadow: 0 16px 38px -14px rgba($accent, 0.85);
+
+  .lp-dl__logo {
+    background: rgba(0, 0, 0, 0.18);
+    color: #fff;
+  }
+
+  .lp-dl__text small {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .lp-dl__action {
+    background: #fff;
+    color: $accent;
+  }
+
+  &.is-started .lp-dl__action {
+    background: #fff;
+    color: #2fbf71;
+  }
+
+  &::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%) -200% 0 / 250% 100% no-repeat;
+    content: '';
+    pointer-events: none;
+    animation: lp-sheen 3s ease-in-out infinite;
+  }
+
+  &:hover {
+    box-shadow: 0 22px 46px -14px rgba($accent, 1);
+  }
+}
+
+.lp-dl--lg {
+  padding: 12px 14px 12px 12px;
+
+  .lp-dl__logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .lp-dl__text strong {
+    font-size: 1.25rem;
+  }
+}
+
+.lp-dl.is-disabled {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  color: var(--bs-secondary-color);
+  pointer-events: none;
+}
+
+.lp-hero__get {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 22px;
+}
+
+.lp-hero__get-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bs-secondary-color);
+  font-size: 0.82rem;
+  font-weight: 600;
+
+  ion-icon {
+    color: #3ddc84;
+  }
+}
+
+/* Nav: "Get the app" pill with a live dot. */
+.lp-nav-download {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid rgba(61, 220, 132, 0.35);
+  border-radius: 999px;
+  background: rgba(61, 220, 132, 0.08);
+  color: var(--bs-body-color);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+
+  ion-icon {
+    color: #3ddc84;
+    font-size: 1.1rem;
+  }
+
+  &:hover {
+    border-color: rgba(61, 220, 132, 0.7);
+    background: rgba(61, 220, 132, 0.16);
+    color: var(--bs-body-color);
+    transform: translateY(-1px);
+  }
+}
+
+.lp-nav-download__dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: $accent;
+  box-shadow: 0 0 0 0 rgba($accent, 0.7);
+  animation: lp-ping 1.8s ease-out infinite;
+}
+
+/* Floating "Get the app" once you scroll. */
+.lp-fab {
+  position: fixed;
+  z-index: 50;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, $accent, #ff8a3d);
+  box-shadow: 0 16px 36px -10px rgba($accent, 0.8);
+  color: #fff;
+  font-family: var(--bs-body-font-family, system-ui, sans-serif);
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 0.2s $ease-out;
+
+  &:hover {
+    color: #fff;
+    transform: translateY(-2px);
+  }
+
+  > ion-icon:first-child {
+    font-size: 1.3rem;
+  }
+}
+
+.lp-fab__arrow {
+  animation: lp-download-bob 1.6s ease-in-out infinite;
+}
+
+/* "Downloading GORA.apk" feedback. */
+.lp-toast {
+  position: fixed;
+  z-index: 60;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  display: flex;
+  overflow: hidden;
+  width: min(420px, calc(100% - 32px));
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px 16px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(22, 23, 26, 0.94);
+  box-shadow: 0 24px 50px -16px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(14px);
+  color: #f4f4f5;
+  font-family: var(--bs-body-font-family, system-ui, sans-serif);
+  transform: translateX(-50%);
+}
+
+.lp-toast__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba($accent, 0.16);
+  color: $accent;
+  font-size: 1.3rem;
+
+  ion-icon {
+    animation: lp-download-bob 1.2s ease-in-out infinite;
+  }
+}
+
+.lp-toast__text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+
+  strong {
+    font-size: 0.95rem;
+  }
+
+  span {
+    color: #a1a1aa;
+  }
+}
+
+.lp-toast__close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d4d4d8;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.lp-toast__bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, $accent, $accent-2);
+  transform-origin: left;
+  animation: lp-toast-bar 7s linear forwards;
+}
+
+/* Download section phone: floats, with pulse rings behind it. */
+.lp-phone {
+  animation: lp-phone-float 5s ease-in-out infinite;
+}
+
+.lp-download__ring {
+  position: absolute;
+  width: 55%;
+  aspect-ratio: 1;
+  border: 2px solid rgba($accent, 0.5);
+  border-radius: 50%;
+  animation: lp-ring 3.2s ease-out infinite;
+}
+
+.lp-download__ring--late {
+  animation-delay: 1.6s;
+}
+
+.lp-pop-enter-active,
+.lp-pop-leave-active {
+  transition: transform 0.2s $ease-out, opacity 0.2s;
+}
+
+.lp-pop-enter-from,
+.lp-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.4) rotate(-30deg);
+}
+
+.lp-float-enter-active,
+.lp-float-leave-active {
+  transition: opacity 0.3s $ease-out, translate 0.3s $ease-out;
+}
+
+.lp-float-enter-from,
+.lp-float-leave-to {
+  opacity: 0;
+  translate: 0 24px;
+}
+
+@keyframes lp-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes lp-sheen {
+  0%,
+  35% {
+    background-position: -200% 0, 0 0;
+  }
+  100% {
+    background-position: 250% 0, 0 0;
+  }
+}
+
+@keyframes lp-ping {
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgba($accent, 0);
+  }
+}
+
+@keyframes lp-toast-bar {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes lp-phone-float {
+  0%,
+  100% {
+    transform: rotate(4deg) translateY(0);
+  }
+  50% {
+    transform: rotate(2deg) translateY(-12px);
+  }
+}
+
+@keyframes lp-ring {
+  from {
+    opacity: 0.8;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-dl--glass::before,
+  .lp-dl--glass::after,
+  .lp-dl--solid::after,
+  .lp-dl__action ion-icon,
+  .lp-fab__arrow,
+  .lp-toast__icon ion-icon,
+  .lp-nav-download__dot,
+  .lp-phone,
+  .lp-download__ring {
+    animation: none;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .lp-hero__get .lp-dl {
+    width: 100%;
+  }
+
+  .lp-fab span {
+    display: none;
+  }
+
+  .lp-fab {
+    padding: 14px;
   }
 }
 

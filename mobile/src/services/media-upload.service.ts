@@ -23,7 +23,7 @@ export async function uploadMedia<T>(
   if (options.signal?.aborted) throw new ApiError(0, "Upload canceled.");
   const provider = await mediaUploadProvider(token);
   if (options.signal?.aborted) throw new ApiError(0, "Upload canceled.");
-  if (provider === "blob")
+  if (provider === "blob" || provider === "cloudinary")
     return uploadCloudMedia<T>(path, token, file, input, options);
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();

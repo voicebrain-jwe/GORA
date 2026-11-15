@@ -9,6 +9,7 @@ import { decodePhotoPayload } from '../common/media/photo-payload';
 import { PrismaService } from '../prisma/prisma.service';
 import { RelationshipService } from '../social/relationship.service';
 import { UsersService } from '../users/users.service';
+import { CloudPhotosService } from '../common/media/cloud-photos.service';
 
 @Injectable()
 export class ProfileCoverService {
@@ -17,33 +18,57 @@ export class ProfileCoverService {
     private readonly config: ConfigService,
     private readonly users: UsersService,
     private readonly relationships: RelationshipService,
+    private readonly cloud: CloudPhotosService,
   ) {}
 
   async save(userId: string, photo: string): Promise<void> {
     const { contentType, photoData } = decodePhotoPayload(photo);
-    const { count } = await this.prisma.user.updateMany({
+    const previous = await this.prisma.user.findFirst({
       where: { id: userId, isActive: true },
-      data: {
-        coverImageUrl: null,
-        coverPhotoRevision: randomUUID(),
-        coverPhotoData: photoData,
-        coverPhotoType: contentType,
-      },
+      select: { coverPhotoStorageRef: true },
     });
-    if (!count) throw new NotFoundException('User not found.');
+    if (!previous) throw new NotFoundException('User not found.');
+    const stored = await this.cloud.save({ contentType, photoData });
+    try {
+      const { count } = await this.prisma.user.updateMany({
+        where: { id: userId, isActive: true },
+        data: {
+          coverImageUrl: null,
+          coverPhotoRevision: randomUUID(),
+          coverPhotoData: stored.data,
+          coverPhotoStorageRef: stored.storageRef,
+          coverPhotoType: contentType,
+        },
+      });
+      if (!count) throw new NotFoundException('User not found.');
+    } catch (error) {
+      await this.cloud.remove(stored.storageRef).catch(() => undefined);
+      throw error;
+    }
+    await this.cloud
+      .remove(previous.coverPhotoStorageRef)
+      .catch(() => undefined);
   }
 
   async remove(userId: string): Promise<void> {
+    const previous = await this.prisma.user.findFirst({
+      where: { id: userId },
+      select: { coverPhotoStorageRef: true },
+    });
     const { count } = await this.prisma.user.updateMany({
       where: { id: userId, isActive: true },
       data: {
         coverImageUrl: null,
         coverPhotoRevision: null,
         coverPhotoData: null,
+        coverPhotoStorageRef: null,
         coverPhotoType: null,
       },
     });
     if (!count) throw new NotFoundException('User not found.');
+    await this.cloud
+      .remove(previous?.coverPhotoStorageRef)
+      .catch(() => undefined);
   }
 
   url(
@@ -79,12 +104,21 @@ export class ProfileCoverService {
       throw new NotFoundException('Cover photo not found.');
     const cover = await this.prisma.user.findFirst({
       where: { id: userId, isActive: true, coverPhotoRevision: revision },
-      select: { coverPhotoData: true, coverPhotoType: true },
+      select: {
+        coverPhotoData: true,
+        coverPhotoType: true,
+        coverPhotoStorageRef: true,
+      },
     });
-    if (!cover?.coverPhotoData || !cover.coverPhotoType)
+    if (
+      !cover?.coverPhotoType ||
+      (!cover.coverPhotoData && !cover.coverPhotoStorageRef)
+    )
       throw new NotFoundException('Cover photo not found.');
     return {
-      data: Buffer.from(cover.coverPhotoData),
+      data: cover.coverPhotoStorageRef
+        ? await this.cloud.read(cover.coverPhotoStorageRef)
+        : Buffer.from(cover.coverPhotoData!),
       contentType: cover.coverPhotoType,
     };
   }

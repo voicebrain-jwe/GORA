@@ -9,23 +9,35 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { visiblePostsWhere } from './post-visibility';
 import { decodePhotoPayload } from '../common/media/photo-payload';
+import { CloudPhotosService } from '../common/media/cloud-photos.service';
 
-/** Bounded photos live with the post in PostgreSQL, including on serverless hosts. */
+/** Cloudinary photos and legacy database photos share audience-checked API URLs. */
 @Injectable()
 export class PostPhotosService {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     private readonly users: UsersService,
+    private readonly cloud: CloudPhotosService,
   ) {}
 
-  decode(dataUrl: string, sortOrder: number) {
+  async decode(dataUrl: string, sortOrder: number) {
+    const photo = decodePhotoPayload(dataUrl);
+    const stored = await this.cloud.save(photo);
     return {
       mediaType: 'IMAGE' as const,
-      mediaUrl: 'postgres:photo',
-      ...decodePhotoPayload(dataUrl),
+      mediaUrl: stored.storageRef ?? 'postgres:photo',
+      contentType: photo.contentType,
+      photoData: stored.data,
       sortOrder,
     };
+  }
+  async discard(media: { mediaUrl: string }[]) {
+    await Promise.all(
+      media.map((item) =>
+        this.cloud.remove(item.mediaUrl).catch(() => undefined),
+      ),
+    );
   }
 
   url(postId: string, mediaId: string, viewerId: string): string {
@@ -51,12 +63,17 @@ export class PostPhotosService {
       throw new NotFoundException('Photo not found.');
     const photo = await this.prisma.postMedia.findFirst({
       where: { id: mediaId, postId, post: visiblePostsWhere(viewerId) },
-      select: { photoData: true, contentType: true },
+      select: { photoData: true, contentType: true, mediaUrl: true },
     });
-    if (!photo?.photoData || !photo.contentType)
+    if (
+      !photo?.contentType ||
+      (!photo.photoData && !photo.mediaUrl.startsWith('cloudinary:'))
+    )
       throw new NotFoundException('Photo not found.');
     return {
-      data: Buffer.from(photo.photoData),
+      data: photo.mediaUrl.startsWith('cloudinary:')
+        ? await this.cloud.read(photo.mediaUrl)
+        : Buffer.from(photo.photoData!),
       contentType: photo.contentType,
     };
   }

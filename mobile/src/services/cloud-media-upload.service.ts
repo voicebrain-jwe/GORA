@@ -1,12 +1,13 @@
 import { apiRequest, ApiError, NETWORK_ERROR_MESSAGE } from "./api-client";
 import type { MediaUploadOptions } from "./media-upload.service";
 import { hasNativeBlobTransport } from "./blob-fetch";
+import { fetch as storageFetch } from './blob-fetch';
 
 export async function mediaUploadProvider(
   token: string,
-): Promise<"local" | "blob"> {
+): Promise<"local" | "blob" | "cloudinary"> {
   return (
-    await apiRequest<{ provider: "local" | "blob" }>("/media/uploads/config", {
+    await apiRequest<{ provider: "local" | "blob" | "cloudinary" }>("/media/uploads/config", {
       token,
     })
   ).provider;
@@ -28,6 +29,9 @@ export async function uploadCloudMedia<T>(
     uploadId: string;
     pathname: string;
     clientToken: string;
+    provider?: 'blob' | 'cloudinary';
+    uploadUrl?: string;
+    parameters?: Record<string, string | number>;
   }>("/media/uploads", {
     method: "POST",
     token,
@@ -35,8 +39,19 @@ export async function uploadCloudMedia<T>(
   });
   try {
     canceled();
-    const { put } = await import("@vercel/blob/client");
-    await put(ticket.pathname, file, {
+    if (ticket.provider === 'cloudinary') {
+      const url = new URL(ticket.uploadUrl ?? '');
+      if (url.protocol !== 'https:' || url.hostname !== 'api.cloudinary.com' || url.username || url.password)
+        throw new ApiError(502, 'Invalid media upload configuration.');
+      const form = new FormData();
+      for (const [key, value] of Object.entries(ticket.parameters ?? {})) form.append(key, String(value));
+      form.append('file', file);
+      const response = await storageFetch(url.toString(), { method: 'POST', body: form, signal: options.signal });
+      // Never trust client-reported URLs or expose storage error payloads.
+      if (!response.ok) throw new ApiError(422, 'The photo or video upload was rejected. Please choose a supported file and retry.');
+    } else {
+      const { put } = await import("@vercel/blob/client");
+      await put(ticket.pathname, file, {
       access: "private",
       token: ticket.clientToken,
       contentType: file.type,
@@ -46,7 +61,8 @@ export async function uploadCloudMedia<T>(
       // native uploads on our binary fetch transport, including multipart.
       onUploadProgress: hasNativeBlobTransport() ? undefined : (event) =>
         options.onProgress?.(Math.min(99, Math.round(event.percentage))),
-    });
+      });
+    }
     canceled();
     // Only metadata crosses the Function; photos/videos go straight to private storage.
     const result = await apiRequest<T>(`${path}/complete`, {

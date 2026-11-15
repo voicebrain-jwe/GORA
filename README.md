@@ -127,6 +127,17 @@ The client reads `VITE_API_BASE_URL` from the environment. See `mobile/.env.exam
 
 ## Vercel deployment
 
+Cloudinary is supported for new photo and video uploads. Configure
+`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` on the
+server, then deploy the updated API and client. Keep existing Blob credentials
+for legacy media. See [Cloudinary setup and compatibility](docs/features/cloudinary.md).
+
+Deployments also backfill the 11 default sports via
+`20261115020000_complete_sports_catalog`, so a fresh migrated database contains
+the full catalog without a separate development seed. Existing sport IDs, icons,
+descriptions and admin activation choices are preserved. Sports without open
+games still appear in Browse all sports.
+
 Use this directory (the `GORA` Git repository containing `mobile/`, `server/`, and `vercel.json`) as the Vercel project root. The surrounding `GORAJUV` checkout is a separate repository. Deploy both services as one project:
 
 - `mobile`: static Vite frontend, public at `/` and all non-API paths. Its service-level rewrite supports Vue Router deep links.
@@ -145,7 +156,7 @@ vercel dev
 
 For local testing without a cloud login, use `vercel dev -L`. Supply the server environment settings as above (locally, `server/.env`). Check `/`, a frontend deep link such as `/login`, `/api/v1/health`, and an unknown `/api/v1/...` route (which must return the API's 404 response).
 
-Story and reel uploads on Vercel use a connected **private Vercel Blob store**. Create/link a private store in the project's Storage tab (or `vercel blob create-store gora-private-media --access private --yes`); the server needs `BLOB_READ_WRITE_TOKEN`. Keep this secret out of `VITE_*` variables. The browser uploads directly to Blob using a short-lived token limited to one server-generated path, media type and size, then sends only metadata to the API. PostgreSQL stores the media reference, owner, audience and single-use upload ticket. No public media URL or full storage credential is sent to viewers. Playback streams through authenticated audience checks, including byte ranges for video, expiry and deletion. Local development without Blob credentials keeps the existing filesystem flow. Existing local files are not automatically copied to Blob. The deployment build applies `20261025140000_cloud_media_uploads`. Prisma migrations automatically use Neon's direct endpoint; optionally supply `DATABASE_URL_UNPOOLED` for other setups. Runtime queries keep using pooled `DATABASE_URL`.
+Cloudinary is preferred for new Story/Reel uploads when its three server variables are configured. Without them, a connected **private Vercel Blob store** remains supported using `BLOB_READ_WRITE_TOKEN`. Keep that token for existing Blob media. Photos/videos upload directly to storage using server-signed parameters, then send only metadata to the API. PostgreSQL stores the media reference, owner, audience and single-use upload ticket. Playback streams through authenticated audience checks, including byte ranges, expiry and deletion. Local development without cloud credentials keeps the existing filesystem flow. Existing files are not automatically copied between providers. The deployment build applies pending Prisma migrations using Neon's direct endpoint; optionally supply `DATABASE_URL_UNPOOLED` for other setups. Runtime queries keep using pooled `DATABASE_URL`. See [Cloudinary setup](docs/features/cloudinary.md) for the required variables, migration and verification steps.
 
 ## How to run the backend
 

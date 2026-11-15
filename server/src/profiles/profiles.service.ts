@@ -119,10 +119,12 @@ export class ProfilesService {
         city: null,
         profileImageUrl: null,
         profilePhotoData: null,
+        profilePhotoStorageRef: null,
         profilePhotoType: null,
         profilePhotoRevision: null,
         coverImageUrl: null,
         coverPhotoData: null,
+        coverPhotoStorageRef: null,
         coverPhotoType: null,
         coverPhotoRevision: null,
       },
@@ -350,11 +352,13 @@ export class ProfilesService {
       data.profileImageUrl = dto.profileImageUrl;
       data.profilePhotoRevision = null;
       data.profilePhotoData = null;
+      data.profilePhotoStorageRef = null;
       data.profilePhotoType = null;
     }
     if (dto.coverImageUrl !== undefined) {
       data.coverImageUrl = dto.coverImageUrl;
       data.coverPhotoData = null;
+      data.coverPhotoStorageRef = null;
       data.coverPhotoType = null;
       data.coverPhotoRevision = null;
     }

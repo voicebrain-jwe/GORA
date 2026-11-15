@@ -96,7 +96,7 @@ export class PrivateMediaStorage {
   }
 
   isUpload(url: string): boolean {
-    if (/^blob:[a-f0-9-]{36}\.(mp4|webm|jpg|png|webp|gif)$/.test(url))
+    if (/^(blob|cloudinary):[a-f0-9-]{36}\.(mp4|webm|jpg|png|webp|gif)$/.test(url))
       return true;
     return (
       url.startsWith(UPLOAD_PREFIX) &&
@@ -106,7 +106,7 @@ export class PrivateMediaStorage {
 
   async file(url: string): Promise<PrivateMediaFile> {
     if (!this.isUpload(url)) throw new NotFoundException('Media not found.');
-    if (url.startsWith('blob:')) {
+    if (/^(blob|cloudinary):/.test(url)) {
       if (!this.cloud) throw new NotFoundException('Media not found.');
       return {
         send: (response) => this.cloud!.send(response, this.resource, url),
@@ -119,7 +119,7 @@ export class PrivateMediaStorage {
   }
 
   async remove(url: string): Promise<void> {
-    if (url.startsWith('blob:') && this.isUpload(url)) {
+    if (/^(blob|cloudinary):/.test(url) && this.isUpload(url)) {
       if (this.cloud) await this.cloud.remove(this.resource, url);
       return;
     }

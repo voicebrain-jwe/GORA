@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import type { Prisma } from '../generated/prisma/client';
 import { decodePhotoPayload } from '../common/media/photo-payload';
 import { PrismaService } from '../prisma/prisma.service';
+import { CloudPhotosService } from '../common/media/cloud-photos.service';
 
 interface ClubPhotoInput {
   profilePhoto?: string | null;
@@ -17,7 +18,10 @@ interface ClubPhotoInput {
 
 @Injectable()
 export class ClubPhotosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloud: CloudPhotosService,
+  ) {}
 
   /** Called only inside the authorized club create/update transaction. */
   async apply(
@@ -48,12 +52,30 @@ export class ClubPhotosService {
         continue;
       }
       const { contentType, photoData } = decodePhotoPayload(photo);
+      const stored = await this.cloud.save({ contentType, photoData });
       const revision = randomUUID();
-      await tx.clubPhoto.upsert({
-        where: { clubId_kind: { clubId, kind } },
-        create: { clubId, kind, revision, contentType, data: photoData },
-        update: { revision, contentType, data: photoData },
-      });
+      try {
+        await tx.clubPhoto.upsert({
+          where: { clubId_kind: { clubId, kind } },
+          create: {
+            clubId,
+            kind,
+            revision,
+            contentType,
+            data: stored.data,
+            storageRef: stored.storageRef,
+          },
+          update: {
+            revision,
+            contentType,
+            data: stored.data,
+            storageRef: stored.storageRef,
+          },
+        });
+      } catch (error) {
+        await this.cloud.remove(stored.storageRef).catch(() => undefined);
+        throw error;
+      }
       await tx.club.update({
         where: { id: clubId },
         data: {
@@ -68,9 +90,15 @@ export class ClubPhotosService {
       throw new NotFoundException('Club photo not found.');
     const photo = await this.prisma.clubPhoto.findFirst({
       where: { clubId, kind, revision, club: { isActive: true } },
-      select: { data: true, contentType: true },
+      select: { data: true, contentType: true, storageRef: true },
     });
-    if (!photo) throw new NotFoundException('Club photo not found.');
-    return { data: Buffer.from(photo.data), contentType: photo.contentType };
+    if (!photo || (!photo.data && !photo.storageRef))
+      throw new NotFoundException('Club photo not found.');
+    return {
+      data: photo.storageRef
+        ? await this.cloud.read(photo.storageRef)
+        : Buffer.from(photo.data!),
+      contentType: photo.contentType,
+    };
   }
 }

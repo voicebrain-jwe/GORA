@@ -13,6 +13,7 @@ import type { Response } from 'express';
 import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BlobGateway } from './blob.gateway';
+import { CloudinaryGateway } from './cloudinary.gateway';
 import { MEDIA_TYPES, type StartMediaUploadDto } from './cloud-media.dto';
 import {
   PHOTO_MAX_BYTES,
@@ -20,7 +21,7 @@ import {
   type MediaUploadFile,
 } from './private-media.storage';
 
-const REF = /^blob:([a-f0-9-]{36})\.(jpg|png|webp|gif|mp4|webm)$/;
+const REF = /^(blob|cloudinary):([a-f0-9-]{36})\.(jpg|png|webp|gif|mp4|webm)$/;
 const TTL = 15 * 60 * 1000;
 export type MediaResource = 'stories' | 'reels';
 
@@ -30,9 +31,11 @@ export class CloudMediaService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     private readonly blobs: BlobGateway,
+    private readonly cloudinary: CloudinaryGateway,
   ) {}
 
-  provider(): 'blob' | 'local' {
+  provider(): 'blob' | 'cloudinary' | 'local' {
+    if (this.cloudinary.enabled()) return 'cloudinary';
     if (this.config.get<string>('BLOB_READ_WRITE_TOKEN')) return 'blob';
     if (this.config.get<string>('VERCEL'))
       throw new ServiceUnavailableException(
@@ -41,7 +44,7 @@ export class CloudMediaService {
     return 'local';
   }
   private enabled() {
-    if (this.provider() !== 'blob')
+    if (this.provider() === 'local')
       throw new ServiceUnavailableException(
         'Cloud media storage is not configured.',
       );
@@ -56,7 +59,12 @@ export class CloudMediaService {
   private referencePath(resource: MediaResource, reference: string) {
     const match = REF.exec(reference);
     if (!match) throw new NotFoundException('Media not found.');
-    return `gora/${resource}/${match[1]}.${match[2]}`;
+    return `gora/${resource}/${match[2]}.${match[3]}`;
+  }
+  private gateway(provider: string = 'blob') {
+    if (provider === 'cloudinary') return this.cloudinary;
+    if (provider === 'blob') return this.blobs;
+    throw new NotFoundException('Media not found.');
   }
   async start(userId: string, dto: StartMediaUploadDto) {
     this.enabled();
@@ -80,19 +88,26 @@ export class CloudMediaService {
     const id = randomUUID(),
       expiresAt = new Date(Date.now() + TTL);
     const pathname = this.path(dto.resource, id, dto.contentType);
-    const clientToken = await this.blobs.mint(
-      pathname,
-      dto.contentType,
-      dto.size,
-      expiresAt.getTime(),
-    );
+    const provider = this.provider();
+    const upload =
+      provider === 'cloudinary'
+        ? this.cloudinary.ticket(pathname)
+        : {
+            clientToken: await this.blobs.mint(
+              pathname,
+              dto.contentType,
+              dto.size,
+              expiresAt.getTime(),
+            ),
+          };
     await this.prisma.cloudMediaUpload.create({
-      data: { id, userId, ...dto, expiresAt },
+      data: { id, userId, ...dto, expiresAt, provider },
     });
     return {
       uploadId: id,
       pathname,
-      clientToken,
+      provider,
+      ...upload,
       expiresAt: expiresAt.toISOString(),
     };
   }
@@ -108,13 +123,16 @@ export class CloudMediaService {
     this.enabled();
     const id = randomUUID(),
       pathname = `gora/${resource}/${id}.${extension}`;
+    const provider = this.provider();
+    const gateway = this.gateway(provider);
     try {
-      await this.blobs.put(pathname, file);
+      await gateway.put(pathname, file);
       await this.prisma.cloudMediaUpload.create({
         data: {
           id,
           userId,
           resource,
+          provider,
           contentType: file.mimetype,
           size: file.size,
           expiresAt: new Date(Date.now() + TTL),
@@ -122,10 +140,10 @@ export class CloudMediaService {
         },
       });
     } catch (error) {
-      await this.blobs.remove(pathname).catch(() => undefined);
+      await gateway.remove(pathname).catch(() => undefined);
       throw error;
     }
-    return `blob:${id}.${extension}`;
+    return `${provider}:${id}.${extension}`;
   }
   async complete<T>(
     userId: string,
@@ -154,8 +172,11 @@ export class CloudMediaService {
         'The uploaded file does not match its media type.',
       );
     const pathname = this.path(resource, id, contentType);
-    const metadata = await this.blobs.head(pathname);
+    const provider = upload.provider ?? 'blob';
+    const gateway = this.gateway(provider);
+    const metadata = await gateway.head(pathname);
     if (
+      provider === 'blob' &&
       !new URL(metadata.url).hostname.endsWith(
         '.private.blob.vercel-storage.com',
       )
@@ -167,7 +188,7 @@ export class CloudMediaService {
       throw new BadRequestException(
         'Uploaded media is incomplete or has an invalid type.',
       );
-    const data = await this.blobs.get(pathname, 'bytes=0-63');
+    const data = await gateway.get(pathname, 'bytes=0-63');
     if (!data || data.statusCode !== 200)
       throw new BadRequestException('Uploaded file not found.');
     const reader = data.stream.getReader();
@@ -202,7 +223,7 @@ export class CloudMediaService {
       });
       if (!claimed.count)
         throw new ConflictException('This upload has already been shared.');
-      return create(`blob:${id}.${MEDIA_TYPES[contentType]}`, tx);
+      return create(`${provider}:${id}.${MEDIA_TYPES[contentType]}`, tx);
     });
   }
   async cancel(userId: string, id: string): Promise<void> {
@@ -213,17 +234,21 @@ export class CloudMediaService {
         id: string;
         resource: MediaResource;
         contentType: keyof typeof MEDIA_TYPES;
+        provider: string;
       }[]
     >`
       DELETE FROM "CloudMediaUpload" WHERE "id"=${id}::uuid AND "userId"=${userId}::uuid AND "claimedAt" IS NULL
-      RETURNING "id","resource","contentType"`;
+      RETURNING "id","resource","contentType","provider"`;
     for (const row of rows)
-      await this.blobs.remove(this.path(row.resource, row.id, row.contentType));
+      await this.gateway(row.provider).remove(
+        this.path(row.resource, row.id, row.contentType),
+      );
   }
   async remove(resource: MediaResource, reference: string): Promise<void> {
-    await this.blobs.remove(this.referencePath(resource, reference));
+    const pathname = this.referencePath(resource, reference);
+    await this.gateway(REF.exec(reference)![1]).remove(pathname);
     await this.prisma.cloudMediaUpload.deleteMany({
-      where: { id: REF.exec(reference)![1], resource },
+      where: { id: REF.exec(reference)![2], resource },
     });
   }
   async send(
@@ -232,7 +257,8 @@ export class CloudMediaService {
     reference: string,
   ): Promise<void> {
     const pathname = this.referencePath(resource, reference);
-    const meta = await this.blobs.head(pathname);
+    const gateway = this.gateway(REF.exec(reference)![1]);
+    const meta = await gateway.head(pathname);
     const size = meta.size,
       range = response.req.headers.range;
     let start = 0,
@@ -258,7 +284,7 @@ export class CloudMediaService {
         return;
       }
     }
-    const data = await this.blobs.get(
+    const data = await gateway.get(
       pathname,
       range ? `bytes=${start}-${end}` : undefined,
     );

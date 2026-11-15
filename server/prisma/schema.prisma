@@ -28,11 +28,13 @@ model User {
   isActive                Boolean                   @default(true)
   profileImageUrl         String?
   profilePhotoData        Bytes?
+  profilePhotoStorageRef  String?
   profilePhotoType        String?
   profilePhotoRevision    String?                   @db.Uuid
   role                    UserRole                  @default(USER)
   coverImageUrl           String?
   coverPhotoData          Bytes?
+  coverPhotoStorageRef    String?
   coverPhotoType          String?
   coverPhotoRevision      String?                   @db.Uuid
   callsStarted            DirectCall[]              @relation("CallCaller")
@@ -331,7 +333,8 @@ model ClubPhoto {
   clubId String @db.Uuid
   kind String @db.VarChar(7)
   revision String @db.Uuid
-  data Bytes
+  data Bytes?
+  storageRef String?
   contentType String @db.VarChar(20)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1251,6 +1254,7 @@ model CloudMediaUpload {
   id          String    @id @db.Uuid
   userId      String    @db.Uuid
   resource    String
+  provider    String    @default("blob")
   contentType String
   size        Int
   expiresAt   DateTime

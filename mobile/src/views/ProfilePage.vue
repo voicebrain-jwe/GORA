@@ -129,13 +129,11 @@
                 class="profile-clubs__item"
                 :aria-label="`${club.name}${club.viewerMembership && club.viewerMembership.role !== 'MEMBER' ? `, ${CLUB_ROLE_LABELS[club.viewerMembership.role]}` : ''}`"
               >
-                <span class="profile-clubs__logo">
-                  <ClubAvatar :club="club" :image-url="club.profileImageUrl" :size="60" />
-                  <em v-if="club.viewerMembership && club.viewerMembership.role !== 'MEMBER'" class="profile-clubs__role">
-                    {{ CLUB_ROLE_LABELS[club.viewerMembership.role] }}
-                  </em>
+                <span class="profile-clubs__ring">
+                  <span class="profile-clubs__inner">
+                    <ClubAvatar :club="club" :image-url="club.profileImageUrl" :size="60" />
+                  </span>
                 </span>
-                <strong>{{ club.name }}</strong>
               </router-link>
             </li>
           </ul>
@@ -643,7 +641,7 @@ onMounted(() => {
 /* Clubs: logos in a horizontal rail. */
 .profile-clubs {
   display: flex;
-  gap: 14px;
+  gap: 10px;
   margin: 0 -16px;
   padding: 2px 16px 6px;
   overflow-x: auto;
@@ -664,50 +662,41 @@ onMounted(() => {
 
 .profile-clubs__item {
   display: flex;
-  width: 80px;
+  width: 72px;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
   color: var(--ion-text-color);
-  text-align: center;
   text-decoration: none;
 }
 
-.profile-clubs__logo {
-  position: relative;
-  display: grid;
+/* Same ring as a story avatar; only the club picture shows. */
+.profile-clubs__ring {
+  display: flex;
+  width: 72px;
+  height: 72px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, var(--ion-color-primary), #ffb347, var(--ion-color-primary));
   transition: transform var(--gora-motion);
 }
 
-.profile-clubs__item:hover .profile-clubs__logo,
-.profile-clubs__item:focus-visible .profile-clubs__logo {
+.profile-clubs__inner {
+  display: flex;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--gora-surface);
+}
+
+.profile-clubs__inner :deep(.club-avatar) {
+  border-radius: 50% !important;
+}
+
+.profile-clubs__item:hover .profile-clubs__ring,
+.profile-clubs__item:focus-visible .profile-clubs__ring {
   transform: translateY(-2px);
-}
-
-.profile-clubs__role {
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  padding: 1px 7px;
-  border: 2px solid var(--gora-surface);
-  border-radius: 999px;
-  background: var(--ion-color-primary);
-  color: var(--ion-color-primary-contrast);
-  font-size: 0.58rem;
-  font-style: normal;
-  font-weight: 800;
-  text-transform: uppercase;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
-
-.profile-clubs__item strong {
-  width: 100%;
-  overflow: hidden;
-  font-size: 0.76rem;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Feed */

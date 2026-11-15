@@ -37,18 +37,19 @@
           :aria-label="editable ? `${sport.name}, ${describeUserSport(sport)}. Edit or remove` : `${sport.name}, ${describeUserSport(sport)}`"
           @click="editable && openActions(sport)"
         >
-          <span class="my-sports__icon">
-            <SportIcon :name="sport.name" :icon-url="sport.iconUrl" :size="56" />
+          <span class="my-sports__ring" :title="sport.name">
+            <span class="my-sports__inner">
+              <SportIcon :name="sport.name" :icon-url="sport.iconUrl" :size="60" />
+            </span>
             <ion-spinner v-if="busyId === sport.sportId" name="crescent" class="my-sports__tile-spinner" />
           </span>
-          <strong>{{ sport.name }}</strong>
-          <small>{{ describeUserSport(sport) }}</small>
+          <span class="my-sports__level">{{ skillLevelLabel(sport.skillLevel) }}</span>
         </component>
       </li>
       <li v-if="editable">
         <button type="button" class="my-sports__tile my-sports__tile--add" :disabled="busyId !== null" @click="emit('add')">
-          <span class="my-sports__icon my-sports__icon--add"><ion-icon :icon="addOutline" aria-hidden="true" /></span>
-          <strong>Add</strong>
+          <span class="my-sports__ring my-sports__ring--add"><ion-icon :icon="addOutline" aria-hidden="true" /></span>
+          <span class="my-sports__level">Add</span>
         </button>
       </li>
     </ul>
@@ -60,7 +61,7 @@ import { IonIcon, IonSkeletonText, IonSpinner, actionSheetController } from '@io
 import { addOutline, createOutline, trashOutline } from 'ionicons/icons';
 import SportIcon from '@/components/sports/SportIcon.vue';
 import type { UserSportEntry } from '@/types/profile';
-import { describeUserSport } from '@/utils/sports-profile';
+import { describeUserSport, skillLevelLabel } from '@/utils/sports-profile';
 
 const props = withDefaults(
   defineProps<{
@@ -236,7 +237,7 @@ async function openActions(sport: UserSportEntry): Promise<void> {
 /* Horizontal rail: icon + name, slide left and right. */
 .my-sports__rail {
   display: flex;
-  gap: 14px;
+  gap: 10px;
   margin: 0 -16px;
   padding: 2px 16px 6px;
   overflow-x: auto;
@@ -260,7 +261,7 @@ async function openActions(sport: UserSportEntry): Promise<void> {
   width: 76px;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 0;
   border: 0;
   background: none;
@@ -273,29 +274,41 @@ button.my-sports__tile {
   cursor: pointer;
 }
 
-.my-sports__icon {
+/* Same ring as a story avatar. */
+.my-sports__ring {
   position: relative;
-  display: grid;
+  display: flex;
+  width: 72px;
+  height: 72px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--gora-surface), 0 0 0 4px var(--gora-accent-line);
+  background: conic-gradient(from 200deg, var(--ion-color-primary), #ffb347, var(--ion-color-primary));
   transition: transform var(--gora-motion);
 }
 
-.my-sports__icon :deep(.sport-icon) {
+.my-sports__inner {
+  display: flex;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--gora-surface);
+}
+
+.my-sports__inner :deep(.sport-icon) {
   border-radius: 50%;
 }
 
-button.my-sports__tile:hover .my-sports__icon,
-button.my-sports__tile:focus-visible .my-sports__icon {
+button.my-sports__tile:hover .my-sports__ring,
+button.my-sports__tile:focus-visible .my-sports__ring {
   transform: translateY(-2px);
 }
 
-.my-sports__icon--add {
-  width: 56px;
-  height: 56px;
-  place-items: center;
-  border: 2px dashed var(--gora-line-strong);
-  box-shadow: none;
+.my-sports__ring--add {
+  background: transparent;
+  outline: 1.5px dashed var(--gora-line-strong);
+  outline-offset: -2px;
   color: var(--ion-color-primary);
   font-size: 26px;
 }
@@ -307,21 +320,12 @@ button.my-sports__tile:focus-visible .my-sports__icon {
   color: #fff;
 }
 
-.my-sports__tile strong {
-  width: 100%;
+.my-sports__level {
+  max-width: 100%;
   overflow: hidden;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.my-sports__tile small {
-  width: 100%;
-  margin-top: -4px;
-  overflow: hidden;
-  color: var(--gora-muted);
-  font-size: 0.68rem;
+  color: var(--ion-text-color);
+  font-size: 0.75rem;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

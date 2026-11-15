@@ -2,8 +2,9 @@
   <div class="game-date-field">
     <input
       :id="id"
-      :value="modelValue"
+      :value="displayValue"
       :type="inputType"
+      :placeholder="presentation === 'time' ? 'Choose time (AM/PM)' : 'Choose date and time'"
       :min="min"
       :max="max"
       class="game-date-field__input"
@@ -30,6 +31,7 @@
           :show-clear-button="allowClear"
           :prefer-wheel="presentation === 'time'"
           hour-cycle="h12"
+          locale="en-US"
           :done-text="presentation === 'time' ? 'Use time' : 'Use date'"
           cancel-text="Cancel"
           @ion-change="chooseDate"
@@ -56,7 +58,20 @@ const props = withDefaults(defineProps<{
 }>(), { presentation: 'date', allowClear: false });
 const emit = defineEmits<{ 'update:modelValue': [date: string] }>();
 const open = ref(false);
-const inputType = computed(() => props.presentation === 'date-time' ? 'datetime-local' : props.presentation);
+// A native time input follows the browser's locale and can still render 24-hour
+// text. Format the readonly display ourselves; the picker and API keep ISO values.
+const inputType = computed(() => props.presentation === 'date' ? 'date' : 'text');
+const displayValue = computed(() => {
+  if (!props.modelValue || props.presentation === 'date') return props.modelValue;
+  const time = props.presentation === 'time' ? props.modelValue : props.modelValue.split('T')[1];
+  const match = /^(\d{2}):(\d{2})/.exec(time ?? '');
+  if (!match) return '';
+  const hour = Number(match[1]);
+  const clock = `${hour % 12 || 12}:${match[2]} ${hour < 12 ? 'AM' : 'PM'}`;
+  if (props.presentation === 'time') return clock;
+  const [year, month, day] = props.modelValue.slice(0, 10).split('-');
+  return `${month}/${day}/${year}, ${clock}`;
+});
 const pickerLabel = computed(() => props.label || (props.presentation === 'time' ? 'Choose game time' : 'Choose game date'));
 const pickerValue = computed(() => props.presentation === 'time'
   ? `2000-01-01T${props.modelValue || '09:00'}`

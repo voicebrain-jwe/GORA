@@ -5,7 +5,7 @@ import GameDateField from '@/components/games/GameDateField.vue';
 vi.mock('@ionic/vue', () => ({
   IonIcon: { template: '<span />' },
   IonModal: { props: ['isOpen'], template: '<section v-if="isOpen"><slot /></section>' },
-  IonDatetime: { name: 'IonDatetime', props: ['value', 'presentation', 'min', 'max', 'showDefaultButtons', 'showClearButton'], template: '<div />' },
+  IonDatetime: { name: 'IonDatetime', props: ['value', 'presentation', 'min', 'max', 'showDefaultButtons', 'showClearButton', 'hourCycle', 'locale'], template: '<div />' },
 }));
 let wrapper: VueWrapper | undefined;
 afterEach(() => wrapper?.unmount());
@@ -26,6 +26,9 @@ test('start/end time picker preserves local wall-clock time without UTC conversi
   const picker = wrapper.getComponent({ name: 'IonDatetime' });
   expect(picker.props('presentation')).toBe('time');
   expect(picker.props('value')).toBe('2000-01-01T09:00');
+  expect(picker.props('hourCycle')).toBe('h12');
+  expect(picker.props('locale')).toBe('en-US');
+  expect((wrapper.get('input').element as HTMLInputElement).value).toBe('9:00 AM');
   picker.vm.$emit('ionChange', { detail: { value: '2000-01-01T18:35:00+08:00' } });
   expect(wrapper.emitted('update:modelValue')).toEqual([['18:35']]);
 });
@@ -53,3 +56,10 @@ test('respects date bounds and can clear an optional registration deadline', asy
   wrapper.getComponent({ name: 'IonDatetime' }).vm.$emit('ionChange', { detail: { value: null } });
   expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['']);
 });
+
+test.each([['00:00', '12:00 AM'], ['12:00', '12:00 PM'], ['23:45', '11:45 PM']])(
+  'displays %s in 12-hour format with AM/PM', (value, display) => {
+    wrapper = mount(GameDateField, { props: { id: 'time', modelValue: value, presentation: 'time' } });
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe(display);
+  },
+);

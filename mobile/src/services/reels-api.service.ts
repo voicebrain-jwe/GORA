@@ -87,6 +87,10 @@ export function addReelComment(token: string, reelId: string, content: string): 
   return apiRequest(`${reel(reelId)}/comments`, { method: 'POST', body: { content }, token });
 }
 
+export function recordReelView(token: string, reelId: string): Promise<ApiReel> {
+  return apiRequest<ApiReel>(`${reel(reelId)}/view`, { method: 'POST', token });
+}
+
 export function recordReelShare(token: string, reelId: string): Promise<ApiReel> {
   return apiRequest<ApiReel>(`${reel(reelId)}/shares`, { method: 'POST', token });
 }

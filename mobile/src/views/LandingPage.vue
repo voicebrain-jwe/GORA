@@ -7,7 +7,27 @@
       :scroll-events="true"
       @ion-scroll="onScroll"
     >
-      <div class="lp" data-bs-theme="dark" :class="{ 'lp--motion': motionReady }">
+      <div v-if="isNativeApp" class="lp lp-welcome" data-bs-theme="dark">
+        <picture class="lp-welcome__bg" aria-hidden="true">
+          <img src="/images/gora-hoop-small.webp" alt="" />
+        </picture>
+        <div class="lp-welcome__shade" aria-hidden="true" />
+        <div class="lp-welcome__body">
+          <div class="lp-welcome__brand lp-enter">{{ GORA_NAME }}<span class="text-primary">/</span></div>
+          <h1 class="lp-display lp-welcome__title lp-enter" style="--enter-delay: 120ms">
+            Find your game.<br />Find your <span class="lp-gradient-text">people.</span>
+          </h1>
+          <p class="lp-welcome__copy lp-enter" style="--enter-delay: 240ms">
+            Pickup games, clubs, and highlights from players near you.
+          </p>
+          <div class="lp-welcome__actions lp-enter" style="--enter-delay: 360ms">
+            <router-link to="/register" class="btn btn-primary btn-lg rounded-pill lp-btn-glow">Create account</router-link>
+            <router-link to="/login" class="btn btn-outline-light btn-lg rounded-pill">Sign in</router-link>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="lp" data-bs-theme="dark" :class="{ 'lp--motion': motionReady }">
         <a class="lp-skip btn btn-primary" href="#main">Skip to content</a>
 
         <!-- ───────────── Navigation ───────────── -->
@@ -17,6 +37,9 @@
               {{ GORA_NAME }}<span class="text-primary">/</span>
             </router-link>
 
+            <router-link to="/login" class="btn btn-sm btn-primary rounded-pill px-3 ms-auto me-2 d-lg-none lp-nav-signin">
+              Sign in
+            </router-link>
             <button
               type="button"
               class="lp-toggler d-lg-none"
@@ -71,11 +94,11 @@
                     Your next pickup game. Your game-day crew. Your kind of people. Bring your love of sport —
                     we'll help you find the rest.
                   </p>
-                  <div class="d-flex flex-wrap gap-3 lp-enter" style="--enter-delay: 480ms">
-                    <router-link to="/register" class="btn btn-primary btn-lg rounded-pill px-4 lp-btn-glow">
+                  <div class="lp-hero__actions lp-enter" style="--enter-delay: 480ms">
+                    <router-link to="/register" class="btn btn-primary rounded-pill px-4 lp-btn-glow">
                       Find my crew <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
                     </router-link>
-                    <router-link to="/register?redirect=/discover" class="btn btn-outline-light btn-lg rounded-pill px-4">
+                    <router-link to="/register?redirect=/discover" class="btn btn-outline-light rounded-pill px-4">
                       Explore games
                     </router-link>
                   </div>
@@ -86,7 +109,7 @@
                   </ul>
                 </div>
 
-                <div class="col-lg-6">
+                <div class="col-lg-6 d-none d-lg-block">
                   <div class="lp-stage" aria-hidden="true">
                     <div class="card lp-glass lp-game-card lp-float">
                       <div class="card-body p-4">
@@ -134,7 +157,7 @@
               </div>
             </div>
 
-            <button type="button" class="lp-scroll-cue" aria-label="Scroll to sports" @click="scrollTo('find-a-game')">
+            <button type="button" class="lp-scroll-cue d-none d-lg-block" aria-label="Scroll to sports" @click="scrollTo('find-a-game')">
               <span />
             </button>
           </section>
@@ -426,10 +449,13 @@ import {
   walkOutline,
   waterOutline,
 } from 'ionicons/icons';
+import { Capacitor } from '@capacitor/core';
 import { GORA_NAME, GORA_TAGLINE } from '@/constants/brand';
 import '@/theme/landing-bootstrap.scss';
 
 const year = new Date().getFullYear();
+/** The installed app opens straight to Sign in / Create account. */
+const isNativeApp = Capacitor.isNativePlatform();
 
 const navLinks = [
   { id: 'find-a-game', label: 'Find a game' },
@@ -637,6 +663,75 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   max-width: 640px;
 }
 
+/* ───────── Native app welcome ───────── */
+.lp-welcome {
+  position: relative;
+  display: flex;
+  min-height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.lp-welcome__bg img {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: lp-zoom 18s ease-out both;
+}
+
+.lp-welcome__shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba($ink, 0.35) 0%, rgba($ink, 0.75) 45%, $ink 85%);
+}
+
+.lp-welcome__body {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+.lp-welcome__brand {
+  position: absolute;
+  top: calc(20px + env(safe-area-inset-top, 0px));
+  left: 24px;
+  font-family: 'Gora Condensed', var(--bs-body-font-family);
+  font-size: 2rem;
+  font-style: italic;
+  font-weight: 800;
+}
+
+.lp-welcome__title {
+  margin-bottom: 14px;
+  font-size: clamp(2.6rem, 12vw, 3.6rem);
+}
+
+.lp-welcome__copy {
+  margin-bottom: 28px;
+  color: var(--bs-secondary-color);
+  font-size: 1.02rem;
+}
+
+.lp-welcome__actions {
+  display: grid;
+  gap: 12px;
+
+  .btn {
+    min-height: 54px;
+    font-size: 1.05rem;
+  }
+}
+
+.lp-nav-signin {
+  font-weight: 700;
+}
+
 /* ───────── Navbar ───────── */
 .lp-nav {
   position: sticky;
@@ -747,6 +842,21 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 
   &__lead {
     max-width: 520px;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    .btn {
+      display: inline-flex;
+      min-height: 52px;
+      align-items: center;
+      justify-content: center;
+      padding-inline: 1.75rem !important;
+      font-size: 1.05rem;
+    }
   }
 }
 
@@ -1424,6 +1534,40 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 @media (max-width: 575.98px) {
+  .lp-hero {
+    padding: 112px 0 56px;
+  }
+
+  .lp-display {
+    font-size: clamp(2.6rem, 13vw, 3.4rem);
+  }
+
+  .lp-hero__lead {
+    font-size: 1rem;
+  }
+
+  .lp-hero__actions .btn {
+    flex: 1 1 0;
+    min-height: 48px;
+    padding-inline: 1rem !important;
+    font-size: 0.95rem;
+  }
+
+  .lp-pill {
+    font-size: 0.64rem;
+    letter-spacing: 0.1em;
+  }
+
+  .lp-chip {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .lp-marquee {
+    padding-block: 0.8rem;
+    transform: none;
+  }
+
   .lp-stage {
     min-height: 330px;
   }
@@ -1442,7 +1586,20 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 
   .lp-marquee__item {
-    font-size: 1.25rem;
+    padding-inline: 1.1rem;
+    font-size: 1.15rem;
+  }
+
+  .lp-section {
+    padding-block: 3.5rem;
+  }
+
+  .lp-heading {
+    font-size: 1.85rem;
+  }
+
+  .lp-cta {
+    border-radius: 1.25rem;
   }
 }
 

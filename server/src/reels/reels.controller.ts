@@ -108,6 +108,12 @@ export class ReelsController {
     return this.reelsService.addComment(viewer.id, reelId, dto.content);
   }
 
+  /** Called after the viewer has watched the reel; each account counts once. */
+  @Post('reels/:reelId/view')
+  view(@CurrentUser() viewer: CurrentUserContext, @Param('reelId', reelIdPipe) reelId: string): Promise<ReelView> {
+    return this.reelsService.recordView(viewer.id, reelId);
+  }
+
   @Post('reels/:reelId/shares')
   share(@CurrentUser() viewer: CurrentUserContext, @Param('reelId', reelIdPipe) reelId: string) {
     return this.reelsService.share(viewer.id, reelId);

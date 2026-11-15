@@ -401,31 +401,42 @@ onIonViewWillEnter(() => {
 <style scoped>
 .thread__profile {
   display: flex;
-  margin-right: 10px;
+  margin: 0 10px 0 6px;
   border-radius: 50%;
   color: inherit;
   text-decoration: none;
 }
 .thread__call {
-  border: 0;
-  background: transparent;
-  color: var(--ion-color-primary);
-  padding: 8px;
   display: grid;
+  width: 38px;
+  height: 38px;
   place-items: center;
-  font-size: 22px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--gora-line);
+  border-radius: 50%;
+  background: var(--gora-surface);
+  color: var(--ion-color-primary);
   cursor: pointer;
+  font-size: 19px;
+  transition: border-color var(--gora-motion), background var(--gora-motion);
+}
+.thread__call:hover {
+  border-color: var(--gora-accent-line);
+  background: var(--gora-accent-soft);
 }
 .thread__pins {
   margin: 12px 16px;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--gora-accent-line);
+  border-radius: 14px;
   background: var(--gora-surface);
   font-size: 0.85rem;
 }
 .thread__pins summary {
   cursor: pointer;
   color: var(--ion-color-primary);
+  font-weight: 700;
 }
 .thread__pins > div {
   padding-top: 12px;
@@ -451,16 +462,19 @@ onIonViewWillEnter(() => {
 .thread {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 16px;
+  gap: 6px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px 16px 20px;
   list-style: none;
 }
 
 .thread__notice {
-  margin: 16px 16px 0;
-  padding: 10px 12px;
-  border-radius: 12px;
+  max-width: 520px;
+  margin: 16px auto 0;
+  padding: 12px 14px;
+  border: 1px solid var(--gora-line);
+  border-radius: 14px;
   background: var(--gora-surface);
   color: var(--gora-muted);
   font-size: 0.8rem;
@@ -475,19 +489,22 @@ onIonViewWillEnter(() => {
 }
 
 .thread__message {
-  max-width: calc(100% - 44px);
+  max-width: min(78%, 520px);
   align-self: flex-start;
   min-width: 0;
 }
 .thread__older {
   display: block;
-  margin: 12px auto 0;
-  padding: 8px 12px;
-  border: 0;
-  border-radius: 8px;
+  margin: 14px auto 0;
+  padding: 7px 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 999px;
   background: var(--gora-surface);
   color: var(--ion-color-primary);
   cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .thread__message--mine {

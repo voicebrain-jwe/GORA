@@ -48,9 +48,15 @@
             @busy="$event ? pause() : resume()"
             @deleted="emit('close')"
           />
-          <button v-if="isOwnStory" type="button" class="story-viewer__viewers" @click="openViewers">
+          <button
+            v-if="isOwnStory"
+            type="button"
+            class="story-viewer__viewers"
+            :aria-label="`${viewerCount ?? 'See'} viewers`"
+            @click="openViewers"
+          >
             <ion-icon :icon="eyeOutline" aria-hidden="true" />
-            Viewers
+            {{ viewerCount === null ? 'Viewers' : `${viewerCount} ${viewerCount === 1 ? 'viewer' : 'viewers'}` }}
           </button>
           <button type="button" class="story-viewer__close" aria-label="Close story" @click="emit('close')">
             <ion-icon :icon="closeOutline" />
@@ -150,10 +156,20 @@ watch(
 watch(
   () => currentStory.value?.id,
   (storyId) => {
-    if (storyId) void storiesStore.markViewed(storyId);
+    if (!storyId) return;
+    void storiesStore.markViewed(storyId);
+    // Your own story: fetch the fresh audience so the count is current.
+    if (isOwnStory.value) void storiesStore.loadViewers(storyId, true);
   },
   { immediate: true },
 );
+
+/** Null until the viewer list for your own story has loaded. */
+const viewerCount = computed(() => {
+  const id = currentStory.value?.id;
+  const viewers = id ? storiesStore.viewersByStoryId[id] : undefined;
+  return viewers ? viewers.length : null;
+});
 </script>
 
 <style scoped>

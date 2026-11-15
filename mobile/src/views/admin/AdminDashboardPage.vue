@@ -2624,4 +2624,123 @@ pre {
     padding: 20px 18px;
   }
 }
+
+/* ───────── Phone polish ───────── */
+@media (max-width: 620px) {
+  /* Readable type: nothing under 11px on a phone. */
+  .topbar {
+    font-size: 12px;
+  }
+  .access-badge {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+  .breadcrumb {
+    display: none;
+  }
+  .page-heading h1 {
+    font-size: 26px;
+    line-height: 1.15;
+  }
+  .page-heading p:not(.eyebrow) {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .stat-card > div {
+    font-size: 12px;
+  }
+  .stat-card small,
+  .platform span {
+    font-size: 11px;
+  }
+  .report-actions .button {
+    min-height: 40px;
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+  .page-footer {
+    font-size: 11px;
+  }
+
+  /* Sections menu stays reachable while scrolling. */
+  .sidebar {
+    position: sticky;
+    z-index: 20;
+    top: 0;
+    padding-bottom: 8px;
+    background: var(--admin-bg, #0f1012);
+  }
+  .brand {
+    font-size: 28px;
+  }
+  nav {
+    margin-top: 12px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar {
+    display: none;
+  }
+  nav button {
+    flex-shrink: 0;
+    min-height: 40px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+
+  .heading-actions .button {
+    min-height: 42px;
+  }
+
+  /* Accounts: one card per user instead of a wide table. */
+  .table-scroll {
+    overflow: visible;
+  }
+  .table-scroll table,
+  .table-scroll tbody {
+    display: block;
+    width: 100%;
+  }
+  .table-scroll thead {
+    display: none;
+  }
+  .table-scroll tbody tr {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 10px 12px;
+    padding: 16px 18px;
+    border-top: 1px solid var(--admin-border);
+  }
+  .table-scroll tbody td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .table-scroll tbody td:first-child {
+    grid-column: 1 / -1;
+  }
+  .table-scroll tbody td:nth-child(4) {
+    justify-self: end;
+    font-size: 12px;
+  }
+  .table-scroll tbody td:last-child {
+    grid-column: 1 / -1;
+  }
+  .table-scroll tbody td:last-child .text-button {
+    display: flex;
+    width: 100%;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+  }
+  .user-cell span {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
 </style>

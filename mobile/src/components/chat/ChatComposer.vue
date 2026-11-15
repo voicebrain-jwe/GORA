@@ -95,6 +95,9 @@ onMounted(resize);
     max(12px, env(safe-area-inset-left));
   background: var(--ion-background-color);
 }
+.chat-composer :deep(button:not(.chat-composer__send)) {
+  flex-shrink: 0;
+}
 .chat-composer__input {
   min-width: 0;
   min-height: 44px;
@@ -106,7 +109,8 @@ onMounted(resize);
   padding: 10px 14px;
   border: 1px solid var(--gora-line);
   border-radius: 22px;
-  background: var(--gora-surface);
+  background: var(--gora-surface-raised);
+  transition: border-color var(--gora-motion), background var(--gora-motion);
   color: var(--ion-text-color);
   font: inherit;
   font-size: 16px;
@@ -115,6 +119,7 @@ onMounted(resize);
 }
 .chat-composer__input:focus {
   border-color: var(--ion-color-primary);
+  background: var(--gora-surface);
   outline: none;
 }
 .chat-composer__send {
@@ -130,8 +135,14 @@ onMounted(resize);
   color: var(--ion-color-primary-contrast);
   cursor: pointer;
   font-size: 20px;
+  box-shadow: 0 6px 14px -6px rgba(255, 96, 40, 0.7);
+  transition: transform var(--gora-motion), opacity var(--gora-motion);
+}
+.chat-composer__send:active:not(:disabled) {
+  transform: scale(0.92);
 }
 .chat-composer__send:disabled {
+  box-shadow: none;
   cursor: default;
   opacity: 0.4;
 }

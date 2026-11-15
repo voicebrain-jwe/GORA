@@ -7,6 +7,7 @@ import {
   listReelFeed,
   listUserReels,
   recordReelShare,
+  recordReelView,
   setReelLike,
   updateReel as updateReelRequest,
   updateReelVisibility as updateReelVisibilityRequest,
@@ -147,6 +148,22 @@ export const useReelsStore = defineStore('reels', () => {
 
   function syncReel(updated: ApiReel): void {
     replaceReel(updated);
+  }
+
+  /** Reels already counted in this session, so replays do not call the API again. */
+  const viewedReelIds = new Set<string>();
+
+  /** Count a view after the viewer has watched the reel; the new total shows right away. */
+  async function recordView(reelId: string): Promise<void> {
+    const reel = serverReels.value.find((candidate) => candidate.id === reelId);
+    if (!reel?.fromServer || viewedReelIds.has(reelId)) return;
+    viewedReelIds.add(reelId);
+    try {
+      replaceReel(await authorized((token) => recordReelView(token, reelId)));
+    } catch {
+      // A failed view count is not worth interrupting playback; allow a later retry.
+      viewedReelIds.delete(reelId);
+    }
   }
 
   async function shareReel(reelId: string): Promise<string | null> {
@@ -403,5 +420,6 @@ export const useReelsStore = defineStore('reels', () => {
     toggleLike,
     syncReel,
     shareReel,
+    recordView,
   };
 });

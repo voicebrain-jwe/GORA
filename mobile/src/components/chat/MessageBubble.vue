@@ -365,14 +365,20 @@ onIonViewDidLeave(() => {
   background: var(--gora-accent-soft);
 }
 .message-bubble__content {
-  padding: 10px 13px;
-  border-radius: 18px 18px 18px 4px;
+  padding: 9px 14px;
+  border: 1px solid var(--gora-line);
+  border-radius: 20px 20px 20px 6px;
   background: var(--gora-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 .message-bubble--mine .message-bubble__content {
-  border-radius: 18px 18px 4px 18px;
-  background: var(--ion-color-primary);
+  border-color: transparent;
+  border-radius: 20px 20px 6px 20px;
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-tint));
   color: var(--ion-color-primary-contrast);
+}
+.message-bubble--mine .message-bubble__content a {
+  color: inherit;
 }
 .message-bubble__content--reactable {
   touch-action: pan-y;
@@ -388,8 +394,8 @@ onIonViewDidLeave(() => {
 }
 .message-bubble__content p {
   margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
+  font-size: 0.92rem;
+  line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -400,9 +406,10 @@ onIonViewDidLeave(() => {
 }
 .message-bubble__content time {
   display: block;
-  margin-top: 4px;
-  font-size: 0.66rem;
-  opacity: 0.7;
+  margin-top: 3px;
+  font-size: 0.64rem;
+  opacity: 0.65;
+  text-align: right;
 }
 .message-bubble__add {
   position: absolute;

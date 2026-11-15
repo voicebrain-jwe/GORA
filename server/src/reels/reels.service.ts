@@ -214,6 +214,28 @@ export class ReelsService {
     return { comment: { ...comment, author: user }, reel: await this.findVisible(viewerId, reelId) };
   }
 
+  /**
+   * Record that the viewer watched the reel. Each account adds one view, and
+   * authors watching their own reel are not counted.
+   */
+  async recordView(viewerId: string, reelId: string): Promise<ReelView> {
+    const reel = await this.findVisible(viewerId, reelId);
+    if (reel.author.id === viewerId) return reel;
+
+    const counted = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.reelView.createMany({
+        data: [{ reelId, userId: viewerId, completed: true }],
+        skipDuplicates: true,
+      });
+      if (count > 0) {
+        await tx.reel.update({ where: { id: reelId }, data: { viewCount: { increment: 1 } } });
+      }
+      return count > 0;
+    });
+
+    return counted ? this.findVisible(viewerId, reelId) : reel;
+  }
+
   async share(viewerId: string, reelId: string): Promise<ReelView> {
     await this.findVisible(viewerId, reelId);
     await this.prisma.reelShare.create({ data: { reelId, userId: viewerId } });

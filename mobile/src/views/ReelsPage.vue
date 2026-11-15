@@ -55,6 +55,7 @@
             @comment="openComments($event.id)"
             @share="shareReel($event)"
             @follow="followsStore.toggleFollow($event.author.id)"
+            @viewed="reelsStore.recordView($event.id)"
           />
         </div>
       </div>

@@ -4,7 +4,10 @@
 
     <ion-content :fullscreen="true">
       <div class="chat">
-        <h1 class="chat__title">Messages</h1>
+        <header class="chat__header">
+          <h1 class="chat__title">Messages</h1>
+          <p class="chat__subtitle-text">Chat with friends, clubs, and new players.</p>
+        </header>
         <SegmentTabs v-model="section" :options="sectionOptions" />
         <p v-if="chatStore.error" class="chat__empty" role="alert">{{ chatStore.error }}</p>
 
@@ -195,77 +198,97 @@ onIonViewWillEnter(() => {
 
 <style scoped>
 .chat {
-  padding: 8px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 16px 32px;
+  box-sizing: border-box;
+}
+
+.chat__header {
+  padding: 2px 2px 0;
 }
 
 .chat__title {
-  margin: 4px 0 12px;
-  font-size: 1.4rem;
+  margin: 0;
+  font-size: 1.6rem;
   font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
-.chat__hint,
-.chat__empty {
-  margin: 14px 0 4px;
+.chat__subtitle-text {
+  margin: 2px 0 0;
+  color: var(--gora-muted);
+  font-size: 0.86rem;
+}
+
+.chat__hint {
+  margin: 0;
+  padding: 0 2px;
   color: var(--gora-muted);
   font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.chat__empty {
+  margin: 0;
+  padding: 28px 16px;
+  border: 1px dashed var(--gora-line-strong);
+  border-radius: 14px;
+  color: var(--gora-muted);
+  font-size: 0.86rem;
+  text-align: center;
 }
 
 .chat__subtitle {
-  margin: 20px 0 0;
+  margin: 8px 2px 0;
   color: var(--gora-muted);
   font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .chat__link {
   margin-left: 4px;
   color: var(--ion-color-primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.conversation__text .conversation__tag {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 7px;
-  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.4);
-  border-radius: 999px;
-  color: var(--ion-color-primary);
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  vertical-align: 2px;
-}
-
-.message-request__name {
-  color: var(--ion-text-color);
-  font-size: 0.92rem;
   font-weight: 700;
   text-decoration: none;
 }
 
-.message-request__status {
-  color: var(--gora-muted);
-  font-size: 0.75rem;
-}
-
+/* One card holds the list; rows are separated by hairlines. */
 .chat__list {
-  margin: 8px 0 0;
-  padding: 0;
+  margin: 0;
+  padding: 4px;
+  overflow: hidden;
+  border: 1px solid var(--gora-line);
+  border-radius: 16px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
   list-style: none;
+}
+
+.chat__list > li + li {
+  border-top: 1px solid var(--gora-line);
 }
 
 .conversation {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
+  padding: 12px;
+  border-radius: 12px;
   color: var(--ion-text-color);
   text-decoration: none;
+  transition: background var(--gora-motion);
+}
+
+.conversation:hover,
+.conversation:focus-visible {
+  background: var(--gora-surface-hover);
 }
 
 .conversation__text {
@@ -273,24 +296,41 @@ onIonViewWillEnter(() => {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .conversation__text strong {
-  font-size: 0.92rem;
+  overflow: hidden;
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .conversation__text span {
   overflow: hidden;
   color: var(--gora-muted);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .conversation__text .conversation__last--unread {
   color: var(--ion-text-color);
-  font-weight: 600;
+  font-weight: 650;
+}
+
+.conversation__text .conversation__tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: 2px;
 }
 
 .conversation__meta {
@@ -298,7 +338,7 @@ onIonViewWillEnter(() => {
   flex-shrink: 0;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 6px;
   color: var(--gora-muted);
   font-size: 0.72rem;
 }
@@ -309,17 +349,18 @@ onIonViewWillEnter(() => {
   border-radius: 999px;
   background: var(--ion-color-primary);
   color: var(--ion-color-primary-contrast);
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   line-height: 20px;
   text-align: center;
 }
 
+/* Message requests */
 .message-request {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--gora-line);
+  padding: 14px 12px;
 }
 
 .message-request time {
@@ -336,13 +377,25 @@ onIonViewWillEnter(() => {
   gap: 4px;
 }
 
-.message-request__body strong {
-  font-size: 0.92rem;
+.message-request__name {
+  color: var(--ion-text-color);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .message-request__body q {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--gora-surface-raised);
+  color: var(--ion-text-color);
+  font-size: 0.85rem;
+  quotes: none;
+}
+
+.message-request__status {
   color: var(--gora-muted);
-  font-size: 0.82rem;
+  font-size: 0.75rem;
 }
 
 .message-request__actions {
@@ -352,15 +405,16 @@ onIonViewWillEnter(() => {
 }
 
 .message-request__btn {
-  padding: 7px 16px;
+  min-height: 36px;
+  padding: 0 18px;
   border: 1px solid var(--gora-line);
-  border-radius: 10px;
+  border-radius: 999px;
   background: transparent;
   color: var(--ion-text-color);
   cursor: pointer;
   font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .message-request__btn--primary {

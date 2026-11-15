@@ -10,6 +10,7 @@
       playsinline
       preload="metadata"
       @click="tapVideo"
+      @timeupdate="checkWatched"
       @ended="isPlaying = false"
       @play="isPlaying = true"
       @pause="isPlaying = false"
@@ -123,7 +124,24 @@ const emit = defineEmits<{
   comment: [reel: Reel];
   share: [reel: Reel];
   follow: [reel: Reel];
+  viewed: [reel: Reel];
 }>();
+
+/** Seconds of playback that count as a view (or the whole clip if it is shorter). */
+const VIEW_AFTER_SECONDS = 3;
+let reportedView = false;
+
+function checkWatched(event: Event): void {
+  if (reportedView) return;
+  const player = event.target as HTMLVideoElement;
+  const needed = Number.isFinite(player.duration) && player.duration > 0
+    ? Math.min(VIEW_AFTER_SECONDS, player.duration - 0.25)
+    : VIEW_AFTER_SECONDS;
+  if (player.currentTime >= needed) {
+    reportedView = true;
+    emit('viewed', props.reel);
+  }
+}
 
 const reelsStore = useReelsStore();
 const slide = ref<HTMLElement | null>(null);

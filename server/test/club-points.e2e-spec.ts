@@ -97,6 +97,12 @@ describe('Club acceptance GORA points (e2e)', () => {
     if (app) await app.close();
   });
 
+  async function leaveWithApproval(club: string) {
+    await post('member', `${club}/leave`).expect(200);
+    const pending = await prisma.clubMembershipRequest.findFirstOrThrow({ where: { clubId: club, userId: users.member.id, kind: 'LEAVE', status: 'PENDING' } });
+    await post('owner', `${club}/leave-requests/${pending.id}/approve`).expect(200);
+  }
+
   it('does not reward owners, pending, unauthorized, rejected or cancelled requests', async () => {
     const club = await createClub('APPROVAL_REQUIRED');
     expect(await balance('owner')).toBe(0);
@@ -143,7 +149,7 @@ describe('Club acceptance GORA points (e2e)', () => {
       .auth(users.member.token, { type: 'bearer' })
       .expect(200);
     expect(ranking.body.currentPlayer.goraPoints).toBe(1);
-    await post('member', `${club}/leave`).expect(200);
+    await leaveWithApproval(club);
     await post('member', `${club}/join`).expect(200);
     await post('owner', `${club}/members/${users.member.id}/approve`).expect(
       200,
@@ -166,7 +172,7 @@ describe('Club acceptance GORA points (e2e)', () => {
       const club = await createClub('OPEN');
       await post('member', `${club}/join`).expect(200);
       await post('member', `${club}/join`).expect(409);
-      await post('member', `${club}/leave`).expect(200);
+      await leaveWithApproval(club);
       await post('member', `${club}/join`).expect(200);
       expect(await events('member', club)).toBe(1);
     }

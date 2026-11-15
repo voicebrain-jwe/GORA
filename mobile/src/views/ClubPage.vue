@@ -84,8 +84,8 @@
               {{ primaryLabel }}
             </button>
             <button v-if="canManage" type="button" class="club__secondary" @click="openManage">Manage Club</button>
-            <button v-else-if="joinState === 'MEMBER'" type="button" class="club__secondary" :disabled="busy" @click="leave">
-              Leave
+            <button v-else-if="joinState === 'MEMBER'" type="button" class="club__secondary" :disabled="busy || club.leaveRequested" @click="leave">
+              {{ club.leaveRequested ? 'Leave request pending' : 'Request to leave' }}
             </button>
             <button
               v-else-if="joinState !== 'BANNED'"
@@ -436,7 +436,7 @@ async function leave(): Promise<void> {
 
   try {
     const result = await clubsStore.leave(clubId, session.me);
-    void showNotice(result.ok ? 'You left the club.' : result.message);
+    void showNotice(result.ok ? 'Your request to leave is waiting for approval. You remain a member until it is approved.' : result.message);
   } finally {
     busy.value = false;
   }

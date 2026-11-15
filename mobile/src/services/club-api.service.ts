@@ -63,6 +63,18 @@ export async function rejectServerClubRequest(token: string, clubId: string, use
   });
 }
 
+export function respondToClubLeave(token: string, clubId: string, requestId: string, action: 'approve' | 'reject'): Promise<unknown> {
+  return apiRequest(clubPath(clubId, `/leave-requests/${encodeURIComponent(requestId)}/${action}`), { method: 'POST', token });
+}
+
+export function getClubLeaveRequests(token: string, clubId: string): Promise<(ClubApiJoinRequest & { id: string })[]> {
+  return apiRequest(clubPath(clubId, '/leave-requests'), { token });
+}
+
+export function approveClubNotificationRequest(token: string, clubId: string, requestId: string): Promise<unknown> {
+  return apiRequest(clubPath(clubId, `/join-requests/${encodeURIComponent(requestId)}/approve`), { method: 'POST', token });
+}
+
 export async function removeServerClubMember(token: string, clubId: string, userId: string): Promise<void> {
   await apiRequest<unknown>(clubPath(clubId, `/members/${encodeURIComponent(userId)}/remove`), {
     method: 'POST',

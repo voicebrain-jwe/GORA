@@ -96,6 +96,29 @@ test('production migrations preserve existing media and restore the complete spo
       assert.equal((await db.query('SELECT description FROM "Badge" WHERE id=$1', [badges[0].id])).rows[0].description, 'Admin-managed description');
     });
 
+    await t.test('keeps one pending club request per kind and retains decisions after a new request', async () => {
+      const club = (await db.query('SELECT id FROM "Club" LIMIT 1')).rows[0].id;
+      const first = randomUUID();
+      await db.query('INSERT INTO "ClubMembershipRequest" (id,"clubId","userId",kind) VALUES ($1,$2,$3,\'LEAVE\')', [first, club, owner]);
+      await assert.rejects(db.query('INSERT INTO "ClubMembershipRequest" (id,"clubId","userId",kind) VALUES ($1,$2,$3,\'LEAVE\')', [randomUUID(), club, owner]), error => error.code === '23505');
+      await db.query('UPDATE "ClubMembershipRequest" SET status=\'ACCEPTED\',"resolvedAt"=now() WHERE id=$1', [first]);
+      await db.query('INSERT INTO "ClubMembershipRequest" (id,"clubId","userId",kind) VALUES ($1,$2,$3,\'LEAVE\')', [randomUUID(), club, owner]);
+      assert.equal((await db.query('SELECT status FROM "ClubMembershipRequest" WHERE id=$1', [first])).rows[0].status, 'ACCEPTED');
+      await assert.rejects(db.query('INSERT INTO "ClubMembershipRequest" (id,"clubId","userId",kind) VALUES ($1,$2,$3,\'OTHER\')', [randomUUID(), club, owner]), error => error.code === '23514');
+    });
+
+    await t.test('backfills pending club joins once without duplicating reviewer notifications', async () => {
+      const club = (await db.query('SELECT id FROM "Club" LIMIT 1')).rows[0].id;
+      const member = randomUUID();
+      await db.query(`INSERT INTO "User" (id,username,email,"passwordHash","firstName","lastName","updatedAt") VALUES ($1,'backfill_member','backfill@example.test','not-a-login-hash','Backfill','Member',now())`, [member]);
+      await db.query(`INSERT INTO "ClubMember" (id,"clubId","userId",status,"updatedAt") VALUES ($1,$2,$3,'PENDING',now())`, [randomUUID(), club, member]);
+      await db.exec(await sql('20261115040100_pending_club_requests'));
+      await db.exec(await sql('20261115040100_pending_club_requests'));
+      const requests = (await db.query('SELECT id FROM "ClubMembershipRequest" WHERE "clubId"=$1 AND "userId"=$2 AND kind=\'JOIN\'', [club, member])).rows;
+      assert.equal(requests.length, 1);
+      assert.equal((await db.query('SELECT count(*)::int AS count FROM "Notification" WHERE "clubRequestId"=$1 AND "userId"=$2', [requests[0].id, owner])).rows[0].count, 1);
+    });
+
     await t.test('retains legacy media and accepts authenticated Cloudinary references', async () => {
       assert.equal((await db.query('SELECT "mediaUrl" FROM "Story" WHERE "id"=$1', [oldStory])).rows[0].mediaUrl, `blob:${oldStory}.png`);
       assert.equal((await db.query('SELECT "videoUrl" FROM "Reel" WHERE "id"=$1', [oldReel])).rows[0].videoUrl, `upload:${oldReel}.mp4`);

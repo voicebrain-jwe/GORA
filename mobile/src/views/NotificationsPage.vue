@@ -68,8 +68,8 @@
               </span>
             </span>
             <span class="notification__text">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.body }}</span>
+              <strong>{{ requestTitle(item) }}</strong>
+              <span>{{ requestBody(item) }}</span>
               <time :datetime="item.createdAt">{{
                 formatTimeAgo(Date.parse(item.createdAt), now)
               }}</time>
@@ -82,7 +82,7 @@
           </button>
           <div v-if="hasNotificationAction(item)" class="notification__actions">
             <button
-              v-if="item.type === 'FRIEND_REQUEST'"
+              v-if="item.type === 'FRIEND_REQUEST' && !getGameActionStatus(item)"
               type="button"
               class="notification__action notification__action--primary"
               :disabled="isMarkingAll || !!actionBusyId"
@@ -90,6 +90,14 @@
             >
               {{ actionBusyId === item.id ? 'Accepting…' : 'Accept' }}
             </button>
+            <span v-else-if="item.type === 'FRIEND_REQUEST'" class="notification__action-status">{{ getGameActionStatus(item) === 'friend-accepted' ? 'Friends accepted' : 'Request no longer pending' }}</span>
+            <template v-else-if="item.type === 'CLUB_JOIN_REQUEST' || item.type === 'CLUB_LEAVE_REQUEST'">
+              <span v-if="getGameActionStatus(item)" class="notification__action-status">{{ getGameActionStatus(item)?.endsWith('-accepted') ? 'Request accepted' : getGameActionStatus(item)?.endsWith('-rejected') ? 'Request declined' : 'Request no longer pending' }}</span>
+              <template v-else>
+                <button type="button" class="notification__action notification__action--primary" :disabled="isMarkingAll || !!actionBusyId" @click="respondToClub(item, 'approve')">{{ actionBusyId === item.id ? 'Saving…' : item.type === 'CLUB_JOIN_REQUEST' ? 'Accept club request' : 'Approve club leave' }}</button>
+                <button v-if="item.type === 'CLUB_LEAVE_REQUEST'" type="button" class="notification__action" :disabled="isMarkingAll || !!actionBusyId" @click="respondToClub(item, 'reject')">Decline request</button>
+              </template>
+            </template>
             <button
               v-else-if="item.type === 'GAME_JOIN_REQUEST' && !getGameActionStatus(item)"
               type="button"
@@ -136,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import {
@@ -174,8 +182,17 @@ import type { AppNotification, NotificationType } from "@/types/notification";
 import { joinRequestAction } from "@/utils/join-requests";
 import { formatTimeAgo } from "@/utils/time";
 import { showNotice } from "@/utils/notice";
+import { useAuthStore } from '@/stores/auth';
+import { createAuthorizedCall, captureSession } from '@/stores/authorized';
+import { approveClubNotificationRequest, respondToClubLeave } from '@/services/club-api.service';
 
 const NOTIFICATION_ICONS: Record<NotificationType, string> = {
+  CLUB_JOIN_REQUEST: peopleOutline,
+  CLUB_JOIN_ACCEPTED: checkmarkCircleOutline,
+  CLUB_JOIN_REJECTED: closeCircleOutline,
+  CLUB_LEAVE_REQUEST: peopleOutline,
+  CLUB_LEAVE_ACCEPTED: checkmarkCircleOutline,
+  CLUB_LEAVE_REJECTED: closeCircleOutline,
   GAME_JOIN_REQUEST: flagOutline,
   GAME_LEAVE_REQUEST: closeCircleOutline,
   GAME_LEAVE_APPROVED: checkmarkCircleOutline,
@@ -210,20 +227,13 @@ const gamesStore = useGamesStore();
 const joinRequestsStore = useJoinRequestsStore();
 const gamePlayersStore = useGamePlayersStore();
 const actionBusyId = ref<string | null>(null);
-type GameNotificationAction = 'join-accepted' | 'leave-approved' | 'leave-rejected';
-const GAME_ACTION_STORAGE_KEY = 'gora:completed-game-notification-actions';
-function loadGameActionStatus(): Record<string, GameNotificationAction> {
-  try {
-    const saved = sessionStorage.getItem(GAME_ACTION_STORAGE_KEY);
-    return saved ? JSON.parse(saved) as Record<string, GameNotificationAction> : {};
-  } catch {
-    return {};
-  }
-}
-const gameActionStatus = ref(loadGameActionStatus());
+type GameNotificationAction = NonNullable<AppNotification['actionStatus']>;
+const auth = useAuthStore();
+const authorized = createAuthorizedCall(auth);
+const gameActionStatus = ref<Record<string, GameNotificationAction>>({});
+watch(() => auth.sessionVersion, () => { gameActionStatus.value = {}; actionBusyId.value = null; });
 function rememberGameAction(itemId: string, action: GameNotificationAction): void {
   gameActionStatus.value = { ...gameActionStatus.value, [itemId]: action };
-  try { sessionStorage.setItem(GAME_ACTION_STORAGE_KEY, JSON.stringify(gameActionStatus.value)); } catch { /* the disabled state still works for this view */ }
 }
 const {
   items,
@@ -248,14 +258,50 @@ function gameIdFor(item: AppNotification): string | null {
 }
 
 function hasNotificationAction(item: AppNotification): boolean {
+  if (item.type === 'CLUB_JOIN_REQUEST' || item.type === 'CLUB_LEAVE_REQUEST') return !!item.actor && !!item.clubRequestId && !!item.link;
   if (item.type === 'FRIEND_REQUEST') return item.actor !== null;
   if (item.type === 'GAME_JOIN_REQUEST') return item.actor !== null && gameIdFor(item) !== null;
   if (item.type === 'GAME_LEAVE_REQUEST') return item.actor !== null && gameIdFor(item) !== null;
   return item.type === 'GAME_JOIN_REJECTED' && gameIdFor(item) !== null;
 }
 
-function getGameActionStatus(item: AppNotification): GameNotificationAction | 'join-rejected' | 'join-cancelled' | 'resolved' | null {
+function getGameActionStatus(item: AppNotification): GameNotificationAction | null {
   return gameActionStatus.value[item.id] ?? item.actionStatus ?? null;
+}
+
+function requestTitle(item: AppNotification): string {
+  const status = getGameActionStatus(item);
+  if (status === 'friend-accepted') return 'Friend request accepted';
+  if (status === 'join-accepted') return 'Game join request accepted';
+  if (status === 'leave-approved') return 'Game leave request approved';
+  if (status === 'leave-rejected') return 'Game leave request declined';
+  if (status?.startsWith('club-')) return `Club ${item.type === 'CLUB_LEAVE_REQUEST' ? 'leave' : 'join'} request ${status.endsWith('-accepted') ? 'accepted' : 'declined'}`;
+  return item.title;
+}
+function requestBody(item: AppNotification): string {
+  if (!gameActionStatus.value[item.id]) return item.body;
+  const status = getGameActionStatus(item);
+  if (status === 'friend-accepted') return `You and ${item.actor?.displayName || 'this player'} are now friends.`;
+  if (status && status !== 'resolved') return `${item.actor?.displayName || 'This player'}: ${requestTitle(item)}.`;
+  return item.body;
+}
+
+async function respondToClub(item: AppNotification, action: 'approve' | 'reject'): Promise<void> {
+  const clubId = item.link?.match(/^\/clubs\/([^/?#]+)/)?.[1];
+  if (!clubId || !item.actor || !item.clubRequestId || actionBusyId.value) return;
+  const isCurrent = captureSession(auth);
+  actionBusyId.value = item.id;
+  try {
+    if (item.type === 'CLUB_JOIN_REQUEST') {
+      if (action !== 'approve') return;
+      await authorized(token => approveClubNotificationRequest(token, clubId, item.clubRequestId!));
+    } else await authorized(token => respondToClubLeave(token, clubId, item.clubRequestId!, action));
+    if (!isCurrent()) return;
+    rememberGameAction(item.id, `${item.type === 'CLUB_JOIN_REQUEST' ? 'club-join' : 'club-leave'}-${action === 'approve' ? 'accepted' : 'rejected'}`);
+    await completeNotificationAction(item, action === 'approve' ? 'Request accepted.' : 'Request declined.');
+  } catch {
+    if (isCurrent()) { void showNotice('Could not update this request. Refresh notifications and try again.'); void notificationsStore.load(true); }
+  } finally { if (isCurrent()) actionBusyId.value = null; }
 }
 
 function joinRequestStatusLabel(status: ReturnType<typeof getGameActionStatus>): string {
@@ -284,6 +330,7 @@ async function acceptFriend(item: AppNotification): Promise<void> {
       return;
     }
     if (await friendsStore.accept(request.id)) {
+      rememberGameAction(item.id, 'friend-accepted');
       await completeNotificationAction(item, `You and ${actor.displayName} are now friends.`);
     } else {
       void showNotice(friendsStore.error ?? 'Could not accept this friend request.');

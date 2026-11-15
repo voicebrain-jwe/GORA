@@ -1,6 +1,12 @@
 import type { UserSummary } from "./user";
 
 export type NotificationType =
+  | "CLUB_JOIN_REQUEST"
+  | "CLUB_JOIN_ACCEPTED"
+  | "CLUB_JOIN_REJECTED"
+  | "CLUB_LEAVE_REQUEST"
+  | "CLUB_LEAVE_ACCEPTED"
+  | "CLUB_LEAVE_REJECTED"
   | "GAME_JOIN_REQUEST"
   | "GAME_LEAVE_REQUEST"
   | "GAME_LEAVE_APPROVED"
@@ -28,6 +34,7 @@ export type NotificationType =
   | "HELP_REQUEST_UPDATED";
 
 export interface AppNotification {
+  clubRequestId?: string | null;
   id: string;
   type: NotificationType;
   actor: UserSummary | null;
@@ -40,6 +47,11 @@ export interface AppNotification {
   link: string | null;
   /** Current server-side state for actionable game requests, if applicable. */
   actionStatus?:
+    | "friend-accepted"
+    | "club-join-accepted"
+    | "club-join-rejected"
+    | "club-leave-accepted"
+    | "club-leave-rejected"
     | "join-accepted"
     | "join-rejected"
     | "join-cancelled"

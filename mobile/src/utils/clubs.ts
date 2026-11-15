@@ -84,6 +84,7 @@ export function toClub(view: ClubApiView): Club {
     schedule: view.schedule,
     contact: view.contact,
     viewerMembership: view.viewer.membership,
+    leaveRequested: view.viewer.leaveRequested ?? false,
     viewerFollows: view.viewer.follows,
     viewerHasInvite: view.viewer.hasInvite,
     viewerCanManageClub: view.viewer.canManageClub,

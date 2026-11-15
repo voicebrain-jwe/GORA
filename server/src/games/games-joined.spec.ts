@@ -13,7 +13,9 @@ describe('joined game history', () => {
     new ConfigService({ GAME_TIMEZONE: 'Asia/Manila' }),
   );
 
-  beforeEach(() => findMany.mockReset());
+  // The maintenance query runs before the joined-history query. Its rows have a
+  // different shape and must not receive the history fixtures below.
+  beforeEach(() => findMany.mockReset().mockResolvedValueOnce([]));
 
   function row(participationStatus: ParticipantStatus | null) {
     return {
@@ -43,6 +45,7 @@ describe('joined game history', () => {
       },
       club: null,
       _count: { participants: 3, joinRequests: 2 },
+      leaveRequests: [],
       participants: participationStatus
         ? [{ id: 'seat', status: participationStatus, joinedAt: timestamp }]
         : [],
@@ -88,7 +91,7 @@ describe('joined game history', () => {
   it('limits history to the signed-in viewer and preserves game visibility rules', async () => {
     findMany.mockResolvedValue([]);
     await service.listJoined(viewerId);
-    const query = findMany.mock.calls[0][0] as {
+    const query = findMany.mock.calls.find(([query]) => query.where.AND)?.[0] as {
       where: { AND: unknown[] };
       select: {
         participants: { where: unknown };

@@ -96,6 +96,44 @@ export class ClubsController {
     return this.clubs.leave(viewer.id, clubId);
   }
 
+  @Post(':clubId/join-requests/:requestId/approve')
+  @HttpCode(HttpStatus.OK)
+  approveJoinRequest(
+    @CurrentUser() viewer: CurrentUserContext,
+    @Param('clubId', clubIdPipe) clubId: string,
+    @Param('requestId', userIdPipe) requestId: string,
+  ) {
+    return this.clubs.approveJoinRequest(viewer.id, clubId, requestId);
+  }
+
+  @Post(':clubId/leave-requests/:requestId/approve')
+  @HttpCode(HttpStatus.OK)
+  approveLeave(
+    @CurrentUser() viewer: CurrentUserContext,
+    @Param('clubId', clubIdPipe) clubId: string,
+    @Param('requestId', userIdPipe) requestId: string,
+  ) {
+    return this.clubs.respondToLeave(viewer.id, clubId, requestId, true);
+  }
+
+  @Get(':clubId/leave-requests')
+  listLeaveRequests(
+    @CurrentUser() viewer: CurrentUserContext,
+    @Param('clubId', clubIdPipe) clubId: string,
+  ) {
+    return this.clubs.listLeaveRequests(viewer.id, clubId);
+  }
+
+  @Post(':clubId/leave-requests/:requestId/reject')
+  @HttpCode(HttpStatus.OK)
+  rejectLeave(
+    @CurrentUser() viewer: CurrentUserContext,
+    @Param('clubId', clubIdPipe) clubId: string,
+    @Param('requestId', userIdPipe) requestId: string,
+  ) {
+    return this.clubs.respondToLeave(viewer.id, clubId, requestId, false);
+  }
+
   @Get(':clubId/members')
   listMembers(
     @CurrentUser() viewer: CurrentUserContext,

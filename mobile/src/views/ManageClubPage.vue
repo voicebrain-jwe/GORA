@@ -41,7 +41,7 @@
 
           <section v-else-if="tab === 'REQUESTS'" class="manage__list" aria-label="Join requests">
             <p v-if="listError" class="manage__alert" role="alert">{{ listError }}</p>
-            <p v-else-if="requests.length === 0" class="manage__empty">No pending requests.</p>
+            <p v-else-if="requests.length === 0 && leaveRequests.length === 0" class="manage__empty">No pending requests.</p>
             <p v-else class="manage__hint">Pending requests don't use a slot until you approve them.</p>
             <article v-for="request in requests" :key="request.user.id" class="manage__row">
               <UserAvatar :user="request.user" :size="40" />
@@ -60,6 +60,16 @@
               <button v-if="canManageMembers" type="button" class="manage__small" :disabled="busyId === request.user.id" @click="reject(request.user.id)">
                 Reject
               </button>
+            </article>
+            <h3 v-if="leaveRequests.length">Leave requests</h3>
+            <article v-for="request in leaveRequests" :key="request.id" class="manage__row">
+              <UserAvatar :user="request.user" :size="40" />
+              <span class="manage__row-text"><strong>{{ request.user.displayName }}</strong><span>Wants permission to leave the club</span></span>
+              <template v-if="request.user.id !== auth.currentUser?.id">
+                <button type="button" class="manage__small manage__small--primary" :disabled="!!busyId" @click="reviewLeave(request.id, 'approve')">Approve leave</button>
+                <button type="button" class="manage__small" :disabled="!!busyId" @click="reviewLeave(request.id, 'reject')">Decline</button>
+              </template>
+              <span v-else>Waiting for another member</span>
             </article>
           </section>
 
@@ -131,6 +141,11 @@ import { clubToForm, emptyClubForm, toClubUpdateInput, validateClubForm } from '
 import { CLUB_ROLE_LABELS, formatClubCapacity, formatClubSlots, isClubFull } from '@/utils/clubs';
 import { showNotice } from '@/utils/notice';
 import { formatTimeAgo } from '@/utils/time';
+import { toClubJoinRequest } from '@/utils/clubs';
+import { useAuthStore } from '@/stores/auth';
+import { createAuthorizedCall, captureSession } from '@/stores/authorized';
+import { getClubLeaveRequests, respondToClubLeave } from '@/services/club-api.service';
+import { describeApiError } from '@/utils/api-errors';
 
 type ManageTab = 'SETTINGS' | 'REQUESTS' | 'INVITES' | 'MEMBERS';
 
@@ -139,6 +154,9 @@ const route = useRoute();
 const clubId = String(route.params.clubId ?? '');
 const isServer = isServerClubId(clubId);
 const clubsStore = useClubsStore();
+const auth = useAuthStore();
+const authorized = createAuthorizedCall(auth);
+const leaveRequests = ref<(ClubJoinRequest & { id: string })[]>([]);
 const sportsStore = useSportsStore();
 const now = useNow();
 
@@ -192,6 +210,11 @@ async function loadTab(value: ManageTab): Promise<void> {
     const result = await clubsStore.fetchRequests(clubId);
     requests.value = typeof result === 'string' ? [] : result;
     listError.value = typeof result === 'string' ? result : null;
+    const isCurrent = captureSession(auth);
+    try {
+      const leaves = await authorized(token => getClubLeaveRequests(token, clubId));
+      if (isCurrent()) leaveRequests.value = leaves.map(request => ({ ...toClubJoinRequest(request), id: request.id }));
+    } catch (caught) { if (isCurrent()) listError.value = describeApiError(caught); }
   } else if (value === 'INVITES') {
     const result = await clubsStore.fetchInvites(clubId);
     invites.value = typeof result === 'string' ? [] : result;
@@ -285,6 +308,20 @@ async function reject(userId: string): Promise<void> {
   busyId.value = null;
   void showNotice(result.ok ? 'Request rejected.' : result.message);
   await loadTab('REQUESTS');
+}
+
+async function reviewLeave(requestId: string, action: 'approve' | 'reject'): Promise<void> {
+  if (busyId.value) return;
+  const isCurrent = captureSession(auth);
+  busyId.value = requestId;
+  try {
+    await authorized(token => respondToClubLeave(token, clubId, requestId, action));
+    if (!isCurrent()) return;
+    void showNotice(action === 'approve' ? 'Leave request approved.' : 'Leave request declined.');
+    await clubsStore.loadClub(clubId);
+    await loadTab('REQUESTS');
+  } catch (caught) { if (isCurrent()) listError.value = describeApiError(caught); }
+  finally { if (isCurrent()) busyId.value = null; }
 }
 
 async function invite(): Promise<void> {

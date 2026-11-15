@@ -20,6 +20,10 @@ import { visibleClubContentWhere } from '../social/club-visibility';
 import { CLUB_NOT_FOUND_MESSAGE } from './club-chat.service';
 import { minutesOfDay } from './club-fields';
 import {
+  createClubRequest,
+  resolveClubRequests,
+} from './club-membership-requests';
+import {
   canManageMember,
   hasClubPermission,
   type ClubPermission,
@@ -159,73 +163,77 @@ export class ClubsService {
       dto.additionalSportIds ?? [],
     );
 
-    const clubId = await this.photos.withPrepared(dto, (prepared) => this.withUsernameGuard(() =>
-      this.prisma.$transaction(async (tx) => {
-        const club = await tx.club.create({
-          data: {
-            ownerId: viewerId,
-            name: dto.name,
-            slug: dto.username,
-            description: dto.description,
-            about: dto.about ?? null,
-            profileImageUrl: dto.profileImageUrl ?? null,
-            coverImageUrl: dto.coverImageUrl ?? null,
-            sportId: dto.primarySportId,
-            country: dto.country ?? null,
-            city: dto.city ?? null,
-            barangay: dto.barangay ?? null,
-            homeCourt: dto.homeCourt ?? null,
-            locationName: dto.locationName ?? null,
-            latitude: dto.latitude ?? null,
-            longitude: dto.longitude ?? null,
-            maxMembers: dto.maxMembers,
-            membershipType: dto.membershipType ?? 'OPEN',
-            isPublic: dto.isPublic ?? true,
-            activityDay: dto.activityDay ?? null,
-            activityStartTime: dto.activityStartTime ?? null,
-            activityEndTime: dto.activityEndTime ?? null,
-            trainingSchedule: dto.trainingSchedule ?? null,
-            contactEmail: dto.contactEmail ?? null,
-            websiteUrl: dto.websiteUrl ?? null,
-            facebookUrl: dto.facebookUrl ?? null,
-            instagramUrl: dto.instagramUrl ?? null,
-            tiktokUrl: dto.tiktokUrl ?? null,
-            additionalSports: {
-              create: additionalSportIds.map((sportId) => ({ sportId })),
+    const clubId = await this.photos.withPrepared(dto, (prepared) =>
+      this.withUsernameGuard(() =>
+        this.prisma.$transaction(async (tx) => {
+          const club = await tx.club.create({
+            data: {
+              ownerId: viewerId,
+              name: dto.name,
+              slug: dto.username,
+              description: dto.description,
+              about: dto.about ?? null,
+              profileImageUrl: dto.profileImageUrl ?? null,
+              coverImageUrl: dto.coverImageUrl ?? null,
+              sportId: dto.primarySportId,
+              country: dto.country ?? null,
+              city: dto.city ?? null,
+              barangay: dto.barangay ?? null,
+              homeCourt: dto.homeCourt ?? null,
+              locationName: dto.locationName ?? null,
+              latitude: dto.latitude ?? null,
+              longitude: dto.longitude ?? null,
+              maxMembers: dto.maxMembers,
+              membershipType: dto.membershipType ?? 'OPEN',
+              isPublic: dto.isPublic ?? true,
+              activityDay: dto.activityDay ?? null,
+              activityStartTime: dto.activityStartTime ?? null,
+              activityEndTime: dto.activityEndTime ?? null,
+              trainingSchedule: dto.trainingSchedule ?? null,
+              contactEmail: dto.contactEmail ?? null,
+              websiteUrl: dto.websiteUrl ?? null,
+              facebookUrl: dto.facebookUrl ?? null,
+              instagramUrl: dto.instagramUrl ?? null,
+              tiktokUrl: dto.tiktokUrl ?? null,
+              additionalSports: {
+                create: additionalSportIds.map((sportId) => ({ sportId })),
+              },
+              tags: { create: (dto.tags ?? []).map((tag) => ({ tag })) },
+              rules: {
+                create: (dto.rules ?? []).map((text, index) => ({
+                  text,
+                  position: index + 1,
+                })),
+              },
             },
-            tags: { create: (dto.tags ?? []).map((tag) => ({ tag })) },
-            rules: {
-              create: (dto.rules ?? []).map((text, index) => ({
-                text,
-                position: index + 1,
-              })),
-            },
-          },
-          select: { id: true },
-        });
+            select: { id: true },
+          });
 
-        await this.photos.apply(tx, club.id, prepared);
+          await this.photos.apply(tx, club.id, prepared);
 
-        const ownerMembership = await tx.clubMember.findUnique({
-          where: { clubId_userId: { clubId: club.id, userId: viewerId } },
-          select: { role: true, status: true },
-        });
-        const chat = await tx.conversation.findUnique({
-          where: { clubId: club.id },
-          select: { type: true },
-        });
+          const ownerMembership = await tx.clubMember.findUnique({
+            where: { clubId_userId: { clubId: club.id, userId: viewerId } },
+            select: { role: true, status: true },
+          });
+          const chat = await tx.conversation.findUnique({
+            where: { clubId: club.id },
+            select: { type: true },
+          });
 
-        if (
-          ownerMembership?.role !== 'OWNER' ||
-          ownerMembership.status !== 'ACTIVE' ||
-          chat?.type !== 'CLUB'
-        ) {
-          throw new InternalServerErrorException('Could not create the club.');
-        }
+          if (
+            ownerMembership?.role !== 'OWNER' ||
+            ownerMembership.status !== 'ACTIVE' ||
+            chat?.type !== 'CLUB'
+          ) {
+            throw new InternalServerErrorException(
+              'Could not create the club.',
+            );
+          }
 
-        return club.id;
-      }, TRANSACTION_OPTIONS),
-    ));
+          return club.id;
+        }, TRANSACTION_OPTIONS),
+      ),
+    );
 
     return this.get(viewerId, clubId);
   }
@@ -258,7 +266,12 @@ export class ClubsService {
       where: {
         AND: [
           visibleClubContentWhere(viewerId),
-          { owner: { isActive: true, NOT: friendshipWithViewer(viewerId, 'BLOCKED') } },
+          {
+            owner: {
+              isActive: true,
+              NOT: friendshipWithViewer(viewerId, 'BLOCKED'),
+            },
+          },
         ],
       },
       select: CLUB_DETAIL_SELECT,
@@ -280,7 +293,13 @@ export class ClubsService {
       throw new NotFoundException(CLUB_NOT_FOUND_MESSAGE);
     }
 
-    return this.buildView(viewerId, club);
+    const view = await this.buildView(viewerId, club);
+    view.viewer.leaveRequested =
+      !!(await this.prisma.clubMembershipRequest.findFirst({
+        where: { clubId, userId: viewerId, kind: 'LEAVE', status: 'PENDING' },
+        select: { id: true },
+      }));
+    return view;
   }
 
   /** Owner only (MANAGE_CLUB). Capacity may grow, but never below the ACTIVE members. */
@@ -333,87 +352,96 @@ export class ClubsService {
           )
         : undefined;
 
-    await this.photos.withPrepared(dto, (prepared) => this.withUsernameGuard(() =>
-      this.withCapacityGuard(clubId, () =>
-        this.prisma.$transaction(async (tx) => {
-          const maxMembers = await lockClub(tx, clubId);
+    await this.photos.withPrepared(dto, (prepared) =>
+      this.withUsernameGuard(() =>
+        this.withCapacityGuard(clubId, () =>
+          this.prisma.$transaction(async (tx) => {
+            const maxMembers = await lockClub(tx, clubId);
 
-          // Ownership may have changed while the photos uploaded. Recheck after
-          // locking the club and before changing settings or photo references.
-          const currentOwner = await tx.club.findUnique({ where: { id: clubId }, select: { ownerId: true } });
-          if (currentOwner?.ownerId !== viewerId) throw new ForbiddenException(CLUB_OWNER_ONLY_MESSAGE);
+            // Ownership may have changed while the photos uploaded. Recheck after
+            // locking the club and before changing settings or photo references.
+            const currentOwner = await tx.club.findUnique({
+              where: { id: clubId },
+              select: { ownerId: true },
+            });
+            if (currentOwner?.ownerId !== viewerId)
+              throw new ForbiddenException(CLUB_OWNER_ONLY_MESSAGE);
 
-          if (dto.maxMembers !== undefined && dto.maxMembers < maxMembers) {
-            const active = await countActive(tx, clubId);
+            if (dto.maxMembers !== undefined && dto.maxMembers < maxMembers) {
+              const active = await countActive(tx, clubId);
 
-            if (dto.maxMembers < active) {
-              throw new ConflictException(
-                `Maximum members cannot be lower than the current ${active} active members.`,
-              );
+              if (dto.maxMembers < active) {
+                throw new ConflictException(
+                  `Maximum members cannot be lower than the current ${active} active members.`,
+                );
+              }
             }
-          }
 
-          if (additionalSportIds) {
-            await tx.clubSport.deleteMany({ where: { clubId } });
-            await tx.clubSport.createMany({
-              data: additionalSportIds.map((sportId) => ({ clubId, sportId })),
+            if (additionalSportIds) {
+              await tx.clubSport.deleteMany({ where: { clubId } });
+              await tx.clubSport.createMany({
+                data: additionalSportIds.map((sportId) => ({
+                  clubId,
+                  sportId,
+                })),
+              });
+            }
+
+            if (dto.tags) {
+              await tx.clubTag.deleteMany({ where: { clubId } });
+              await tx.clubTag.createMany({
+                data: dto.tags.map((tag) => ({ clubId, tag })),
+              });
+            }
+
+            if (dto.rules) {
+              await tx.clubRule.deleteMany({ where: { clubId } });
+              await tx.clubRule.createMany({
+                data: dto.rules.map((text, index) => ({
+                  clubId,
+                  text,
+                  position: index + 1,
+                })),
+              });
+            }
+
+            await tx.club.update({
+              where: { id: clubId },
+              data: {
+                name: dto.name,
+                slug: dto.username,
+                description: dto.description,
+                about: dto.about,
+                profileImageUrl: dto.profileImageUrl,
+                coverImageUrl: dto.coverImageUrl,
+                sportId: dto.primarySportId,
+                country: dto.country,
+                city: dto.city,
+                barangay: dto.barangay,
+                homeCourt: dto.homeCourt,
+                locationName: dto.locationName,
+                latitude: dto.latitude,
+                longitude: dto.longitude,
+                maxMembers: dto.maxMembers,
+                membershipType: dto.membershipType,
+                isPublic: dto.isPublic,
+                activityDay: dto.activityDay,
+                activityStartTime: dto.activityStartTime,
+                activityEndTime: dto.activityEndTime,
+                trainingSchedule: dto.trainingSchedule,
+                contactEmail: dto.contactEmail,
+                websiteUrl: dto.websiteUrl,
+                facebookUrl: dto.facebookUrl,
+                instagramUrl: dto.instagramUrl,
+                tiktokUrl: dto.tiktokUrl,
+              },
+              select: { id: true },
             });
-          }
-
-          if (dto.tags) {
-            await tx.clubTag.deleteMany({ where: { clubId } });
-            await tx.clubTag.createMany({
-              data: dto.tags.map((tag) => ({ clubId, tag })),
-            });
-          }
-
-          if (dto.rules) {
-            await tx.clubRule.deleteMany({ where: { clubId } });
-            await tx.clubRule.createMany({
-              data: dto.rules.map((text, index) => ({
-                clubId,
-                text,
-                position: index + 1,
-              })),
-            });
-          }
-
-          await tx.club.update({
-            where: { id: clubId },
-            data: {
-              name: dto.name,
-              slug: dto.username,
-              description: dto.description,
-              about: dto.about,
-              profileImageUrl: dto.profileImageUrl,
-              coverImageUrl: dto.coverImageUrl,
-              sportId: dto.primarySportId,
-              country: dto.country,
-              city: dto.city,
-              barangay: dto.barangay,
-              homeCourt: dto.homeCourt,
-              locationName: dto.locationName,
-              latitude: dto.latitude,
-              longitude: dto.longitude,
-              maxMembers: dto.maxMembers,
-              membershipType: dto.membershipType,
-              isPublic: dto.isPublic,
-              activityDay: dto.activityDay,
-              activityStartTime: dto.activityStartTime,
-              activityEndTime: dto.activityEndTime,
-              trainingSchedule: dto.trainingSchedule,
-              contactEmail: dto.contactEmail,
-              websiteUrl: dto.websiteUrl,
-              facebookUrl: dto.facebookUrl,
-              instagramUrl: dto.instagramUrl,
-              tiktokUrl: dto.tiktokUrl,
-            },
-            select: { id: true },
-          });
-          await this.photos.apply(tx, clubId, prepared);
-        }, TRANSACTION_OPTIONS),
+            await this.photos.apply(tx, clubId, prepared);
+          }, TRANSACTION_OPTIONS),
+        ),
       ),
-    ));
+    );
 
     return this.get(viewerId, clubId);
   }
@@ -467,12 +495,29 @@ export class ClubsService {
       }
 
       const now = new Date();
-      await this.prisma.clubMember.upsert({
-        where: { clubId_userId: { clubId, userId: viewerId } },
-        create: { clubId, userId: viewerId, status: 'PENDING', joinedAt: now },
-        update: { status: 'PENDING', role: 'MEMBER', joinedAt: now },
-        select: { id: true },
-      });
+      await this.prisma.$transaction(async (tx) => {
+        await lockClub(tx, clubId);
+        const current = await tx.clubMember.findUnique({
+          where: { clubId_userId: { clubId, userId: viewerId } },
+          select: { status: true },
+        });
+        if (current?.status === 'ACTIVE')
+          throw new ConflictException('You are already a member of this club.');
+        if (current?.status === 'BANNED')
+          throw new ForbiddenException('You cannot join this club.');
+        await tx.clubMember.upsert({
+          where: { clubId_userId: { clubId, userId: viewerId } },
+          create: {
+            clubId,
+            userId: viewerId,
+            status: 'PENDING',
+            joinedAt: now,
+          },
+          update: { status: 'PENDING', role: 'MEMBER', joinedAt: now },
+          select: { id: true },
+        });
+        await createClubRequest(tx, clubId, viewerId, 'JOIN');
+      }, TRANSACTION_OPTIONS);
 
       return { status: 'REQUESTED', club: await this.get(viewerId, clubId) };
     }
@@ -494,7 +539,21 @@ export class ClubsService {
         });
 
         // The club ID survives leaving/removal, so rejoining cannot farm points.
-        await this.points.awardInTransaction(tx, viewerId, 'CLUB_ACCEPTED', clubId, 1);
+        await resolveClubRequests(
+          tx,
+          clubId,
+          viewerId,
+          'JOIN',
+          'ACCEPTED',
+          viewerId,
+        );
+        await this.points.awardInTransaction(
+          tx,
+          viewerId,
+          'CLUB_ACCEPTED',
+          clubId,
+          1,
+        );
 
         if (invited) {
           await tx.clubInvite.update({
@@ -509,7 +568,7 @@ export class ClubsService {
     return { status: 'JOINED', club: await this.get(viewerId, clubId) };
   }
 
-  /** Leave the club, or cancel a PENDING request. The owner transfers ownership first. */
+  /** Request permission to leave, or cancel a pending join request. */
   async leave(viewerId: string, clubId: string): Promise<ClubView> {
     const club = await this.findAccessRow(clubId);
 
@@ -519,22 +578,101 @@ export class ClubsService {
       );
     }
 
-    const { count } = await this.prisma.clubMember.deleteMany({
-      where: {
-        clubId,
-        userId: viewerId,
-        status: { in: ['ACTIVE', 'PENDING'] },
-      },
-    });
-
-    if (count === 0) {
-      throw new NotFoundException('You are not a member of this club.');
-    }
+    await this.prisma.$transaction(async (tx) => {
+      await lockClub(tx, clubId);
+      const member = await tx.clubMember.findUnique({
+        where: { clubId_userId: { clubId, userId: viewerId } },
+      });
+      if (member?.status === 'PENDING') {
+        await tx.clubMember.delete({ where: { id: member.id } });
+        await resolveClubRequests(
+          tx,
+          clubId,
+          viewerId,
+          'JOIN',
+          'CANCELLED',
+          viewerId,
+        );
+      } else if (member?.status === 'ACTIVE') {
+        if (member.role === 'OWNER')
+          throw new ConflictException(
+            'Transfer ownership before leaving your club.',
+          );
+        await createClubRequest(tx, clubId, viewerId, 'LEAVE');
+      } else throw new NotFoundException('You are not a member of this club.');
+    }, TRANSACTION_OPTIONS);
 
     return this.get(viewerId, clubId);
   }
 
-  /** ACTIVE members, owner first. Private clubs show them to ACTIVE members only. */
+  async listLeaveRequests(viewerId: string, clubId: string) {
+    await this.requirePermission(
+      viewerId,
+      clubId,
+      'APPROVE_MEMBERS',
+      'Only active club members can review leave requests.',
+    );
+    const requests = await this.prisma.clubMembershipRequest.findMany({
+      where: { clubId, kind: 'LEAVE', status: 'PENDING' },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, createdAt: true, user: { select: AUTHOR_SELECT } },
+    });
+    return requests.map((request) => ({
+      id: request.id,
+      user: toPerson(request.user),
+      requestedAt: request.createdAt,
+    }));
+  }
+
+  async respondToLeave(
+    viewerId: string,
+    clubId: string,
+    requestId: string,
+    approved: boolean,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await lockClub(tx, clubId);
+      const club = await tx.club.findUnique({
+        where: { id: clubId },
+        select: { isActive: true },
+      });
+      if (!club?.isActive)
+        throw new ForbiddenException('This club is no longer active.');
+      const reviewer = await tx.clubMember.findUnique({
+        where: { clubId_userId: { clubId, userId: viewerId } },
+      });
+      if (reviewer?.status !== 'ACTIVE')
+        throw new ForbiddenException(
+          'Only active club members can review leave requests.',
+        );
+      const request = await tx.clubMembershipRequest.findFirst({
+        where: { id: requestId, clubId, kind: 'LEAVE', status: 'PENDING' },
+      });
+      if (!request)
+        throw new NotFoundException('This leave request is no longer pending.');
+      if (request.userId === viewerId)
+        throw new ForbiddenException(
+          'You cannot approve your own leave request.',
+        );
+      const member = await tx.clubMember.findUnique({
+        where: { clubId_userId: { clubId, userId: request.userId } },
+      });
+      if (member?.status !== 'ACTIVE' || member.role === 'OWNER')
+        throw new ConflictException('This member cannot leave the club.');
+      if (approved) await tx.clubMember.delete({ where: { id: member.id } });
+      const status = approved ? ('ACCEPTED' as const) : ('REJECTED' as const);
+      await resolveClubRequests(
+        tx,
+        clubId,
+        request.userId,
+        'LEAVE',
+        status,
+        viewerId,
+      );
+      return { id: requestId, status };
+    }, TRANSACTION_OPTIONS);
+  }
+
   async listMembers(
     viewerId: string,
     clubId: string,
@@ -588,10 +726,25 @@ export class ClubsService {
   }
 
   /** Re-checks capacity under the club lock, so concurrent approvals never overflow it. */
+  async approveJoinRequest(
+    viewerId: string,
+    clubId: string,
+    requestId: string,
+  ) {
+    const request = await this.prisma.clubMembershipRequest.findFirst({
+      where: { id: requestId, clubId, kind: 'JOIN', status: 'PENDING' },
+      select: { userId: true },
+    });
+    if (!request)
+      throw new NotFoundException('This join request is no longer pending.');
+    return this.approve(viewerId, clubId, request.userId, requestId);
+  }
+
   async approve(
     viewerId: string,
     clubId: string,
     userId: string,
+    requestId?: string,
   ): Promise<ClubMemberView> {
     await this.requirePermission(
       viewerId,
@@ -603,11 +756,31 @@ export class ClubsService {
     return this.withCapacityGuard(clubId, () =>
       this.prisma.$transaction(async (tx) => {
         const maxMembers = await lockClub(tx, clubId);
+        if (
+          requestId &&
+          !(await tx.clubMembershipRequest.findFirst({
+            where: {
+              id: requestId,
+              clubId,
+              userId,
+              kind: 'JOIN',
+              status: 'PENDING',
+            },
+            select: { id: true },
+          }))
+        ) {
+          throw new NotFoundException(
+            'This join request is no longer pending.',
+          );
+        }
         const reviewer = await tx.clubMember.findUnique({
           where: { clubId_userId: { clubId, userId: viewerId } },
           select: { status: true },
         });
-        if (reviewer?.status !== 'ACTIVE') throw new ForbiddenException('Only active club members can accept join requests.');
+        if (reviewer?.status !== 'ACTIVE')
+          throw new ForbiddenException(
+            'Only active club members can accept join requests.',
+          );
         const pending = await tx.clubMember.findUnique({
           where: { clubId_userId: { clubId, userId } },
           select: { status: true, user: { select: { isActive: true } } },
@@ -631,7 +804,22 @@ export class ClubsService {
           },
         });
 
-        await this.points.awardInTransaction(tx, userId, 'CLUB_ACCEPTED', clubId, 1);
+        await this.points.awardInTransaction(
+          tx,
+          userId,
+          'CLUB_ACCEPTED',
+          clubId,
+          1,
+        );
+
+        await resolveClubRequests(
+          tx,
+          clubId,
+          userId,
+          'JOIN',
+          'ACCEPTED',
+          viewerId,
+        );
 
         return {
           user: toPerson(member.user),
@@ -653,13 +841,24 @@ export class ClubsService {
       'MANAGE_MEMBERS',
       CLUB_MANAGE_MEMBERS_MESSAGE,
     );
-    const { count } = await this.prisma.clubMember.deleteMany({
-      where: { clubId, userId, status: 'PENDING' },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      await lockClub(tx, clubId);
+      const { count } = await tx.clubMember.deleteMany({
+        where: { clubId, userId, status: 'PENDING' },
+      });
 
-    if (count === 0) {
-      throw new NotFoundException('No pending request from this user.');
-    }
+      if (count === 0) {
+        throw new NotFoundException('No pending request from this user.');
+      }
+      await resolveClubRequests(
+        tx,
+        clubId,
+        userId,
+        'JOIN',
+        'REJECTED',
+        viewerId,
+      );
+    }, TRANSACTION_OPTIONS);
 
     return { userId, status: 'REJECTED' };
   }
@@ -686,11 +885,22 @@ export class ClubsService {
       throw new ForbiddenException('You cannot remove this member.');
     }
 
-    await this.prisma.clubMember.update({
-      where: { clubId_userId: { clubId, userId } },
-      data: { status: 'REMOVED' },
-      select: { id: true },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      await lockClub(tx, clubId);
+      await tx.clubMember.update({
+        where: { clubId_userId: { clubId, userId } },
+        data: { status: 'REMOVED' },
+        select: { id: true },
+      });
+      await resolveClubRequests(
+        tx,
+        clubId,
+        userId,
+        'LEAVE',
+        'CANCELLED',
+        viewerId,
+      );
+    }, TRANSACTION_OPTIONS);
 
     return { userId, status: 'REMOVED' };
   }

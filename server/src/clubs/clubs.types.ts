@@ -26,6 +26,7 @@ export interface ClubCapacityView {
 }
 
 export interface ClubViewerState {
+  leaveRequested?: boolean;
   membership: { role: ClubMemberRole; status: ClubMemberStatus } | null;
   /** A PENDING invitation the viewer can accept by joining. */
   hasInvite: boolean;

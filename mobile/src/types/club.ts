@@ -44,6 +44,7 @@ export interface ClubContact {
 }
 
 export interface Club extends ClubSummary {
+  leaveRequested?: boolean;
   description: string | null;
   about: string | null;
   profileImageUrl: string | null;
@@ -219,6 +220,7 @@ export interface ClubApiView {
   contact: ClubContact;
   owner: ClubApiPerson;
   viewer: {
+    leaveRequested?: boolean;
     membership: ClubMembership | null;
     hasInvite: boolean;
     follows: boolean;

@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import type { NotificationType } from '../generated/prisma/enums';
 import { friendshipWithViewer } from '../posts/post-visibility';
@@ -19,6 +23,16 @@ const SELECT = {
   actor: { select: AUTHOR_SELECT },
   game: { select: { title: true } },
   joinRequest: { select: { status: true } },
+  friendship: { select: { status: true } },
+  clubRequest: {
+    select: {
+      id: true,
+      clubId: true,
+      kind: true,
+      status: true,
+      club: { select: { name: true } },
+    },
+  },
   badge: { select: { name: true } },
   reportId: true,
   reportStatus: true,
@@ -35,14 +49,47 @@ const SELECT = {
 type Row = Prisma.NotificationGetPayload<{ select: typeof SELECT }>;
 
 const CONTENT = {
+  CLUB_JOIN_REQUEST: ['Club join request', 'wants to join'],
+  CLUB_JOIN_ACCEPTED: [
+    'Club join request accepted',
+    'accepted your request to join',
+  ],
+  CLUB_JOIN_REJECTED: [
+    'Club join request declined',
+    'declined your request to join',
+  ],
+  CLUB_LEAVE_REQUEST: ['Club leave request', 'asked for permission to leave'],
+  CLUB_LEAVE_ACCEPTED: [
+    'Club leave request approved',
+    'approved your request to leave',
+  ],
+  CLUB_LEAVE_REJECTED: [
+    'Club leave request declined',
+    'declined your request to leave',
+  ],
   FRIEND_REQUEST: ['Friend request', 'sent you a friend request.'],
   FRIEND_ACCEPTED: ['Friend request accepted', 'accepted your friend request.'],
   GAME_JOIN_REQUEST: ['New join request', 'wants to join'],
-  GAME_LEAVE_REQUEST: ['Request to cancel game participation', 'asked to be removed from'],
-  GAME_LEAVE_APPROVED: ['Leave request approved', 'approved your request to leave'],
-  GAME_LEAVE_REJECTED: ['Leave request declined', 'declined your request to leave'],
-  GAME_ATTENDANCE_CONFIRMED: ['Attendance confirmed', 'confirmed that you attended'],
-  GAME_NO_SHOW_REPORTED: ['Reported as no-show', 'reported that you did not attend'],
+  GAME_LEAVE_REQUEST: [
+    'Request to cancel game participation',
+    'asked to be removed from',
+  ],
+  GAME_LEAVE_APPROVED: [
+    'Leave request approved',
+    'approved your request to leave',
+  ],
+  GAME_LEAVE_REJECTED: [
+    'Leave request declined',
+    'declined your request to leave',
+  ],
+  GAME_ATTENDANCE_CONFIRMED: [
+    'Attendance confirmed',
+    'confirmed that you attended',
+  ],
+  GAME_NO_SHOW_REPORTED: [
+    'Reported as no-show',
+    'reported that you did not attend',
+  ],
   GAME_JOIN_ACCEPTED: ['Request accepted', 'accepted your request to join'],
   GAME_JOIN_REJECTED: ['Request declined', 'declined your request to join'],
   GAME_FULL: ['Game is full', 'Your game has filled all its spots.'],
@@ -58,8 +105,14 @@ const CONTENT = {
   BADGE_UNLOCKED: ['Badge unlocked', 'You earned a new badge.'],
   LIVE_STARTED: ['Live now', 'started a live stream.'],
   NEW_FOLLOWER: ['New follower', 'started following you.'],
-  HELP_REQUEST_RECEIVED: ['New help request', 'sent a message to the admin inbox.'],
-  HELP_REQUEST_UPDATED: ['Help request update', 'An admin updated your help request.'],
+  HELP_REQUEST_RECEIVED: [
+    'New help request',
+    'sent a message to the admin inbox.',
+  ],
+  HELP_REQUEST_UPDATED: [
+    'Help request update',
+    'An admin updated your help request.',
+  ],
 } as const;
 
 /** Both list/count and writes are scoped to the recipient from the verified JWT. */
@@ -67,21 +120,57 @@ const CONTENT = {
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async visibleTo(userId: string): Promise<Prisma.NotificationWhereInput> {
+  private async visibleTo(
+    userId: string,
+  ): Promise<Prisma.NotificationWhereInput> {
     const settings = await this.prisma.userSettings.findUnique({
       where: { userId },
-      select: { notifyFriends: true, notifyGames: true, notifyMessages: true, notifyContent: true },
+      select: {
+        notifyFriends: true,
+        notifyGames: true,
+        notifyMessages: true,
+        notifyContent: true,
+      },
     });
     // Support updates must stay visible even when social/content notifications are off.
-    const enabledTypes: NotificationType[] = ['HELP_REQUEST_RECEIVED', 'HELP_REQUEST_UPDATED'];
-    if (!settings || settings.notifyFriends) enabledTypes.push('FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'NEW_FOLLOWER');
-    if (!settings || settings.notifyGames) enabledTypes.push(
-      'GAME_JOIN_REQUEST', 'GAME_JOIN_ACCEPTED', 'GAME_JOIN_REJECTED', 'GAME_LEAVE_REQUEST', 'GAME_LEAVE_APPROVED', 'GAME_LEAVE_REJECTED', 'GAME_ATTENDANCE_CONFIRMED', 'GAME_NO_SHOW_REPORTED', 'GAME_FULL', 'GAME_CANCELLED', 'GAME_COMPLETED',
-    );
-    if (!settings || settings.notifyMessages) enabledTypes.push('NEW_MESSAGE', 'MESSAGE_REQUEST');
-    if (!settings || settings.notifyContent) enabledTypes.push(
-      'POST_LIKE', 'POST_COMMENT', 'REEL_LIKE', 'REEL_COMMENT', 'STORY_REPLY', 'BADGE_UNLOCKED', 'LIVE_STARTED',
-    );
+    const enabledTypes: NotificationType[] = [
+      'HELP_REQUEST_RECEIVED',
+      'HELP_REQUEST_UPDATED',
+    ];
+    if (!settings || settings.notifyFriends)
+      enabledTypes.push('FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'NEW_FOLLOWER');
+    if (!settings || settings.notifyGames)
+      enabledTypes.push(
+        'CLUB_JOIN_REQUEST',
+        'CLUB_JOIN_ACCEPTED',
+        'CLUB_JOIN_REJECTED',
+        'CLUB_LEAVE_REQUEST',
+        'CLUB_LEAVE_ACCEPTED',
+        'CLUB_LEAVE_REJECTED',
+        'GAME_JOIN_REQUEST',
+        'GAME_JOIN_ACCEPTED',
+        'GAME_JOIN_REJECTED',
+        'GAME_LEAVE_REQUEST',
+        'GAME_LEAVE_APPROVED',
+        'GAME_LEAVE_REJECTED',
+        'GAME_ATTENDANCE_CONFIRMED',
+        'GAME_NO_SHOW_REPORTED',
+        'GAME_FULL',
+        'GAME_CANCELLED',
+        'GAME_COMPLETED',
+      );
+    if (!settings || settings.notifyMessages)
+      enabledTypes.push('NEW_MESSAGE', 'MESSAGE_REQUEST');
+    if (!settings || settings.notifyContent)
+      enabledTypes.push(
+        'POST_LIKE',
+        'POST_COMMENT',
+        'REEL_LIKE',
+        'REEL_COMMENT',
+        'STORY_REPLY',
+        'BADGE_UNLOCKED',
+        'LIVE_STARTED',
+      );
     return {
       userId,
       type: { in: enabledTypes },
@@ -101,7 +190,13 @@ export class NotificationsService {
 
   async list(userId: string, { limit, offset }: ListNotificationsDto) {
     const where = await this.visibleTo(userId);
-    const [rows, unreadCount, unreadHelpRequestCount, unreadAdminHelpRequestCount, total] = await this.prisma.$transaction([
+    const [
+      rows,
+      unreadCount,
+      unreadHelpRequestCount,
+      unreadAdminHelpRequestCount,
+      total,
+    ] = await this.prisma.$transaction([
       this.prisma.notification.findMany({
         where,
         select: SELECT,
@@ -113,10 +208,14 @@ export class NotificationsService {
         where: { AND: [where, { isRead: false }] },
       }),
       this.prisma.notification.count({
-        where: { AND: [where, { type: 'HELP_REQUEST_UPDATED', isRead: false }] },
+        where: {
+          AND: [where, { type: 'HELP_REQUEST_UPDATED', isRead: false }],
+        },
       }),
       this.prisma.notification.count({
-        where: { AND: [where, { type: 'HELP_REQUEST_RECEIVED', isRead: false }] },
+        where: {
+          AND: [where, { type: 'HELP_REQUEST_RECEIVED', isRead: false }],
+        },
       }),
       this.prisma.notification.count({ where }),
     ]);
@@ -135,35 +234,69 @@ export class NotificationsService {
         })
       : [];
     const leaveStatusByPair = new Map(
-      leaveRequests.map((request) => [`${request.gameId}:${request.userId}`, request.status]),
+      leaveRequests.map((request) => [
+        `${request.gameId}:${request.userId}`,
+        request.status,
+      ]),
     );
 
     return {
       items: rows.map((row) => {
+        if (row.type === 'FRIEND_REQUEST') {
+          const status = row.friendship?.status;
+          return toView(
+            row,
+            status === 'PENDING'
+              ? null
+              : status === 'ACCEPTED'
+                ? 'friend-accepted'
+                : 'resolved',
+          );
+        }
+        if (
+          row.type === 'CLUB_JOIN_REQUEST' ||
+          row.type === 'CLUB_LEAVE_REQUEST'
+        ) {
+          const status = row.clubRequest?.status;
+          const prefix =
+            row.type === 'CLUB_JOIN_REQUEST' ? 'club-join' : 'club-leave';
+          return toView(
+            row,
+            status === 'PENDING'
+              ? null
+              : status === 'ACCEPTED'
+                ? `${prefix}-accepted`
+                : status === 'REJECTED'
+                  ? `${prefix}-rejected`
+                  : 'resolved',
+          );
+        }
         if (row.type === 'GAME_JOIN_REQUEST') {
           const status = row.joinRequest?.status;
-          const actionStatus = status === 'ACCEPTED'
-            ? 'join-accepted'
-            : status === 'REJECTED'
-              ? 'join-rejected'
-              : status === 'CANCELLED'
-                ? 'join-cancelled'
-                : status === 'PENDING'
-                  ? null
-                  : 'resolved';
+          const actionStatus =
+            status === 'ACCEPTED'
+              ? 'join-accepted'
+              : status === 'REJECTED'
+                ? 'join-rejected'
+                : status === 'CANCELLED'
+                  ? 'join-cancelled'
+                  : status === 'PENDING'
+                    ? null
+                    : 'resolved';
           return toView(row, actionStatus);
         }
         if (row.type === 'GAME_LEAVE_REQUEST' && row.gameId && row.actor) {
           const status = leaveStatusByPair.get(`${row.gameId}:${row.actor.id}`);
-          const actionStatus = status === 'APPROVED'
-            ? 'leave-approved'
-            : status === 'REJECTED'
-              ? 'leave-rejected'
-              : status === 'CANCELLED'
-                ? 'leave-cancelled'
-                : status === 'PENDING'
-                  ? null
-                  : 'resolved';
+          const actionStatus =
+            status === 'APPROVED'
+              ? 'leave-approved'
+              : status === 'REJECTED'
+                ? 'leave-rejected'
+                : status === 'CANCELLED'
+                  ? 'leave-cancelled'
+                  : status === 'PENDING'
+                    ? null
+                    : 'resolved';
           return toView(row, actionStatus);
         }
         return toView(row);
@@ -189,12 +322,22 @@ export class NotificationsService {
         where: { AND: [visibleTo, { isRead: false }] },
       });
       const unreadHelpRequestCount = await tx.notification.count({
-        where: { AND: [visibleTo, { type: 'HELP_REQUEST_UPDATED', isRead: false }] },
+        where: {
+          AND: [visibleTo, { type: 'HELP_REQUEST_UPDATED', isRead: false }],
+        },
       });
       const unreadAdminHelpRequestCount = await tx.notification.count({
-        where: { AND: [visibleTo, { type: 'HELP_REQUEST_RECEIVED', isRead: false }] },
+        where: {
+          AND: [visibleTo, { type: 'HELP_REQUEST_RECEIVED', isRead: false }],
+        },
       });
-      return { id, read: true, unreadCount, unreadHelpRequestCount, unreadAdminHelpRequestCount };
+      return {
+        id,
+        read: true,
+        unreadCount,
+        unreadHelpRequestCount,
+        unreadAdminHelpRequestCount,
+      };
     });
   }
 
@@ -208,7 +351,12 @@ export class NotificationsService {
       const unreadCount = await tx.notification.count({
         where: { AND: [visibleTo, { isRead: false }] },
       });
-      return { updated: updated.count, unreadCount, unreadHelpRequestCount: 0, unreadAdminHelpRequestCount: 0 };
+      return {
+        updated: updated.count,
+        unreadCount,
+        unreadHelpRequestCount: 0,
+        unreadAdminHelpRequestCount: 0,
+      };
     });
   }
 
@@ -225,36 +373,59 @@ export class NotificationsService {
         where: { AND: [visibleTo, { isRead: false }] },
       });
       const unreadHelpRequestCount = await tx.notification.count({
-        where: { AND: [visibleTo, { type: 'HELP_REQUEST_UPDATED', isRead: false }] },
+        where: {
+          AND: [visibleTo, { type: 'HELP_REQUEST_UPDATED', isRead: false }],
+        },
       });
       const unreadAdminHelpRequestCount = await tx.notification.count({
-        where: { AND: [visibleTo, { type: 'HELP_REQUEST_RECEIVED', isRead: false }] },
+        where: {
+          AND: [visibleTo, { type: 'HELP_REQUEST_RECEIVED', isRead: false }],
+        },
       });
-      return { updated: updated.count, unreadCount, unreadHelpRequestCount, unreadAdminHelpRequestCount };
+      return {
+        updated: updated.count,
+        unreadCount,
+        unreadHelpRequestCount,
+        unreadAdminHelpRequestCount,
+      };
     });
   }
 
   async markAdminHelpRequestsRead(userId: string) {
     return this.prisma.$transaction(async (tx) => {
-      const admin = await tx.user.findUnique({ where: { id: userId }, select: { role: true, isActive: true } });
+      const admin = await tx.user.findUnique({
+        where: { id: userId },
+        select: { role: true, isActive: true },
+      });
       if (!admin || !admin.isActive || admin.role !== 'SUPER_ADMIN') {
         throw new ForbiddenException('Super admin access is required.');
       }
       const visibleTo = await this.visibleTo(userId);
       const updated = await tx.notification.updateMany({
-        where: { AND: [visibleTo, { type: 'HELP_REQUEST_RECEIVED', isRead: false }] },
+        where: {
+          AND: [visibleTo, { type: 'HELP_REQUEST_RECEIVED', isRead: false }],
+        },
         data: { isRead: true },
       });
       const unreadCount = await tx.notification.count({
         where: { AND: [visibleTo, { isRead: false }] },
       });
       const unreadAdminHelpRequestCount = await tx.notification.count({
-        where: { AND: [visibleTo, { type: 'HELP_REQUEST_RECEIVED', isRead: false }] },
+        where: {
+          AND: [visibleTo, { type: 'HELP_REQUEST_RECEIVED', isRead: false }],
+        },
       });
       const unreadHelpRequestCount = await tx.notification.count({
-        where: { AND: [visibleTo, { type: 'HELP_REQUEST_UPDATED', isRead: false }] },
+        where: {
+          AND: [visibleTo, { type: 'HELP_REQUEST_UPDATED', isRead: false }],
+        },
       });
-      return { updated: updated.count, unreadCount, unreadHelpRequestCount, unreadAdminHelpRequestCount };
+      return {
+        updated: updated.count,
+        unreadCount,
+        unreadHelpRequestCount,
+        unreadAdminHelpRequestCount,
+      };
     });
   }
 }
@@ -269,7 +440,7 @@ function toView(row: Row, actionStatus: string | null = null) {
       }
     : null;
   const name = actor?.displayName || 'Someone';
-  const [title, action] = CONTENT[row.type];
+  let [title, action]: readonly [string, string] = CONTENT[row.type];
   let body: string = `${name} ${action}`;
   let link: string | null = null;
   if (row.type === 'HELP_REQUEST_RECEIVED') {
@@ -283,6 +454,10 @@ function toView(row: Row, actionStatus: string | null = null) {
           ? 'The admin completed the review of your help request.'
           : 'The admin closed the review of your help request.';
     if (row.reportId) link = '/profile/help';
+  } else if (row.type.startsWith('CLUB_')) {
+    const club = row.clubRequest?.club.name || 'this club';
+    body = `${name} ${action} ${club}.`;
+    if (row.clubRequest) link = `/clubs/${row.clubRequest.clubId}`;
   } else if (row.type.startsWith('GAME_')) {
     const game = row.game?.title || 'this game';
     body =
@@ -318,6 +493,29 @@ function toView(row: Row, actionStatus: string | null = null) {
   else if (row.type === 'STORY_REPLY') link = '/chat';
   else if (row.type === 'LIVE_STARTED' && actor)
     link = `/profile/${encodeURIComponent(actor.username)}`;
+  if (actionStatus === 'friend-accepted') {
+    title = 'Friend request accepted';
+    body = `You and ${name} are now friends.`;
+    link = '/profile/friends';
+  } else if (actionStatus === 'join-accepted') {
+    title = 'Game join request accepted';
+    body = `${name}'s request to join ${row.game?.title || 'the game'} was accepted.`;
+  } else if (actionStatus === 'leave-approved') {
+    title = 'Game leave request approved';
+    body = `${name}'s request to leave ${row.game?.title || 'the game'} was approved.`;
+  } else if (actionStatus === 'leave-rejected') {
+    title = 'Game leave request declined';
+    body = `${name} remains in ${row.game?.title || 'the game'}.`;
+  } else if (actionStatus?.startsWith('club-')) {
+    const accepted = actionStatus.endsWith('-accepted');
+    title = `Club ${row.clubRequest?.kind === 'LEAVE' ? 'leave' : 'join'} request ${accepted ? 'accepted' : 'declined'}`;
+    body = `${name}'s request for ${row.clubRequest?.club.name || 'the club'} was ${accepted ? 'accepted' : 'declined'}.`;
+  } else if (actionStatus) {
+    title =
+      actionStatus === 'join-rejected'
+        ? 'Game join request declined'
+        : 'Request no longer pending';
+  }
   return {
     id: row.id,
     type: row.type,
@@ -328,5 +526,6 @@ function toView(row: Row, actionStatus: string | null = null) {
     read: row.isRead,
     link,
     actionStatus,
+    clubRequestId: row.clubRequest?.id ?? null,
   };
 }

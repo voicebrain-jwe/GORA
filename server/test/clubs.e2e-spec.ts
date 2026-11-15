@@ -648,11 +648,18 @@ describe('Club creation and capacity (e2e)', () => {
     expect((await getClub(capClub.id, users.owner)).isFull).toBe(true);
   });
 
-  it('leaving frees a slot; the owner cannot leave', async () => {
+  it('leaving waits for approval before freeing a slot; the owner cannot leave', async () => {
+    const before = (await getClub(mainClub.id, users.owner)).currentMembers;
     await http()
       .post(clubUrl(mainClub.id, '/leave'))
       .set(auth(users.a))
       .expect(200);
+    expect((await getClub(mainClub.id, users.owner)).currentMembers).toBe(before);
+    const pending = await http().get(clubUrl(mainClub.id, '/leave-requests')).set(auth(users.owner)).expect(200);
+    const requestId = pending.body.find((item: { user: { id: string } }) => item.user.id === users.a.id).id;
+    await http().post(clubUrl(mainClub.id, `/leave-requests/${requestId}/approve`)).set(auth(users.a)).expect(403);
+    await http().post(clubUrl(mainClub.id, `/leave-requests/${requestId}/approve`)).set(auth(users.owner)).expect(200);
+    await http().post(clubUrl(mainClub.id, `/leave-requests/${requestId}/approve`)).set(auth(users.owner)).expect(404);
     expect((await getClub(mainClub.id, users.owner)).currentMembers).toBe(39);
     await http()
       .post(clubUrl(mainClub.id, '/leave'))

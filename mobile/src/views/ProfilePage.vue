@@ -19,35 +19,49 @@
         <ion-button fill="outline" @click="loadProfile">Try again</ion-button>
       </div>
 
-      <template v-else>
-        <ProfileHeader :profile="profile" editable :has-active-story="profile.sections.stories > 0">
-          <template #cover-actions>
-            <button type="button" class="profile-cover-menu" aria-label="Profile archive and saved posts" @click="coverMenuEvent = $event">
-              <ion-icon :icon="ellipsisHorizontal" aria-hidden="true" />
-            </button>
-          </template>
-          <template #actions>
-            <router-link to="/profile/edit" class="profile-action profile-action--primary">
-              <ion-icon :icon="createOutline" aria-hidden="true" />
-              Edit Profile
+      <div v-else class="profile-page">
+        <section class="profile-card profile-card--hero" aria-label="Profile">
+          <ProfileHeader :profile="profile" editable :has-active-story="profile.sections.stories > 0">
+            <template #actions>
+              <router-link to="/profile/edit" class="profile-action profile-action--primary">
+                <ion-icon :icon="createOutline" aria-hidden="true" />
+                Edit Profile
+              </router-link>
+              <button type="button" class="profile-action" @click="shareProfile">
+                <ion-icon :icon="shareSocialOutline" aria-hidden="true" />
+                Share
+              </button>
+              <button
+                type="button"
+                class="profile-action profile-action--icon"
+                aria-label="Archive and saved posts"
+                aria-haspopup="menu"
+                :aria-expanded="coverMenuEvent !== null"
+                @click="coverMenuEvent = $event"
+              >
+                <ion-icon :icon="ellipsisHorizontal" aria-hidden="true" />
+              </button>
+            </template>
+          </ProfileHeader>
+
+          <nav class="profile-stats" aria-label="Profile summary">
+            <router-link v-for="stat in stats" :key="stat.label" :to="stat.to" class="profile-stats__item">
+              <strong>{{ formatCompactNumber(stat.value) }}</strong>
+              <span>{{ stat.label }}</span>
             </router-link>
-          </template>
-        </ProfileHeader>
+          </nav>
+        </section>
 
         <ion-popover :is-open="coverMenuEvent !== null" :event="coverMenuEvent" side="bottom" alignment="end" @did-dismiss="coverMenuEvent = null">
           <nav class="profile-cover-menu__links" aria-label="Profile options">
-            <button type="button" class="profile-cover-menu__link" @click="shareProfile">Share Profile</button>
-            <router-link to="/profile/archive" class="profile-cover-menu__link" @click="coverMenuEvent = null">Archive</router-link>
-            <router-link to="/profile/saved" class="profile-cover-menu__link" @click="coverMenuEvent = null">Saved Posts</router-link>
+            <router-link to="/profile/archive" class="profile-cover-menu__link" @click="coverMenuEvent = null">
+              <ion-icon :icon="archiveOutline" aria-hidden="true" /> Archive
+            </router-link>
+            <router-link to="/profile/saved" class="profile-cover-menu__link" @click="coverMenuEvent = null">
+              <ion-icon :icon="bookmarkOutline" aria-hidden="true" /> Saved Posts
+            </router-link>
           </nav>
         </ion-popover>
-
-        <nav class="profile-stats" aria-label="Profile summary">
-          <router-link v-for="stat in stats" :key="stat.label" :to="stat.to" class="profile-stats__item">
-            <strong>{{ formatCompactNumber(stat.value) }}</strong>
-            <span>{{ stat.label }}</span>
-          </router-link>
-        </nav>
 
         <nav class="profile-links" aria-label="Profile sections">
           <router-link v-for="row in sections.visible" :key="row.key" :to="row.to" class="profile-links__item">
@@ -87,7 +101,7 @@
           </nav>
         </ion-popover>
 
-        <div class="profile-section profile-section--flush">
+        <div class="profile-card">
           <MySportsSection
             :sports="sportsStore.mySports"
             editable
@@ -101,73 +115,70 @@
           />
         </div>
 
-        <section class="profile-section" aria-label="My clubs">
+        <section class="profile-card" aria-label="My clubs">
           <SectionHeader title="My Clubs">
-            <span class="profile-section__meta">{{ myClubs.length }} {{ myClubs.length === 1 ? 'club' : 'clubs' }}</span>
+            <router-link v-if="myClubs.length > 0" to="/profile/clubs" class="profile-card__link">See all</router-link>
           </SectionHeader>
-          <p v-if="myClubs.length === 0" class="profile-section__empty">
+          <p v-if="myClubs.length === 0" class="profile-card__empty">
             You haven't joined any clubs yet. <router-link to="/search">Find a club</router-link> for your sport.
           </p>
           <ul v-else class="profile-clubs">
-            <li v-for="club in myClubs" :key="club.id">
+            <li v-for="club in myClubs.slice(0, 6)" :key="club.id">
               <router-link :to="`/clubs/${club.id}`" class="profile-clubs__item">
                 <ClubAvatar :club="club" :image-url="club.profileImageUrl" :size="40" />
                 <span class="profile-clubs__text">
                   <strong>{{ club.name }}</strong>
                   <span>
-                    {{ club.memberCount }}/{{ club.maxMembers }} Members
-                    <template v-if="club.viewerMembership?.role !== 'MEMBER'">
-                      · {{ CLUB_ROLE_LABELS[club.viewerMembership!.role] }}
+                    {{ club.memberCount }}/{{ club.maxMembers }} members
+                    <template v-if="club.viewerMembership && club.viewerMembership.role !== 'MEMBER'">
+                      · <em>{{ CLUB_ROLE_LABELS[club.viewerMembership.role] }}</em>
                     </template>
                   </span>
                 </span>
+                <ion-icon :icon="chevronForward" class="profile-clubs__chevron" aria-hidden="true" />
               </router-link>
             </li>
           </ul>
-          <router-link v-if="myClubs.length > 0" to="/profile/clubs" class="profile-section__meta profile-clubs__all">
-            See all clubs
-          </router-link>
         </section>
 
-        <section class="profile-section">
+        <section class="profile-card" aria-label="Highlights">
           <SectionHeader title="Highlights">
-            <router-link to="/profile/reels" class="profile-section__meta">See all</router-link>
+            <router-link to="/profile/reels" class="profile-card__link">See all</router-link>
           </SectionHeader>
-          <p v-if="highlights.length === 0" class="profile-section__empty">
+          <p v-if="highlights.length === 0" class="profile-card__empty">
             No highlights yet. <router-link to="/create/reel">Upload a reel</router-link>
           </p>
           <HighlightGrid v-else :highlights="highlights" :editable-reels="reelsStore.myReels" />
         </section>
 
-        <section class="profile-section profile-section--last">
+        <section class="profile-feed-section" aria-label="My feed">
           <SectionHeader title="My Feed">
-            <span class="profile-section__meta">{{ myFeed.length }} {{ myFeed.length === 1 ? 'update' : 'updates' }}</span>
-            <router-link to="/profile/games" class="profile-section__meta">Manage games</router-link>
+            <router-link to="/profile/games" class="profile-card__link">Manage games</router-link>
           </SectionHeader>
-          <router-link to="/create/post" class="profile-composer">
+          <router-link to="/create/post" class="profile-card profile-composer">
             <UserAvatar v-if="profileStore.account" :user="profileStore.account" :size="38" />
             <span class="profile-composer__prompt">Share a game moment…</span>
             <ion-icon :icon="imageOutline" class="profile-composer__icon" aria-label="Add photos" />
           </router-link>
-          <p v-if="postsStore.serverError || reelsStore.serverError" class="profile-section__empty" role="alert">
+          <p v-if="postsStore.serverError || reelsStore.serverError" class="profile-card profile-card__empty" role="alert">
             {{ postsStore.serverError || reelsStore.serverError }}
           </p>
-          <p v-else-if="myFeed.length === 0" class="profile-section__empty">
+          <p v-else-if="myFeed.length === 0" class="profile-card profile-card__empty">
             No posts, reels, or games yet. <router-link to="/create/post">Create your first post</router-link>
           </p>
           <div class="profile-feed">
-            <FeedEntry
-              v-for="item in myFeed"
-              :key="item.id"
-              :item="item"
-              :now-ms="now"
-              @like="likePost"
-              @comment="commentOnPost"
-              @share="sharePost"
-            />
+            <div v-for="item in myFeed" :key="item.id" class="profile-card profile-feed__item">
+              <FeedEntry
+                :item="item"
+                :now-ms="now"
+                @like="likePost"
+                @comment="commentOnPost"
+                @share="sharePost"
+              />
+            </div>
           </div>
         </section>
-      </template>
+      </div>
     </ion-content>
 
     <SportEditorModal
@@ -196,7 +207,16 @@ import {
   alertController,
   onIonViewWillEnter,
 } from '@ionic/vue';
-import { chevronDown, createOutline, ellipsisHorizontal, imageOutline } from 'ionicons/icons';
+import {
+  archiveOutline,
+  bookmarkOutline,
+  chevronDown,
+  chevronForward,
+  createOutline,
+  ellipsisHorizontal,
+  imageOutline,
+  shareSocialOutline,
+} from 'ionicons/icons';
 import ClubAvatar from '@/components/clubs/ClubAvatar.vue';
 import SectionHeader from '@/components/common/SectionHeader.vue';
 import UserAvatar from '@/components/common/UserAvatar.vue';
@@ -367,19 +387,88 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Centered single-column layout: every block is a card on the page background. */
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 0 32px;
+  box-sizing: border-box;
+}
+
+.profile-card {
+  padding: 18px 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 14px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+}
+
+.profile-card--hero {
+  overflow: hidden;
+  padding: 0;
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+}
+
+@media (max-width: 767px) {
+  .profile-page {
+    gap: 10px;
+  }
+
+  .profile-card {
+    margin: 0 12px;
+  }
+
+  .profile-card--hero {
+    margin: 0;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0 0 16px 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .profile-page {
+    padding-top: 16px;
+  }
+
+  .profile-card--hero {
+    border-top: 1px solid var(--gora-line);
+    border-radius: 16px;
+  }
+
+  .profile-card--hero :deep(.profile-header__cover) {
+    border-radius: 0;
+  }
+}
+
+/* Header actions */
 .profile-action {
   display: inline-flex;
   flex: 1;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 14px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--gora-line);
   border-radius: 10px;
-  background: var(--gora-surface);
+  background: var(--gora-surface-raised);
   color: var(--ion-text-color);
+  cursor: pointer;
+  font: inherit;
   font-size: 0.9rem;
   font-weight: 700;
   text-decoration: none;
+  transition: background var(--gora-motion), border-color var(--gora-motion);
+}
+
+.profile-action:hover {
+  background: var(--gora-surface-hover);
 }
 
 .profile-action ion-icon {
@@ -387,14 +476,25 @@ onMounted(() => {
 }
 
 .profile-action--primary {
+  border-color: transparent;
   background: var(--ion-color-primary);
   color: var(--ion-color-primary-contrast);
 }
 
+.profile-action--primary:hover {
+  background: var(--ion-color-primary-tint);
+}
+
+.profile-action--icon {
+  flex: 0 0 42px;
+  padding: 0;
+}
+
+/* Stats strip inside the hero card */
 .profile-stats {
   display: grid;
-  gap: 8px;
-  margin: 16px 16px 8px;
+  margin: 16px 16px 0;
+  border-top: 1px solid var(--gora-line);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -404,115 +504,45 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 10px 4px;
-  border-radius: var(--gora-radius-card);
-  background: var(--gora-surface);
+  padding: 14px 4px 16px;
   color: var(--ion-text-color);
   text-decoration: none;
+  transition: color var(--gora-motion);
 }
 
-.profile-stats__item:hover {
-  background: color-mix(in srgb, var(--gora-surface) 80%, #fff 6%);
+.profile-stats__item + .profile-stats__item {
+  border-left: 1px solid var(--gora-line);
+}
+
+.profile-stats__item:hover strong {
+  color: var(--ion-color-primary);
 }
 
 .profile-stats__item strong {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
+  transition: color var(--gora-motion);
 }
 
 .profile-stats__item span {
   color: var(--gora-muted);
   font-size: 0.75rem;
-}
-
-.profile-section {
-  margin: 0 16px;
-  padding: 22px 0;
-  border-top: 1px solid var(--gora-line);
-}
-
-.profile-section:first-of-type {
-  margin-top: 16px;
-}
-
-.profile-section.profile-section--flush {
-  margin-top: 0;
-  border-top: 0;
-}
-
-.profile-clubs {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.profile-clubs__item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: var(--gora-radius-card);
-  background: var(--gora-surface);
-  color: var(--ion-text-color);
-  text-decoration: none;
-}
-
-.profile-clubs__text {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.profile-clubs__text strong {
-  overflow: hidden;
-  font-size: 0.9rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profile-clubs__text span {
-  color: var(--ion-color-primary);
-  font-size: 0.74rem;
   font-weight: 600;
 }
 
-.profile-clubs__all {
-  display: inline-block;
-  margin-top: 10px;
-}
-
-.profile-section--last {
-  padding-bottom: 32px;
-}
-
-.profile-section__meta {
-  color: var(--ion-color-primary);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.profile-section__empty {
-  margin: 0;
-  color: var(--gora-muted);
-  font-size: 0.85rem;
-}
-
-.profile-section__empty a {
-  color: var(--ion-color-primary);
-}
-
+/* Section pills */
 .profile-links {
   display: flex;
-  gap: 4px;
-  margin: 12px 16px 0;
+  gap: 8px;
   overflow-x: auto;
-  border-top: 1px solid var(--gora-line);
-  border-bottom: 1px solid var(--gora-line);
+  padding: 2px 12px;
   scrollbar-width: none;
+}
+
+@media (min-width: 768px) {
+  .profile-links {
+    padding: 2px 0;
+  }
 }
 
 .profile-links::-webkit-scrollbar {
@@ -524,26 +554,23 @@ onMounted(() => {
   flex-shrink: 0;
   align-items: center;
   gap: 4px;
-  padding: 12px 8px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: var(--gora-muted);
+  padding: 8px 14px;
+  border: 1px solid var(--gora-line);
+  border-radius: 999px;
+  background: var(--gora-surface);
+  color: var(--ion-text-color);
   cursor: pointer;
   font: inherit;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.84rem;
+  font-weight: 650;
   text-decoration: none;
   white-space: nowrap;
+  transition: border-color var(--gora-motion), color var(--gora-motion);
 }
 
 .profile-links__item:hover {
-  background: rgba(245, 247, 242, 0.06);
-  color: var(--ion-text-color);
-}
-
-.profile-links__more {
-  margin-left: auto;
+  border-color: var(--gora-accent-line);
+  color: var(--ion-color-primary);
 }
 
 .profile-links__more ion-icon {
@@ -576,29 +603,144 @@ onMounted(() => {
 }
 
 .profile-more__item:hover {
-  background: rgba(245, 247, 242, 0.06);
+  background: var(--gora-surface-hover);
 }
 
-.profile-section__meta {
+/* Section content */
+.profile-card__link {
+  color: var(--ion-color-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
   text-decoration: none;
+}
+
+.profile-card__empty {
+  margin: 0;
+  color: var(--gora-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.profile-card__empty a {
+  color: var(--ion-color-primary);
+  font-weight: 600;
+}
+
+/* Inner tiles sit on a raised tone so they read against the card. */
+.profile-card :deep(.my-sports) {
+  margin: 0;
+  padding: 0;
+}
+
+.profile-card :deep(:is(.my-sports__card, .my-sports__empty)) {
+  background: var(--gora-surface-raised);
+}
+
+.profile-card :deep(.my-sports__header) {
+  margin-bottom: 14px;
+}
+
+.profile-clubs {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 560px) {
+  .profile-clubs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.profile-clubs__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--gora-surface-raised);
+  color: var(--ion-text-color);
+  text-decoration: none;
+  transition: background var(--gora-motion);
+}
+
+.profile-clubs__item:hover {
+  background: var(--gora-surface-hover);
+}
+
+.profile-clubs__text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-clubs__text strong {
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-clubs__text span {
+  color: var(--gora-muted);
+  font-size: 0.75rem;
+}
+
+.profile-clubs__text em {
+  color: var(--ion-color-primary);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.profile-clubs__chevron {
+  flex-shrink: 0;
+  color: var(--gora-muted);
+  font-size: 16px;
+}
+
+/* Feed */
+.profile-feed-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.profile-feed-section > :deep(.section-header) {
+  margin: 0;
+  padding: 0 16px;
+}
+
+@media (min-width: 768px) {
+  .profile-feed-section > :deep(.section-header) {
+    padding: 0 4px;
+  }
 }
 
 .profile-composer {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border: 1px solid var(--gora-line);
-  border-radius: var(--gora-radius-card);
-  background: var(--gora-surface);
+  padding: 12px 14px;
   color: var(--gora-muted);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   text-decoration: none;
+  transition: border-color var(--gora-motion);
+}
+
+.profile-composer:hover {
+  border-color: var(--gora-accent-line);
 }
 
 .profile-composer__prompt {
   flex: 1;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: var(--gora-surface-raised);
 }
 
 .profile-composer__icon {
@@ -609,9 +751,14 @@ onMounted(() => {
 .profile-feed {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
+.profile-feed__item {
+  padding: 14px;
+}
+
+/* Loading & error */
 .profile-error {
   padding: 48px 24px;
   text-align: center;
@@ -625,6 +772,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-width: 720px;
+  margin: 0 auto;
   padding-bottom: 24px;
 }
 
@@ -664,39 +813,29 @@ onMounted(() => {
   border-radius: var(--gora-radius-card);
 }
 
-.profile-cover-menu {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 35%);
-  border-radius: 50%;
-  background: rgb(8 19 31 / 78%);
-  color: #fff;
-  font-size: 22px;
-  cursor: pointer;
-}
-
 .profile-cover-menu__links {
   display: grid;
-  min-width: 170px;
+  min-width: 180px;
   padding: 6px;
 }
 
 .profile-cover-menu__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px;
-  border: 0;
-  background: transparent;
   border-radius: 8px;
-  color: var(--gora-text);
-  cursor: pointer;
-  font: inherit;
+  color: var(--ion-text-color);
   font-weight: 600;
   text-decoration: none;
-  text-align: left;
+}
+
+.profile-cover-menu__link ion-icon {
+  color: var(--gora-muted);
+  font-size: 18px;
 }
 
 .profile-cover-menu__link:hover {
-  background: var(--gora-surface);
+  background: var(--gora-surface-hover);
 }
 </style>

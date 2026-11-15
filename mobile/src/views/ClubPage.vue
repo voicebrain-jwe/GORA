@@ -6,16 +6,43 @@
       <p v-if="lookup === 'missing'" class="club__missing">This club does not exist or was disabled.</p>
       <p v-else-if="lookupError && !club" class="club__missing" role="alert">{{ lookupError }}</p>
 
+      <ClubPhotoModal
+        v-if="club && isOwner"
+        :is-open="photoEditor !== null"
+        :club-id="clubId"
+        :kind="photoEditor ?? 'profile'"
+        :current-url="photoEditor === 'cover' ? club.coverImageUrl : club.profileImageUrl"
+        @close="photoEditor = null"
+      />
+
       <template v-if="club">
-        <div
+        <component
+          :is="isOwner ? 'button' : 'div'"
+          :type="isOwner ? 'button' : undefined"
           class="club__cover"
+          :class="{ 'club__editable': isOwner }"
           :style="club.coverImageUrl ? { backgroundImage: `url(${club.coverImageUrl})` } : { background: visual.gradient }"
+          :aria-label="isOwner ? 'Edit club cover photo' : undefined"
+          @click="isOwner && openPhotoEditor('cover')"
         >
           <ion-icon v-if="!club.coverImageUrl" :icon="visual.icon" class="club__cover-icon" aria-hidden="true" />
-        </div>
+          <span v-if="isOwner" class="club__edit-badge club__edit-badge--cover" aria-hidden="true">
+            <ion-icon :icon="cameraOutline" />
+          </span>
+        </component>
 
         <header class="club__header">
-          <ClubAvatar :club="club" :image-url="club.profileImageUrl" :size="76" class="club__avatar" />
+          <button
+            v-if="isOwner"
+            type="button"
+            class="club__avatar club__avatar-button club__editable"
+            aria-label="Edit club logo"
+            @click="openPhotoEditor('profile')"
+          >
+            <ClubAvatar :club="club" :image-url="club.profileImageUrl" :size="76" />
+            <span class="club__edit-badge" aria-hidden="true"><ion-icon :icon="cameraOutline" /></span>
+          </button>
+          <ClubAvatar v-else :club="club" :image-url="club.profileImageUrl" :size="76" class="club__avatar" />
           <h1 class="club__name">{{ club.name }}</h1>
           <p class="club__handle">@{{ club.slug }}</p>
           <p class="club__members">
@@ -45,7 +72,6 @@
           <p v-if="club.description" class="club__description">{{ club.description }}</p>
 
           <div class="club__actions">
-            <button v-if="club.viewerCanManageClub" type="button" class="club__secondary" @click="openManage">Edit club logo &amp; cover</button>
             <button v-if="isActiveMember" type="button" class="club__primary" @click="router.push({ path: '/create/post', query: { clubId } })">Create Post</button>
             <button v-if="isActiveMember && !canManage" type="button" class="club__secondary" @click="openManage">Join requests</button>
             <button
@@ -187,7 +213,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { IonContent, IonIcon, IonPage, alertController, onIonViewWillEnter } from '@ionic/vue';
-import { chatbubblesOutline, earthOutline, locationOutline, lockClosedOutline, peopleOutline, shareSocialOutline } from 'ionicons/icons';
+import { cameraOutline, chatbubblesOutline, earthOutline, locationOutline, lockClosedOutline, peopleOutline, shareSocialOutline } from 'ionicons/icons';
+import ClubPhotoModal from '@/components/clubs/ClubPhotoModal.vue';
 import ClubAvatar from '@/components/clubs/ClubAvatar.vue';
 import SegmentTabs from '@/components/common/SegmentTabs.vue';
 import UserAvatar from '@/components/common/UserAvatar.vue';
@@ -270,6 +297,10 @@ const primaryLabel = computed(() =>
   joinState.value === 'JOIN' && club.value?.viewerHasInvite ? 'Accept Invite' : JOIN_LABELS[joinState.value],
 );
 const canManage = computed(() => !!club.value && (club.value.viewerCanManageClub || club.value.viewerCanManageMembers));
+/** Only the club creator (OWNER) can tap the cover or logo to edit them. */
+const isOwner = computed(
+  () => !!club.value?.viewerCanManageClub && club.value.viewerMembership?.status === 'ACTIVE' && club.value.viewerMembership.role === 'OWNER',
+);
 const isActiveMember = computed(() => club.value?.viewerMembership?.status === 'ACTIVE');
 const canSeeContent = computed(() => !!club.value && club.value.contentVisible);
 const canOpenChat = computed(() => getClubChatAccess(club.value?.viewerMembership) === 'OPEN');
@@ -424,6 +455,13 @@ function openManage(): void {
   void router.push(`/clubs/${clubId}/manage`);
 }
 
+/** Same flow as the user profile: tap the cover or logo, pick a photo, save. */
+const photoEditor = ref<'profile' | 'cover' | null>(null);
+
+function openPhotoEditor(kind: 'profile' | 'cover'): void {
+  photoEditor.value = kind;
+}
+
 function openChat(): void {
   if (canOpenChat.value) {
     void router.push(`/chat/clubs/${clubId}`);
@@ -499,6 +537,47 @@ onMounted(() => {
   padding-right: 24px;
   background-position: center;
   background-size: cover;
+}
+
+button.club__cover {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+}
+
+.club__avatar-button {
+  display: inline-flex;
+  padding: 0;
+  border-radius: 13px;
+  background: none;
+  cursor: pointer;
+}
+
+.club__editable:focus-visible {
+  outline: 2px solid var(--gora-accent, #ff5a1f);
+  outline-offset: 2px;
+}
+
+.club__edit-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 15px;
+}
+
+.club__edit-badge--cover {
+  right: 12px;
+  bottom: 12px;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
 }
 
 .club__cover-icon {

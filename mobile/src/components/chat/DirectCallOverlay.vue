@@ -32,7 +32,15 @@
           muted
           playsinline
         />
-        <video v-if="calls.cameraOn" ref="localVideo" class="direct-call__local" autoplay muted playsinline />
+        <video
+          v-if="calls.cameraOn"
+          ref="localVideo"
+          class="direct-call__local"
+          :class="{ 'direct-call__local--back': calls.facing === 'environment' }"
+          autoplay
+          muted
+          playsinline
+        />
         <p v-if="playBlocked">
           <button type="button" @click="playRemote">Tap to hear the call</button>
         </p>
@@ -52,6 +60,9 @@
             @click="calls.toggleCamera"
           >
             {{ calls.cameraOn ? 'Camera off' : 'Camera on' }}
+          </button>
+          <button v-if="calls.cameraOn" type="button" :disabled="calls.busy" @click="calls.switchCamera">
+            {{ calls.facing === 'user' ? 'Back camera' : 'Front camera' }}
           </button>
           <button type="button" class="direct-call__end" @click="calls.end">End call</button>
         </div>
@@ -152,6 +163,10 @@ onBeforeUnmount(() => {
   object-fit: cover;
   border-radius: 12px;
   transform: scaleX(-1);
+}
+/* Only the selfie camera is mirrored. */
+.direct-call__local--back {
+  transform: none;
 }
 .direct-call__controls {
   display: flex;

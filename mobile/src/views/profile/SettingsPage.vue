@@ -137,7 +137,15 @@
                 <ion-select-option value="light">Light</ion-select-option>
               </ion-select>
             </ion-item>
-            <p class="settings-description">These preferences are saved on this device.</p>
+            <ion-item>
+              <ion-icon slot="start" :icon="cameraReverseOutline" aria-hidden="true" />
+              <ion-label>Camera<p>Which camera opens first for Live and video calls</p></ion-label>
+              <ion-select :value="appPreferences.cameraFacing" interface="popover" aria-label="Default camera" @ionChange="setCameraFacing($event.detail.value)">
+                <ion-select-option value="user">Front camera</ion-select-option>
+                <ion-select-option value="environment">Back camera</ion-select-option>
+              </ion-select>
+            </ion-item>
+            <p class="settings-description">These preferences are saved on this device. You can also switch cameras while live or on a call.</p>
             <ion-item button :detail="true" @click="openAccount">
               <ion-icon slot="start" :icon="personOutline" aria-hidden="true" />
               <ion-label>Account<p>Change your email, password, and phone number</p></ion-label>
@@ -254,6 +262,7 @@ import { alertController } from '@ionic/vue';
 import {
   addCircleOutline,
   bookmarkOutline,
+  cameraReverseOutline,
   colorPaletteOutline,
   helpCircleOutline,
   languageOutline,
@@ -285,7 +294,7 @@ import type { UserSettings } from '@/types/user-settings';
 import { DISTANCE_FILTERS } from '@/utils/search';
 import { useDiscoveryStore } from '@/stores/discovery';
 import { useFiltersStore } from '@/stores/filters';
-import { useAppPreferencesStore, type AppLanguage, type DisplayMode } from '@/stores/app-preferences';
+import { useAppPreferencesStore, type AppLanguage, type DisplayMode, type CameraFacing } from '@/stores/app-preferences';
 import {
   checkDeviceNotificationPermission,
   requestDeviceNotificationPermission,
@@ -451,6 +460,10 @@ async function confirmAccountAction(action: 'deactivate' | 'delete'): Promise<vo
 
 function setLanguage(language: AppLanguage): void {
   if (language === 'en' || language === 'fil') appPreferences.setLanguage(language);
+}
+
+function setCameraFacing(facing: CameraFacing): void {
+  if (facing === 'user' || facing === 'environment') appPreferences.setCameraFacing(facing);
 }
 
 function setDisplayMode(mode: DisplayMode): void {

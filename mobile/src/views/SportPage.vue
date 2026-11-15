@@ -26,11 +26,12 @@
           Nothing in {{ sport.name }} matches “{{ query.trim() }}”.
         </p>
 
-        <section v-if="view === 'MAP' || !isSearching || visibleGameCount > 0 || mapLoading" class="sport__section">
+        <section v-if="view === 'MAP' || !isSearching || visibleGameCount > 0 || mapLoading" class="sport__section sport__card">
           <SectionHeader title="Games">
             <span class="sport__meta">{{ visibleGameCount }} {{ visibleGameCount === 1 ? 'game' : 'games' }} · {{ distanceLabel }}</span>
           </SectionHeader>
 
+          <div class="sport__toolbar">
           <div class="sport__chips" role="group" aria-label="Date">
             <button
               v-for="option in DISCOVERY_DATES"
@@ -45,7 +46,21 @@
             </button>
           </div>
 
-          <SegmentTabs v-model="view" :options="VIEW_OPTIONS" class="sport__views" />
+          <div class="sport__views" role="group" aria-label="View">
+            <button
+              v-for="option in VIEW_OPTIONS"
+              :key="option.id"
+              type="button"
+              class="sport__view"
+              :class="{ 'sport__view--active': view === option.id }"
+              :aria-pressed="view === option.id"
+              @click="view = option.id"
+            >
+              <ion-icon :icon="option.id === 'MAP' ? mapOutline : listOutline" aria-hidden="true" />
+              {{ option.label }}
+            </button>
+          </div>
+          </div>
 
           <GameDiscoveryMap
             v-if="view === 'MAP'"
@@ -83,7 +98,7 @@
           </template>
         </section>
 
-        <section v-if="view === 'LIST' && (!isSearching || clubs.length)" class="sport__section">
+        <section v-if="view === 'LIST' && (!isSearching || clubs.length)" class="sport__section sport__card">
           <SectionHeader title="Available Clubs">
             <span class="sport__meta">{{ clubs.length }} {{ clubs.length === 1 ? 'club' : 'clubs' }}</span>
           </SectionHeader>
@@ -93,7 +108,7 @@
           </ul>
         </section>
 
-        <section v-if="view === 'LIST'" class="sport__section">
+        <section v-if="view === 'LIST'" class="sport__section sport__card">
           <SectionHeader title="People You May Know">
             <span class="sport__meta">{{ peopleYouMayKnow.length }} {{ peopleYouMayKnow.length === 1 ? 'person' : 'people' }}</span>
           </SectionHeader>
@@ -141,10 +156,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { IonContent, IonPage, IonSearchbar, onIonViewWillEnter } from '@ionic/vue';
+import { IonContent, IonIcon, IonPage, IonSearchbar, onIonViewWillEnter } from '@ionic/vue';
+import { listOutline, mapOutline } from 'ionicons/icons';
 import ClubRow from '@/components/clubs/ClubRow.vue';
 import SectionHeader from '@/components/common/SectionHeader.vue';
-import SegmentTabs from '@/components/common/SegmentTabs.vue';
 import JoinRequestModal from '@/components/games/JoinRequestModal.vue';
 import DiscoveredGameCard from '@/components/map/DiscoveredGameCard.vue';
 import PlayerRow from '@/components/discover/PlayerRow.vue';
@@ -399,7 +414,33 @@ async function loadSportPage(): Promise<void> {
 
 <style scoped>
 .sport {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
   padding: 8px 16px 32px;
+  box-sizing: border-box;
+}
+
+.sport__card {
+  padding: 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 16px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+}
+
+.sport__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sport__toolbar .sport__chips {
+  min-width: 0;
+  flex: 1 1 260px;
 }
 
 .sport__missing {
@@ -455,17 +496,20 @@ async function loadSportPage(): Promise<void> {
 }
 
 .sport__search {
-  --background: #f5f7f2;
-  --color: #08131f;
-  --icon-color: #08131f;
-  --placeholder-color: #4a5560;
-  --border-radius: 10px;
+  --background: var(--gora-surface);
+  --color: var(--ion-text-color);
+  --icon-color: var(--gora-muted);
+  --placeholder-color: var(--gora-muted);
+  --border-radius: 12px;
+  --box-shadow: none;
   margin-top: 14px;
   padding: 0;
+  border: 1px solid var(--gora-line);
+  border-radius: 12px;
 }
 
 .sport__section {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .sport__meta {
@@ -483,7 +527,7 @@ async function loadSportPage(): Promise<void> {
 
 .chip {
   flex-shrink: 0;
-  padding: 7px 14px;
+  padding: 6px 14px;
   border: 1px solid var(--gora-line);
   border-radius: 999px;
   background: transparent;
@@ -501,7 +545,37 @@ async function loadSportPage(): Promise<void> {
 }
 
 .sport__views {
-  margin: 12px 0;
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 3px;
+  border: 1px solid var(--gora-line);
+  border-radius: 999px;
+  background: var(--gora-surface-raised);
+}
+
+.sport__view {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gora-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: background var(--gora-motion), color var(--gora-motion);
+}
+
+.sport__view ion-icon {
+  font-size: 15px;
+}
+
+.sport__view--active {
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
 }
 
 .sport__empty {

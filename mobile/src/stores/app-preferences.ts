@@ -4,15 +4,18 @@ import { setAppLanguage } from '@/i18n';
 
 export type DisplayMode = 'dark' | 'light';
 export type AppLanguage = 'en' | 'fil';
+/** 'user' = front camera, 'environment' = back camera (getUserMedia facingMode). */
+export type CameraFacing = 'user' | 'environment';
 
 const STORAGE_KEY = 'gora.app-preferences';
 
 interface AppPreferences {
   displayMode: DisplayMode;
   language: AppLanguage;
+  cameraFacing: CameraFacing;
 }
 
-const DEFAULT_PREFERENCES: AppPreferences = { displayMode: 'dark', language: 'en' };
+const DEFAULT_PREFERENCES: AppPreferences = { displayMode: 'dark', language: 'en', cameraFacing: 'user' };
 
 function readPreferences(): AppPreferences {
   try {
@@ -22,6 +25,7 @@ function readPreferences(): AppPreferences {
     return {
       displayMode: parsed.displayMode === 'light' ? 'light' : 'dark',
       language: parsed.language === 'fil' ? 'fil' : 'en',
+      cameraFacing: parsed.cameraFacing === 'environment' ? 'environment' : 'user',
     };
   } catch {
     return { ...DEFAULT_PREFERENCES };
@@ -38,6 +42,11 @@ function applyPreferences(preferences: AppPreferences): void {
   document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', preferences.displayMode);
 }
 
+/** The saved default camera, read without Pinia so media helpers can use it. */
+export function readCameraFacing(): CameraFacing {
+  return readPreferences().cameraFacing;
+}
+
 export function initializeAppPreferences(): void {
   applyPreferences(readPreferences());
 }
@@ -46,9 +55,10 @@ export const useAppPreferencesStore = defineStore('app-preferences', () => {
   const saved = readPreferences();
   const displayMode = ref<DisplayMode>(saved.displayMode);
   const language = ref<AppLanguage>(saved.language);
+  const cameraFacing = ref<CameraFacing>(saved.cameraFacing);
 
   function persist(): void {
-    const preferences = { displayMode: displayMode.value, language: language.value };
+    const preferences = { displayMode: displayMode.value, language: language.value, cameraFacing: cameraFacing.value };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
     } catch {
@@ -67,5 +77,10 @@ export const useAppPreferencesStore = defineStore('app-preferences', () => {
     persist();
   }
 
-  return { displayMode, language, setDisplayMode, setLanguage };
+  function setCameraFacing(value: CameraFacing): void {
+    cameraFacing.value = value;
+    persist();
+  }
+
+  return { displayMode, language, cameraFacing, setDisplayMode, setLanguage, setCameraFacing };
 });

@@ -1,4 +1,20 @@
 import { Capacitor } from '@capacitor/core';
+import { type CameraFacing, readCameraFacing } from '@/stores/app-preferences';
+
+/**
+ * Video constraints for the chosen camera. `ideal` lets laptops with only one
+ * camera still open it instead of failing.
+ */
+export function cameraConstraints(
+  facing: CameraFacing = readCameraFacing(),
+  extra: MediaTrackConstraints = {},
+): MediaTrackConstraints {
+  return { ...extra, facingMode: { ideal: facing } };
+}
+
+export function oppositeFacing(facing: CameraFacing): CameraFacing {
+  return facing === 'user' ? 'environment' : 'user';
+}
 
 /** Capacitor's WebView requests native permissions when getUserMedia is called. */
 export async function requestMedia(constraints: MediaStreamConstraints): Promise<MediaStream> {

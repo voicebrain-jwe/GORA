@@ -3,7 +3,8 @@ import { ApiError } from '@/services/api-client';
 import { liveApi, releaseLive, type LiveStreamInfo } from '@/services/live-api.service';
 import { useAuthStore } from '@/stores/auth';
 import { createAuthorizedCall } from '@/stores/authorized';
-import { gatherDescription, mediaError, requestMedia, stopMedia } from '@/utils/live-media';
+import { cameraConstraints, gatherDescription, mediaError, oppositeFacing, requestMedia, stopMedia } from '@/utils/live-media';
+import { type CameraFacing, readCameraFacing } from '@/stores/app-preferences';
 
 export function useLive() {
   const auth = useAuthStore();
@@ -16,6 +17,8 @@ export function useLive() {
   const status = ref('');
   const micOn = ref(true);
   const cameraOn = ref(true);
+  const facing = ref<CameraFacing>(readCameraFacing());
+  const switchingCamera = ref(false);
   const viewerCount = ref(0);
   const broadcasting = ref(false);
   const watching = ref(false);
@@ -91,7 +94,7 @@ export function useLive() {
         throw new Error('Live video needs WebRTC support. Update your browser or device OS, then try again.');
       }
       const media = await requestMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+        video: cameraConstraints(facing.value, { width: { ideal: 1280 }, height: { ideal: 720 } }),
         audio: true,
       });
       if (version !== generation) {
@@ -320,6 +323,49 @@ export function useLive() {
     }
   }
 
+  /** Swap front/back camera without restarting the broadcast. */
+  async function switchCamera() {
+    const stream = localStream.value;
+    if (!stream || switchingCamera.value) return;
+    const version = generation;
+    const next = oppositeFacing(facing.value);
+    switchingCamera.value = true;
+    try {
+      const old = stream.getVideoTracks()[0];
+      // Phones usually allow only one open camera, so release the old one first.
+      old?.stop();
+      const media = await requestMedia({
+        video: cameraConstraints(next, { width: { ideal: 1280 }, height: { ideal: 720 } }),
+      });
+      const track = media.getVideoTracks()[0];
+      if (!track || version !== generation) {
+        stopMedia(media);
+        return;
+      }
+      track.enabled = cameraOn.value;
+      track.onended = old?.onended ?? null;
+      if (old) {
+        old.onended = null;
+        stream.removeTrack(old);
+      }
+      stream.addTrack(track);
+      await Promise.all(
+        [...peers.values()].flatMap((peer) =>
+          peer
+            .getSenders()
+            .filter((sender) => (old && sender.track === old) || sender.track?.kind === 'video')
+            .map((sender) => sender.replaceTrack(track)),
+        ),
+      );
+      facing.value = next;
+      localStream.value = new MediaStream(stream.getTracks());
+    } catch (caught) {
+      if (version === generation) error.value = mediaError(caught);
+    } finally {
+      if (version === generation) switchingCamera.value = false;
+    }
+  }
+
   function toggle(kind: 'audio' | 'video') {
     const enabled = kind === 'audio' ? !micOn.value : !cameraOn.value;
     localStream.value
@@ -351,6 +397,9 @@ export function useLive() {
     status,
     micOn,
     cameraOn,
+    facing,
+    switchingCamera,
+    switchCamera,
     viewerCount,
     broadcasting,
     watching,

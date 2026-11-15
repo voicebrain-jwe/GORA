@@ -103,11 +103,18 @@ const activeTabLabel = computed(() => REELS_TABS.find((tab) => tab.id === active
  */
 const followingSnapshot = ref<string[]>([]);
 
-const visibleReels = computed(() =>
-  activeTab.value === 'FOLLOWING'
-    ? selectFollowingReels(reelsStore.feedReels, followingSnapshot.value)
-    : selectForYouReels(reelsStore.feedReels),
-);
+/** A reel opened from the feed or right after uploading plays first. */
+const focusedReelId = computed(() => (typeof route.query.reel === 'string' ? route.query.reel : null));
+
+const visibleReels = computed(() => {
+  if (activeTab.value === 'FOLLOWING') {
+    return selectFollowingReels(reelsStore.feedReels, followingSnapshot.value);
+  }
+  const reels = selectForYouReels(reelsStore.feedReels);
+  const focusedIndex = focusedReelId.value ? reels.findIndex((reel) => reel.id === focusedReelId.value) : -1;
+  if (focusedIndex > 0) reels.unshift(...reels.splice(focusedIndex, 1));
+  return reels;
+});
 
 function snapshotFollowing(): void {
   followingSnapshot.value = [...followsStore.followingIds];
@@ -120,14 +127,14 @@ watch(activeTab, (tab) => {
 });
 
 watch(
-  () => [route.query.reel, visibleReels.value] as const,
-  async ([reelId]) => {
-    if (typeof reelId !== 'string') return;
+  focusedReelId,
+  async (reelId) => {
+    if (!reelId) return;
     if (activeTab.value !== 'FOR_YOU') activeTab.value = 'FOR_YOU';
     await nextTick();
-    document.querySelector<HTMLElement>(`[data-reel-id="${CSS.escape(reelId)}"]`)?.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector<HTMLElement>(`[data-reel-id="${CSS.escape(reelId)}"]`)?.scrollIntoView({ behavior: 'instant', block: 'start' });
   },
-  { flush: 'post' },
+  { flush: 'post', immediate: true },
 );
 
 onMounted(async () => {
@@ -137,6 +144,12 @@ onMounted(async () => {
 });
 onIonViewWillEnter(() => {
   pageActive.value = true;
+  const reelId = focusedReelId.value;
+  if (reelId) {
+    void nextTick(() => {
+      document.querySelector<HTMLElement>(`[data-reel-id="${CSS.escape(reelId)}"]`)?.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
+  }
   if (reelsStore.isLoaded) void reelsStore.refresh();
 });
 async function likeReel(id: string): Promise<void> {

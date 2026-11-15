@@ -42,13 +42,21 @@
         <ion-skeleton-text :animated="true" class="discovery-map__skeleton" />
       </div>
       <p v-else-if="!mapCenter" class="discovery-map__blank">No game on this list has a map position yet.</p>
-      <div class="discovery-map__legend" aria-label="Game status legend">
-        <span><i class="discovery-map__legend-dot discovery-map__legend-dot--active" /> Active</span>
-        <span><i class="discovery-map__legend-dot discovery-map__legend-dot--upcoming" /> Upcoming</span>
-      </div>
-      <div v-if="fitMarkers" class="discovery-map__country-label">
-        <strong>GORA Games · Philippines</strong>
-        <span>{{ activeGameCount }} Active</span>
+      <div v-if="!loading && mapCenter" class="discovery-map__summary" aria-label="Games on this map">
+        <strong>{{ fitMarkers ? 'GORA Games · Philippines' : 'Games on map' }}</strong>
+        <span class="discovery-map__summary-counts">
+          <span class="discovery-map__count">
+            {{ mappedGameCount }} {{ mappedGameCount === 1 ? 'game' : 'games' }}
+          </span>
+          <span v-if="activeGameCount > 0" class="discovery-map__count discovery-map__count--active">
+            <i class="discovery-map__legend-dot discovery-map__legend-dot--active" aria-hidden="true" />
+            {{ activeGameCount }} live now
+          </span>
+          <span class="discovery-map__count discovery-map__count--upcoming">
+            <i class="discovery-map__legend-dot discovery-map__legend-dot--upcoming" aria-hidden="true" />
+            {{ upcomingGameCount }} upcoming
+          </span>
+        </span>
       </div>
     </div>
 
@@ -146,7 +154,15 @@ const canvas = CANVASES[provider.id] ?? PlaceholderMapCanvas;
 
 const places = computed(() => groupGamesByPlace(props.games));
 const unlocatedCount = computed(() => props.games.filter((game) => gamePoint(game) === null).length);
-const activeGameCount = computed(() => props.games.filter((game) => game.status === 'ACTIVE' && gamePoint(game) !== null).length);
+/** Only games with a map position are counted, so the numbers match the pins. */
+const mappedGames = computed(() => props.games.filter((game) => gamePoint(game) !== null));
+const mappedGameCount = computed(() => mappedGames.value.length);
+/** In progress right now. */
+const activeGameCount = computed(() => mappedGames.value.filter((game) => game.status === 'ACTIVE').length);
+/** Open or full games that have not started yet. */
+const upcomingGameCount = computed(
+  () => mappedGames.value.filter((game) => game.status === 'OPEN' || game.status === 'FULL').length,
+);
 const mapCenter = computed<MapPoint | null>(() => {
   if (props.center) {
     return props.center;
@@ -287,60 +303,51 @@ function selectPlace(key: string): void {
   .discovery-map__map-preview-action { padding: 8px 9px; font-size: 0.7rem; }
 }
 
-.discovery-map__legend {
-  position: absolute;
-  z-index: 800;
-  top: 12px;
-  left: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  background: rgba(11, 24, 36, 0.9);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  color: #fff;
-  font-size: 0.72rem;
-  pointer-events: none;
-}
-
-.discovery-map__legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.discovery-map__country-label {
+/* Top-right summary card. The map's zoom buttons stay alone on the left. */
+.discovery-map__summary {
   position: absolute;
   z-index: 800;
   top: 12px;
   right: 12px;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: calc(100% - 24px);
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 10px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: calc(100% - 72px);
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  color: #202a32;
-  font-size: 0.72rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+  color: #1d242b;
+  font-size: 0.74rem;
 }
 
-.discovery-map__country-label span {
-  flex: none;
-  padding: 4px 7px;
-  border-radius: 999px;
-  background: #e14a43;
-  color: #fff;
+.discovery-map__summary strong {
+  font-size: 0.8rem;
   font-weight: 800;
 }
 
-@media (max-width: 420px) {
-  .discovery-map__country-label { top: 54px; left: 12px; right: auto; }
+.discovery-map__summary-counts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
+
+.discovery-map__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef1f4;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.discovery-map__count--active { background: #dcfce7; color: #166534; }
+.discovery-map__count--upcoming { background: #ffedd5; color: #9a3412; }
 
 .discovery-map__legend-dot {
   width: 8px;

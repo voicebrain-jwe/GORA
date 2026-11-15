@@ -6,6 +6,15 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [vue()],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // Bootstrap 5.3 still uses Sass @import and legacy colour functions.
+        quietDeps: true,
+        silenceDeprecations: ['import', 'global-builtin', 'color-functions', 'mixed-decls'],
+      },
+    },
+  },
   server: {
     proxy: {
       // Standalone Vite development. vercel dev routes /api to server itself.

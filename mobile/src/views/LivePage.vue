@@ -43,6 +43,9 @@
           <button :aria-pressed="!cameraOn" @click="toggle('video')">
             {{ cameraOn ? 'Camera off' : 'Camera on' }}
           </button>
+          <button :disabled="switchingCamera || !cameraOn" @click="switchCamera">
+            {{ switchingCamera ? 'Switching…' : facing === 'user' ? 'Use back camera' : 'Use front camera' }}
+          </button>
         </div>
         <button v-if="isOwner && live?.status === 'LIVE'" class="live-page__end" :disabled="busy" @click="end">
           {{ busy ? 'Ending...' : 'End Live' }}
@@ -128,6 +131,9 @@ const {
   status,
   micOn,
   cameraOn,
+  facing,
+  switchingCamera,
+  switchCamera,
   viewerCount,
   broadcasting,
   watching,

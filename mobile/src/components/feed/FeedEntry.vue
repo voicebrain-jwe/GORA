@@ -40,20 +40,8 @@
         <span>shared a reel · {{ formatTimeAgo(item.at, nowMs) }}</span>
       </span>
     </header>
-    <router-link to="/reels" class="feed-entry__reel">
-      <span class="feed-entry__reel-thumb" :style="{ background: getSportVisual(item.reel.sport).gradient }">
-        <ion-icon :icon="playCircle" aria-hidden="true" />
-        <span>{{ formatDuration(item.reel.durationSeconds) }}</span>
-      </span>
-      <span class="feed-entry__reel-info">
-        <strong>{{ item.reel.caption }}</strong>
-        <span>{{ item.reel.sport }} · {{ item.reel.locationName }}</span>
-        <span class="feed-entry__reel-views" :aria-label="`${formatCompactNumber(item.reel.views)} views`">
-          <ion-icon :icon="eyeOutline" aria-hidden="true" />
-          {{ formatCompactNumber(item.reel.views) }} views
-        </span>
-      </span>
-    </router-link>
+    <p v-if="item.reel.caption" class="feed-entry__text">{{ item.reel.caption }}</p>
+    <FeedReelCard :reel="item.reel" />
   </article>
 
   <article v-else-if="item.type === 'CLUB'" class="feed-entry">
@@ -79,20 +67,19 @@
 </template>
 
 <script setup lang="ts">
-import { RouterLink } from 'vue-router';
 import { IonIcon } from '@ionic/vue';
-import { enterOutline, eyeOutline, playCircle, ribbonOutline, trophyOutline } from 'ionicons/icons';
+import { enterOutline, ribbonOutline, trophyOutline } from 'ionicons/icons';
 import UserAvatar from '@/components/common/UserAvatar.vue';
 import GameCard from '@/components/games/GameCard.vue';
 import ServerGameFeedCard from './ServerGameFeedCard.vue';
 import ClubRow from '@/components/clubs/ClubRow.vue';
 import PostCard from './PostCard.vue';
+import FeedReelCard from './FeedReelCard.vue';
 import type { FeedActivityKind, HomeFeedItem } from '@/types/feed';
 import type { Game } from '@/types/game';
 import type { FeedPost } from '@/types/post';
-import { getSportVisual } from '@/utils/sports';
 import { gameHostSummary } from '@/utils/game-form';
-import { formatCompactNumber, formatDuration, formatTimeAgo } from '@/utils/time';
+import { formatTimeAgo } from '@/utils/time';
 
 const ACTIVITY_ICONS: Record<FeedActivityKind, string> = {
   GAME_COMPLETED: trophyOutline,
@@ -144,78 +131,13 @@ const emit = defineEmits<{
   padding: 0;
 }
 
-.feed-entry__reel {
-  display: flex;
-  gap: 12px;
-  padding: 10px;
-  border: 1px solid var(--gora-line);
-  border-radius: 18px;
-  background: var(--gora-surface);
-  color: inherit;
-  text-decoration: none;
-}
 
-.feed-entry__reel-thumb {
-  position: relative;
-  display: flex;
-  width: 84px;
-  flex-shrink: 0;
-  aspect-ratio: 9 / 14;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 30px;
-}
 
-.feed-entry__reel-thumb span {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
-  font-size: 0.62rem;
-  font-weight: 700;
-}
 
-.feed-entry__reel-info {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  font-size: 0.8rem;
-}
 
-.feed-entry__reel-info strong {
-  font-size: 0.9rem;
-  line-height: 1.35;
-}
 
-.feed-entry__reel-info span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--gora-muted);
-  font-size: 0.72rem;
-}
 
-.feed-entry__reel-info .feed-entry__reel-views {
-  width: fit-content;
-  padding: 4px 8px;
-  border: 1px solid var(--gora-line-strong);
-  border-radius: 999px;
-  background: var(--gora-surface-raised, rgba(255, 255, 255, 0.08));
-  color: var(--ion-text-color);
-  font-size: 0.74rem;
-  font-weight: 800;
-}
 
-.feed-entry__reel-views ion-icon {
-  color: var(--ion-color-primary);
-  font-size: 1rem;
-}
 
 .feed-entry--activity {
   flex-direction: row;

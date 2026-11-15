@@ -5,7 +5,8 @@ import { liveApi } from '@/services/live-api.service';
 import { ApiError } from '@/services/api-client';
 import { useAuthStore } from './auth';
 import { captureSession, describeContentError } from './authorized';
-import { mediaError, requestMedia, stopMedia } from '@/utils/live-media';
+import { cameraConstraints, mediaError, oppositeFacing, requestMedia, stopMedia } from '@/utils/live-media';
+import { type CameraFacing, readCameraFacing } from '@/stores/app-preferences';
 import { showNotice } from '@/utils/notice';
 
 export const useDirectCallStore = defineStore('direct-call', () => {
@@ -17,6 +18,7 @@ export const useDirectCallStore = defineStore('direct-call', () => {
   const busy = ref(false);
   const muted = ref(false);
   const cameraOn = ref(false);
+  const facing = ref<CameraFacing>(readCameraFacing());
   const error = ref<string | null>(null);
   const incoming = computed(
     () => !!call.value && call.value.callee.id === auth.currentUser?.id && call.value.status === 'RINGING',
@@ -168,7 +170,7 @@ export const useDirectCallStore = defineStore('direct-call', () => {
     try {
       media = await requestMedia({
         audio: true,
-        video: mode === 'VIDEO',
+        video: mode === 'VIDEO' ? cameraConstraints(facing.value) : false,
       });
       if (!isCurrent() || version !== generation) {
         stopMedia(media);
@@ -203,7 +205,7 @@ export const useDirectCallStore = defineStore('direct-call', () => {
     error.value = null;
     let media: MediaStream | null = null;
     try {
-      media = await requestMedia({ audio: true, video });
+      media = await requestMedia({ audio: true, video: video ? cameraConstraints(facing.value) : false });
       if (!isCurrent() || version !== generation) {
         stopMedia(media);
         return;
@@ -318,7 +320,7 @@ export const useDirectCallStore = defineStore('direct-call', () => {
     busy.value = true;
     let camera: MediaStream | null = null;
     try {
-      camera = await requestMedia({ video: true });
+      camera = await requestMedia({ video: cameraConstraints(facing.value) });
       if (!isCurrent() || version !== generation) {
         stopMedia(camera);
         return;
@@ -336,6 +338,43 @@ export const useDirectCallStore = defineStore('direct-call', () => {
     } catch (caught) {
       stopMedia(camera);
       if (isCurrent() && version === generation) void showNotice(mediaError(caught));
+    } finally {
+      if (isCurrent() && version === generation) busy.value = false;
+    }
+  }
+  /** Swap front/back camera during a video call. */
+  async function switchCamera() {
+    const pc = peer;
+    if (!pc || busy.value || !cameraOn.value) return;
+    const isCurrent = captureSession(auth);
+    const version = generation;
+    const sender = pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')?.sender;
+    if (!sender) return;
+    const next = oppositeFacing(facing.value);
+    busy.value = true;
+    let camera: MediaStream | null = null;
+    try {
+      const old = localStream.value?.getVideoTracks() ?? [];
+      // Release the current camera first; many phones cannot open two at once.
+      old.forEach((t) => t.stop());
+      camera = await requestMedia({ video: cameraConstraints(next) });
+      if (!isCurrent() || version !== generation) {
+        stopMedia(camera);
+        return;
+      }
+      const track = camera.getVideoTracks()[0]!;
+      await sender.replaceTrack(track);
+      old.forEach((t) => localStream.value?.removeTrack(t));
+      localStream.value?.addTrack(track);
+      watchDevice(track, version);
+      localStream.value = new MediaStream(localStream.value?.getTracks() ?? []);
+      facing.value = next;
+    } catch (caught) {
+      stopMedia(camera);
+      if (isCurrent() && version === generation) {
+        cameraOn.value = false;
+        void showNotice(mediaError(caught));
+      }
     } finally {
       if (isCurrent() && version === generation) busy.value = false;
     }
@@ -378,6 +417,8 @@ export const useDirectCallStore = defineStore('direct-call', () => {
     end,
     toggleMute,
     toggleCamera,
+    facing,
+    switchCamera,
     startPolling,
     stopPolling,
   };

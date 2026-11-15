@@ -1,343 +1,398 @@
 <template>
-  <ion-page>
-    <ion-content class="landing-content">
-      <div class="landing">
-        <a class="skip-link" href="#main">Skip to content</a>
-        <header class="site-header">
-          <div class="container header-inner">
-            <router-link to="/" class="wordmark" aria-label="GORA home">
-              <span class="brand-mark" aria-hidden="true"
-                ><span /><span /><span
-              /></span>
-              {{ GORA_NAME }}<span class="brand-dot">.</span>
+  <ion-page class="gora-lp">
+    <ion-content
+      class="lp-content"
+      data-bs-theme="light"
+      :fullscreen="true"
+      :scroll-events="true"
+      @ion-scroll="onScroll"
+    >
+      <div class="lp" data-bs-theme="dark" :class="{ 'lp--motion': motionReady }">
+        <a class="lp-skip btn btn-primary" href="#main">Skip to content</a>
+
+        <!-- ───────────── Navigation ───────────── -->
+        <nav class="navbar navbar-expand-lg lp-nav" :class="{ 'lp-nav--scrolled': scrolled || navOpen }" aria-label="Main navigation">
+          <div class="container">
+            <router-link to="/" class="navbar-brand lp-brand" aria-label="GORA home">
+              {{ GORA_NAME }}<span class="text-primary">/</span>
             </router-link>
-            <nav class="desktop-nav" aria-label="Main navigation">
-              <button @click="scrollTo('how-it-works')">How it works</button>
-              <button @click="scrollTo('find-a-game')">Find a game</button>
-              <button @click="scrollTo('communities')">Communities</button>
-            </nav>
-            <div class="header-actions">
-              <router-link to="/login" class="login-link">Sign in</router-link>
-              <router-link to="/register" class="button button-small"
-                >Join GORA
-                <ion-icon :icon="arrowForwardOutline" aria-hidden="true"
-              /></router-link>
+
+            <button
+              type="button"
+              class="lp-toggler d-lg-none"
+              :aria-expanded="navOpen"
+              aria-controls="lp-nav-menu"
+              :aria-label="navOpen ? 'Close menu' : 'Open menu'"
+              @click="navOpen = !navOpen"
+            >
+              <ion-icon :icon="navOpen ? closeOutline : menuOutline" aria-hidden="true" />
+            </button>
+
+            <div id="lp-nav-menu" class="collapse navbar-collapse" :class="{ show: navOpen }">
+              <ul class="navbar-nav mx-lg-auto gap-lg-2 py-3 py-lg-0">
+                <li v-for="link in navLinks" :key="link.id" class="nav-item">
+                  <button type="button" class="nav-link lp-nav-link" @click="scrollTo(link.id)">{{ link.label }}</button>
+                </li>
+              </ul>
+              <div class="d-flex flex-column flex-lg-row gap-2 pb-3 pb-lg-0">
+                <router-link to="/login" class="btn btn-outline-light rounded-pill px-4">Sign in</router-link>
+                <router-link to="/register" class="btn btn-primary rounded-pill px-4 lp-btn-glow">
+                  Join GORA <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
+                </router-link>
+              </div>
             </div>
           </div>
-        </header>
+        </nav>
 
         <main id="main" tabindex="-1">
-          <section class="hero" aria-labelledby="hero-heading">
-            <picture class="hero-backdrop" aria-hidden="true">
-              <source
-                media="(max-width: 760px)"
-                srcset="/images/gora-hoop-small.webp"
-              />
-              <img
-                src="/images/gora-hoop.webp"
-                width="1672"
-                height="941"
-                fetchpriority="high"
-                alt=""
-              />
+          <!-- ───────────── Hero ───────────── -->
+          <section class="lp-hero" aria-labelledby="hero-heading">
+            <picture class="lp-hero__bg" aria-hidden="true">
+              <source media="(max-width: 760px)" srcset="/images/gora-hoop-small.webp" />
+              <img src="/images/gora-hoop.webp" width="1672" height="941" fetchpriority="high" alt="" />
             </picture>
-            <div class="hero-shade" aria-hidden="true" />
-            <div class="container hero-inner">
-              <div class="hero-copy">
-                <p class="eyebrow">
-                  <span class="eyebrow-line" /> LESS SCROLLING. MORE SHOWING UP.
-                </p>
-                <h1 id="hero-heading">
-                  <span class="hero-line">Find your game.</span
-                  ><span class="hero-line">Find your <em>people.</em></span>
-                </h1>
-                <p class="hero-description">
-                  Your next pickup game. Your game-day crew. Your kind of
-                  people. Bring your love of sport. We?ll help you find the
-                  rest.
-                </p>
-                <div class="hero-actions">
-                  <router-link to="/register" class="button"
-                    >Find my crew</router-link
-                  >
-                  <router-link
-                    to="/register?redirect=/discover"
-                    class="button button-secondary"
-                    >Explore games</router-link
-                  >
+            <div class="lp-hero__shade" aria-hidden="true" />
+            <span class="lp-blob lp-blob--one" aria-hidden="true" />
+            <span class="lp-blob lp-blob--two" aria-hidden="true" />
+
+            <div class="container position-relative">
+              <div class="row align-items-center g-5 lp-hero__row">
+                <div class="col-lg-6">
+                  <span class="badge rounded-pill lp-pill lp-enter" style="--enter-delay: 0ms">
+                    <span class="lp-live-dot" aria-hidden="true" /> Less scrolling. More showing up.
+                  </span>
+                  <h1 id="hero-heading" class="lp-display mt-4 mb-4">
+                    <span class="d-block lp-enter" style="--enter-delay: 120ms">Find your game.</span>
+                    <span class="d-block lp-enter" style="--enter-delay: 240ms">
+                      Find your <span class="lp-gradient-text">people.</span>
+                    </span>
+                  </h1>
+                  <p class="lead text-body-secondary mb-4 lp-enter lp-hero__lead" style="--enter-delay: 360ms">
+                    Your next pickup game. Your game-day crew. Your kind of people. Bring your love of sport —
+                    we'll help you find the rest.
+                  </p>
+                  <div class="d-flex flex-wrap gap-3 lp-enter" style="--enter-delay: 480ms">
+                    <router-link to="/register" class="btn btn-primary btn-lg rounded-pill px-4 lp-btn-glow">
+                      Find my crew <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
+                    </router-link>
+                    <router-link to="/register?redirect=/discover" class="btn btn-outline-light btn-lg rounded-pill px-4">
+                      Explore games
+                    </router-link>
+                  </div>
+                  <ul class="list-unstyled d-flex flex-wrap gap-2 mt-4 mb-0 lp-enter" style="--enter-delay: 600ms">
+                    <li v-for="chip in heroChips" :key="chip.label" class="lp-chip">
+                      <ion-icon :icon="chip.icon" aria-hidden="true" /> {{ chip.label }}
+                    </li>
+                  </ul>
                 </div>
-                <p class="hero-note">On the court. In the stands. Together.</p>
-              </div>
-              <div class="hero-caption">
-                <span>THE GAME IS BETTER</span
-                ><strong>WHEN YOU SHOW UP<br /> TOGETHER.</strong>
-              </div>
-              <div class="hero-footer">
-                <span>PLAY. WATCH. CONNECT.</span
-                ><router-link to="/register"
-                  >GET IN THE GAME
-                  <ion-icon :icon="arrowForwardOutline" aria-hidden="true"
-                /></router-link>
+
+                <div class="col-lg-6">
+                  <div class="lp-stage" aria-hidden="true">
+                    <div class="card lp-glass lp-game-card lp-float">
+                      <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                          <span class="lp-sport-icon"><ion-icon :icon="basketballOutline" /></span>
+                          <div>
+                            <div class="fw-bold">Saturday pickup crew</div>
+                            <small class="text-body-secondary">Neighborhood court · Sat · 4:00 PM</small>
+                          </div>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-2">
+                          <span class="text-body-secondary">Players</span>
+                          <span class="fw-semibold">8 / 10</span>
+                        </div>
+                        <div class="lp-progress mb-3"><span /></div>
+                        <div class="d-flex align-items-center justify-content-between">
+                          <div class="lp-avatars">
+                            <span v-for="initial in ['JT', 'MA', 'KR', 'PL']" :key="initial">{{ initial }}</span>
+                            <span class="lp-avatars__more">+4</span>
+                          </div>
+                          <span class="btn btn-primary btn-sm rounded-pill px-3">Join game</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card lp-glass lp-club-card lp-float lp-float--slow">
+                      <div class="card-body d-flex align-items-center gap-3 p-3">
+                        <span class="lp-club-logo">PLAY</span>
+                        <div>
+                          <div class="fw-bold small">Weekend Court Crew</div>
+                          <small class="text-body-secondary">Basketball club · Public</small>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card lp-glass lp-toast-card lp-float lp-float--fast">
+                      <div class="card-body d-flex align-items-center gap-2 p-3">
+                        <ion-icon :icon="checkmarkCircle" class="text-success fs-4" />
+                        <span class="small fw-semibold">You're in! See you Saturday.</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-center small text-body-secondary mt-3 mb-0 lp-illustrative">Illustrative preview</p>
+                </div>
               </div>
             </div>
+
+            <button type="button" class="lp-scroll-cue" aria-label="Scroll to sports" @click="scrollTo('find-a-game')">
+              <span />
+            </button>
           </section>
 
-          <section
-            id="find-a-game"
-            class="sports-section"
-            aria-label="Explore sports"
-          >
-            <div class="container sports-inner">
-              <p>ONE COMMUNITY.<br /><strong>SO MANY WAYS TO PLAY.</strong></p>
-              <div class="sport-options">
+          <!-- ───────────── Sports marquee ───────────── -->
+          <div class="lp-marquee" aria-hidden="true">
+            <div class="lp-marquee__track">
+              <template v-for="copy in 2" :key="copy">
+                <span v-for="sport in sports" :key="`${copy}-${sport.name}`" class="lp-marquee__item">
+                  <ion-icon :icon="sport.icon" /> {{ sport.name }}
+                </span>
+              </template>
+            </div>
+          </div>
+
+          <!-- ───────────── Sports picker ───────────── -->
+          <section id="find-a-game" class="lp-section" aria-labelledby="sports-heading">
+            <div class="container">
+              <div class="row align-items-end g-4 mb-5">
+                <div v-reveal class="col-lg-7">
+                  <p class="lp-eyebrow">One community. So many ways to play.</p>
+                  <h2 id="sports-heading" class="lp-heading">Pick your sport.<br />We'll find the game.</h2>
+                </div>
+                <div v-reveal="120" class="col-lg-5">
+                  <p class="text-body-secondary mb-0">
+                    From full-court runs to weekend doubles and squad matches online — GORA brings every kind of
+                    player together.
+                  </p>
+                </div>
+              </div>
+
+              <div v-reveal class="lp-sport-tabs mb-4" role="group" aria-label="Choose a sport">
                 <button
                   v-for="sport in sports"
                   :key="sport.name"
+                  type="button"
+                  class="btn rounded-pill lp-sport-tab"
+                  :class="{ active: selectedSport === sport.name }"
                   :aria-pressed="selectedSport === sport.name"
-                  :class="{ selected: selectedSport === sport.name }"
                   @click="selectedSport = sport.name"
                 >
-                  <ion-icon :icon="sport.icon" aria-hidden="true" />{{
-                    sport.name
-                  }}
+                  <ion-icon :icon="sport.icon" aria-hidden="true" /> {{ sport.name }}
                 </button>
               </div>
-            </div>
-            <div class="container sport-preview" aria-live="polite">
-              <div>
-                <span class="preview-kicker">ILLUSTRATIVE GAME PREVIEW</span
-                ><strong>{{ activeGame.title }}</strong
-                ><span
-                  >{{ activeGame.place }} ? {{ activeGame.time }} ?
-                  {{ activeGame.spots }}</span
-                >
-              </div>
-              <router-link to="/register?redirect=/discover" class="text-link"
-                >Explore {{ activeGame.name.toLowerCase() }}
-                <ion-icon :icon="arrowForwardOutline" aria-hidden="true"
-              /></router-link>
-            </div>
-          </section>
 
-          <section
-            id="why-gora"
-            class="benefits container section-space"
-            aria-labelledby="benefits-heading"
-          >
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">BUILT FOR THE WAY YOU PLAY</p>
-                <h2 id="benefits-heading">
-                  Your next game.<br />Your new favorite people.
-                </h2>
-              </div>
-              <p>You bring the energy.<br />GORA helps you find the rest.</p>
-            </div>
-            <div class="benefit-grid">
-              <article class="benefit-card featured-benefit">
-                <span class="feature-icon"
-                  ><ion-icon :icon="navigateOutline" aria-hidden="true"
-                /></span>
-                <h3>A game closer than you think.</h3>
-                <p>
-                  Find games by sport and distance. See the time, place, and
-                  open spots before you make a plan.
-                </p>
-                <div class="mini-map" aria-hidden="true">
-                  <span class="map-street street-one" /><span
-                    class="map-street street-two"
-                  /><span class="map-street street-three" /><span
-                    class="map-park"
-                  /><span class="map-ring" /><span class="map-pin"
-                    ><ion-icon :icon="basketballOutline" /></span
-                  ><span class="map-dot dot-one" /><span
-                    class="map-dot dot-two"
-                  /><span class="map-you">You</span
-                  ><span class="map-label">Your next game could be nearby</span>
-                </div>
-                <router-link to="/register" class="card-link"
-                  >Find your game
-                  <ion-icon :icon="arrowForwardOutline" aria-hidden="true"
-                /></router-link>
-              </article>
-              <article class="benefit-card">
-                <span class="feature-icon"
-                  ><ion-icon :icon="peopleOutline" aria-hidden="true"
-                /></span>
-                <h3>Find your kind of team.</h3>
-                <p>
-                  Meet players who share your sport. Join a club, build
-                  connections, and turn a one-off game into a regular thing.
-                </p>
-                <div class="mini-club" aria-hidden="true">
-                  <span class="club-mark"
-                    ><ion-icon :icon="basketballOutline" /></span
-                  ><strong>Weekend Court Crew</strong
-                  ><span>Basketball · Good vibes, good games</span>
-                  <div class="club-chips">
-                    <span>Community</span><span>All skill levels</span>
+              <div v-reveal="100" class="row g-4 align-items-stretch">
+                <div class="col-lg-8">
+                  <div class="lp-sport-photo">
+                    <Transition name="lp-fade" mode="out-in">
+                      <img
+                        :key="activeGame.image"
+                        :src="activeGame.image"
+                        :alt="`${activeGame.name} players in action`"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </Transition>
+                    <span class="badge rounded-pill text-bg-dark lp-photo-badge">
+                      <ion-icon :icon="activeGame.icon" aria-hidden="true" /> {{ activeGame.name }}
+                    </span>
                   </div>
                 </div>
-                <router-link to="/register" class="card-link"
-                  >Meet your people
-                  <ion-icon :icon="arrowForwardOutline" aria-hidden="true"
-                /></router-link>
-              </article>
-              <article class="benefit-card">
-                <span class="feature-icon"
-                  ><ion-icon :icon="calendarOutline" aria-hidden="true"
-                /></span>
-                <h3>Make “someday” game day.</h3>
-                <p>
-                  Have a court and a time in mind? Host a game, set your player
-                  count, and bring everyone together in one place.
-                </p>
-                <div class="mini-plan" aria-hidden="true">
-                  <div class="plan-date">
-                    <small>SAT</small><strong>24</strong>
-                  </div>
-                  <div>
-                    <strong>Your weekend, sorted.</strong
-                    ><span>Pick a sport. Set a time. Let’s play.</span
-                    ><span class="plan-status"
-                      ><ion-icon :icon="checkmarkCircleOutline" /> Game plan:
-                      made</span
-                    >
+                <div class="col-lg-4">
+                  <div class="card h-100 lp-card" aria-live="polite">
+                    <div class="card-body d-flex flex-column p-4">
+                      <span class="lp-eyebrow mb-3">Illustrative game preview</span>
+                      <Transition name="lp-slide" mode="out-in">
+                        <div :key="activeGame.name">
+                          <h3 class="h4 fw-bold mb-4">{{ activeGame.title }}</h3>
+                          <ul class="list-unstyled lp-details mb-4">
+                            <li><ion-icon :icon="locationOutline" aria-hidden="true" /> {{ activeGame.place }}</li>
+                            <li><ion-icon :icon="timeOutline" aria-hidden="true" /> {{ activeGame.time }}</li>
+                            <li><ion-icon :icon="peopleOutline" aria-hidden="true" /> {{ activeGame.spots }}</li>
+                          </ul>
+                        </div>
+                      </Transition>
+                      <router-link to="/register?redirect=/discover" class="btn btn-primary rounded-pill mt-auto">
+                        Explore {{ activeGame.name.toLowerCase() }}
+                        <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
+                      </router-link>
+                    </div>
                   </div>
                 </div>
-                <router-link to="/register" class="card-link"
-                  >Start something good
-                  <ion-icon :icon="arrowForwardOutline" aria-hidden="true"
-                /></router-link>
-              </article>
+              </div>
             </div>
-            <p class="illustration-note">
-              Illustrative previews. Actual games and clubs depend on your
-              community.
-            </p>
           </section>
 
-          <section
-            id="how-it-works"
-            class="how-section"
-            aria-labelledby="how-heading"
-          >
-            <div class="container section-space">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">FROM “I’M IN” TO GAME ON</p>
-                  <h2 id="how-heading">Less planning.<br />More showing up.</h2>
+          <!-- ───────────── Features ───────────── -->
+          <section id="why-gora" class="lp-section lp-section--alt" aria-labelledby="features-heading">
+            <div class="container">
+              <div v-reveal class="text-center mx-auto mb-5 lp-narrow">
+                <p class="lp-eyebrow">Built for the way you play</p>
+                <h2 id="features-heading" class="lp-heading">Everything your game day needs.</h2>
+                <p class="text-body-secondary mb-0">You bring the energy. GORA helps you find the rest.</p>
+              </div>
+              <div class="row g-4">
+                <div v-for="(feature, index) in features" :key="feature.title" class="col-md-6 col-lg-4">
+                  <article v-reveal="index * 90" class="card h-100 lp-card lp-feature">
+                    <div class="card-body p-4">
+                      <span class="lp-feature__icon"><ion-icon :icon="feature.icon" aria-hidden="true" /></span>
+                      <h3 class="h5 fw-bold mt-4 mb-2">{{ feature.title }}</h3>
+                      <p class="text-body-secondary mb-0">{{ feature.description }}</p>
+                    </div>
+                  </article>
                 </div>
-                <router-link to="/register" class="text-link"
-                  >Let’s get you playing
-                  <ion-icon :icon="arrowUpRight" aria-hidden="true"
-                /></router-link>
               </div>
-              <div class="steps">
-                <article v-for="(step, index) in steps" :key="step.title">
-                  <div class="step-top">
-                    <span class="step-number">0{{ index + 1 }}</span
-                    ><span class="step-line" />
+            </div>
+          </section>
+
+          <!-- ───────────── How it works ───────────── -->
+          <section id="how-it-works" class="lp-section" aria-labelledby="how-heading">
+            <div class="container">
+              <div class="row align-items-end g-4 mb-5">
+                <div v-reveal class="col-lg-8">
+                  <p class="lp-eyebrow">From "I'm in" to game on</p>
+                  <h2 id="how-heading" class="lp-heading">Less planning.<br />More showing up.</h2>
+                </div>
+                <div v-reveal="120" class="col-lg-4 text-lg-end">
+                  <router-link to="/register" class="btn btn-outline-light rounded-pill px-4">
+                    Let's get you playing <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
+                  </router-link>
+                </div>
+              </div>
+              <ol v-reveal class="row g-4 list-unstyled mb-0 lp-steps">
+                <li v-for="(step, index) in steps" :key="step.title" class="col-md-4 lp-step" :style="{ '--step': index }">
+                  <div class="d-flex align-items-center gap-3 mb-4">
+                    <span class="lp-step__num">0{{ index + 1 }}</span>
+                    <span class="lp-step__line" aria-hidden="true" />
                   </div>
-                  <h3>{{ step.title }}</h3>
-                  <p>{{ step.description }}</p>
-                </article>
+                  <span class="lp-step__icon"><ion-icon :icon="step.icon" aria-hidden="true" /></span>
+                  <h3 class="h5 fw-bold mt-3">{{ step.title }}</h3>
+                  <p class="text-body-secondary mb-0">{{ step.description }}</p>
+                </li>
+              </ol>
+            </div>
+          </section>
+
+          <!-- ───────────── Community ───────────── -->
+          <section id="communities" class="lp-section lp-section--alt" aria-labelledby="community-heading">
+            <div class="container">
+              <div class="row align-items-center g-5">
+                <div v-reveal class="col-lg-6">
+                  <div class="lp-court">
+                    <picture>
+                      <source media="(max-width: 760px)" srcset="/images/gora-court-small.webp" />
+                      <img src="/images/gora-court.webp" alt="An outdoor court ready for a game" loading="lazy" decoding="async" />
+                    </picture>
+                    <span class="lp-court__word" aria-hidden="true">Let's<br />play.</span>
+                  </div>
+                </div>
+                <div v-reveal="140" class="col-lg-6">
+                  <p class="lp-eyebrow">You don't need a whole squad</p>
+                  <h2 id="community-heading" class="lp-heading">
+                    Show up for the sport.<br /><span class="lp-gradient-text">Stay for the people.</span>
+                  </h2>
+                  <p class="text-body-secondary">
+                    Getting back into a sport? Just moved to a new city? Or simply need a few more players for
+                    Saturday?
+                  </p>
+                  <p class="text-body-secondary mb-4">
+                    There's a place for you here. Build a profile around what you love, find your community, and make
+                    playing part of your week.
+                  </p>
+                  <ul class="list-unstyled d-grid gap-3 mb-4">
+                    <li v-for="point in communityPoints" :key="point" class="d-flex align-items-start gap-2">
+                      <ion-icon :icon="checkmarkCircle" class="text-primary fs-5 flex-shrink-0" aria-hidden="true" />
+                      <span>{{ point }}</span>
+                    </li>
+                  </ul>
+                  <router-link to="/register" class="btn btn-primary btn-lg rounded-pill px-4 lp-btn-glow">
+                    Find your people <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
+                  </router-link>
+                </div>
               </div>
             </div>
           </section>
 
-          <section
-            id="communities"
-            class="community container section-space"
-            aria-labelledby="community-heading"
-          >
-            <div class="community-art" aria-hidden="true">
-              <div class="court-lines">
-                <span class="court-center" /><span
-                  class="court-key court-key-top"
-                /><span class="court-key court-key-bottom" />
+          <!-- ───────────── FAQ ───────────── -->
+          <section id="questions" class="lp-section" aria-labelledby="faq-heading">
+            <div class="container">
+              <div class="row g-5">
+                <div v-reveal class="col-lg-4">
+                  <p class="lp-eyebrow">A few things to know</p>
+                  <h2 id="faq-heading" class="lp-heading">Good questions.<br />Straight answers.</h2>
+                  <p class="text-body-secondary">Your first game starts with feeling at home.</p>
+                </div>
+                <div v-reveal="120" class="col-lg-8">
+                  <div class="accordion lp-accordion">
+                    <div v-for="(question, index) in questions" :key="question.title" class="accordion-item">
+                      <h3 class="accordion-header">
+                        <button
+                          :id="`faq-q-${index}`"
+                          type="button"
+                          class="accordion-button"
+                          :class="{ collapsed: openFaq !== index }"
+                          :aria-expanded="openFaq === index"
+                          :aria-controls="`faq-a-${index}`"
+                          @click="openFaq = openFaq === index ? null : index"
+                        >
+                          {{ question.title }}
+                        </button>
+                      </h3>
+                      <div
+                        :id="`faq-a-${index}`"
+                        class="lp-collapse"
+                        :class="{ 'is-open': openFaq === index }"
+                        role="region"
+                        :aria-labelledby="`faq-q-${index}`"
+                      >
+                        <div class="lp-collapse__inner">
+                          <div class="accordion-body text-body-secondary">{{ question.answer }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span class="court-word">LET’S<br />PLAY.</span
-              ><span class="court-caption"
-                ><ion-icon :icon="peopleOutline" /> COMMUNITY FIRST.<br />GAME
-                ON.</span
-              >
-            </div>
-            <div class="community-copy">
-              <p class="eyebrow">YOU DON’T NEED A WHOLE SQUAD</p>
-              <h2 id="community-heading">
-                Show up for the sport.<br /><span>Stay for the people.</span>
-              </h2>
-              <p>
-                Getting back into a sport? Just moved to a new city? Or simply
-                need a few more players for Saturday?
-              </p>
-              <p>
-                There’s a place for you here. Build a profile around what you
-                love, find your community, and make playing part of your week.
-              </p>
-              <router-link to="/register" class="button"
-                >Find your people
-                <ion-icon :icon="arrowForwardOutline" aria-hidden="true"
-              /></router-link>
             </div>
           </section>
 
-          <section
-            id="questions"
-            class="faq container section-space"
-            aria-labelledby="faq-heading"
-          >
-            <div class="faq-intro">
-              <p class="eyebrow">A FEW THINGS TO KNOW</p>
-              <h2 id="faq-heading">Good questions.<br />Straight answers.</h2>
-              <p>Your first game starts with feeling at home.</p>
+          <!-- ───────────── Final CTA ───────────── -->
+          <section class="lp-section pt-0" aria-labelledby="cta-heading">
+            <div class="container">
+              <div v-reveal class="lp-cta text-center">
+                <p class="lp-eyebrow text-dark opacity-75">Your next "see you there" starts here</p>
+                <h2 id="cta-heading" class="lp-display lp-cta__title mb-3">Your sport. Your people. Let's go.</h2>
+                <p class="mb-4 lp-cta__copy">Create your account. Find your community. Play more.</p>
+                <router-link to="/register" class="btn btn-dark btn-lg rounded-pill px-5">
+                  Get in the game <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
+                </router-link>
+              </div>
             </div>
-            <div class="faq-list">
-              <details v-for="question in questions" :key="question.title">
-                <summary>
-                  {{ question.title
-                  }}<span class="faq-plus" aria-hidden="true">+</span>
-                </summary>
-                <p>{{ question.answer }}</p>
-              </details>
-            </div>
-          </section>
-
-          <section class="final-cta container" aria-labelledby="cta-heading">
-            <div class="cta-court" aria-hidden="true" />
-            <p class="eyebrow">YOUR NEXT “SEE YOU THERE” STARTS HERE</p>
-            <h2 id="cta-heading">
-              Your sport.<br />Your people. <span>Let’s go.</span>
-            </h2>
-            <p>Turn your favorite sport into your next plan.</p>
-            <router-link to="/register" class="button button-dark"
-              >Get in the game
-              <ion-icon :icon="arrowUpRight" aria-hidden="true" /></router-link
-            ><span class="cta-note"
-              >Create your account. Find your community. Play more.</span
-            >
           </section>
         </main>
 
-        <footer class="container site-footer">
-          <div>
-            <router-link to="/" class="wordmark" aria-label="GORA home">{{
-              GORA_NAME
-            }}</router-link>
-            <p>{{ GORA_TAGLINE }}</p>
+        <!-- ───────────── Footer ───────────── -->
+        <footer class="lp-footer">
+          <div class="container">
+            <div class="row g-4 align-items-center">
+              <div class="col-md-6">
+                <router-link to="/" class="lp-brand text-body" aria-label="GORA home">
+                  {{ GORA_NAME }}<span class="text-primary">/</span>
+                </router-link>
+                <p class="text-body-secondary small mt-2 mb-0">{{ GORA_TAGLINE }}</p>
+              </div>
+              <div class="col-md-6">
+                <ul class="nav justify-content-md-end gap-1">
+                  <li class="nav-item">
+                    <button type="button" class="nav-link lp-nav-link" @click="scrollTo('how-it-works')">How it works</button>
+                  </li>
+                  <li class="nav-item"><router-link to="/login" class="nav-link lp-nav-link">Log in</router-link></li>
+                  <li class="nav-item"><router-link to="/register" class="nav-link text-primary fw-semibold">Join GORA</router-link></li>
+                </ul>
+              </div>
+            </div>
+            <hr class="my-4" />
+            <p class="small text-body-secondary mb-0">© {{ year }} GORA. Made for the love of the game.</p>
           </div>
-          <div class="footer-links">
-            <button @click="scrollTo('how-it-works')">How it works</button
-            ><router-link to="/login">Log in</router-link
-            ><router-link to="/register"
-              >Join GORA <ion-icon :icon="arrowUpRight" aria-hidden="true"
-            /></router-link>
-          </div>
-          <span class="copyright"
-            >© {{ new Date().getFullYear() }} GORA. Made for the love of the
-            game.</span
-          >
         </footer>
       </div>
     </ion-content>
@@ -345,1819 +400,1063 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, type Directive } from 'vue';
 import { RouterLink } from 'vue-router';
 import { IonContent, IonIcon, IonPage } from '@ionic/vue';
-import { GORA_NAME, GORA_TAGLINE } from '@/constants/brand';
 import {
   arrowForwardOutline,
-  arrowUpOutline,
   basketballOutline,
+  bicycleOutline,
   calendarOutline,
-  checkmarkCircleOutline,
+  chatbubblesOutline,
+  checkmarkCircle,
+  closeOutline,
   footballOutline,
   gameControllerOutline,
+  locationOutline,
+  menuOutline,
   navigateOutline,
   peopleOutline,
+  personAddOutline,
+  playCircleOutline,
+  searchOutline,
   tennisballOutline,
+  timeOutline,
+  trophyOutline,
   walkOutline,
+  waterOutline,
 } from 'ionicons/icons';
+import { GORA_NAME, GORA_TAGLINE } from '@/constants/brand';
+import '@/theme/landing-bootstrap.scss';
 
-// Rotate an existing icon instead of adding another icon library.
-const arrowUpRight = arrowUpOutline;
+const year = new Date().getFullYear();
+
+const navLinks = [
+  { id: 'find-a-game', label: 'Find a game' },
+  { id: 'why-gora', label: 'Features' },
+  { id: 'how-it-works', label: 'How it works' },
+  { id: 'communities', label: 'Communities' },
+  { id: 'questions', label: 'FAQ' },
+];
+
+const heroChips = [
+  { icon: navigateOutline, label: 'Games near you' },
+  { icon: peopleOutline, label: 'Clubs' },
+  { icon: playCircleOutline, label: 'Reels' },
+];
+
 const sports = [
-  {
-    name: 'Esports',
-    icon: gameControllerOutline,
-    title: 'Weekend squad matches',
-    place: 'Online or your local gaming cafe',
-    time: 'Saturday · 7:00 PM',
-    spots: '2 teammates needed',
-  },
-  {
-    name: 'Basketball',
-    icon: basketballOutline,
-    title: 'Saturday pickup crew',
-    place: 'Neighborhood court',
-    time: 'Saturday · 4:00 PM',
-    spots: '2 spots to fill',
-  },
-  {
-    name: 'Badminton',
-    icon: tennisballOutline,
-    title: 'A little friendly doubles',
-    place: 'Community sports hall',
-    time: 'Sunday · 9:00 AM',
-    spots: '1 spot to fill',
-  },
-  {
-    name: 'Volleyball',
-    icon: basketballOutline,
-    title: 'Weekend volleyball',
-    place: 'Community court',
-    time: 'Saturday · 3:00 PM',
-    spots: '3 spots to fill',
-  },
-  {
-    name: 'Football',
-    icon: footballOutline,
-    title: 'Sunday five-a-side',
-    place: 'Neighborhood turf',
-    time: 'Sunday · 4:00 PM',
-    spots: '2 spots to fill',
-  },
-  {
-    name: 'Running',
-    icon: walkOutline,
-    title: 'Easy morning miles',
-    place: 'Your local park',
-    time: 'Sunday · 6:00 AM',
-    spots: 'Room for your pace',
-  },
+  { name: 'Basketball', icon: basketballOutline, image: '/images/basketball-action.png', title: 'Saturday pickup crew', place: 'Neighborhood court', time: 'Saturday · 4:00 PM', spots: '2 spots to fill' },
+  { name: 'Volleyball', icon: basketballOutline, image: '/images/volleyball-action.png', title: 'Weekend volleyball', place: 'Community court', time: 'Saturday · 3:00 PM', spots: '3 spots to fill' },
+  { name: 'Badminton', icon: tennisballOutline, image: '/images/badminton-action.png', title: 'A little friendly doubles', place: 'Community sports hall', time: 'Sunday · 9:00 AM', spots: '1 spot to fill' },
+  { name: 'Football', icon: footballOutline, image: '/images/football-action.png', title: 'Sunday five-a-side', place: 'Neighborhood turf', time: 'Sunday · 4:00 PM', spots: '2 spots to fill' },
+  { name: 'Tennis', icon: tennisballOutline, image: '/images/tennis-action.png', title: 'Morning rally session', place: 'City tennis courts', time: 'Saturday · 7:00 AM', spots: '1 partner needed' },
+  { name: 'Pickleball', icon: tennisballOutline, image: '/images/pickleball-action.png', title: 'Open play pickleball', place: 'Covered courts', time: 'Friday · 6:00 PM', spots: '3 spots to fill' },
+  { name: 'Running', icon: walkOutline, image: '/images/running-action.png', title: 'Easy morning miles', place: 'Your local park', time: 'Sunday · 6:00 AM', spots: 'Room for your pace' },
+  { name: 'Cycling', icon: bicycleOutline, image: '/images/cycling-action.png', title: 'Sunday social ride', place: 'Meet at the bike lane', time: 'Sunday · 5:30 AM', spots: 'All paces welcome' },
+  { name: 'Swimming', icon: waterOutline, image: '/images/swimming-action.png', title: 'Lap swim buddies', place: 'Community pool', time: 'Wednesday · 6:00 PM', spots: '2 lanes open' },
+  { name: 'Esports', icon: gameControllerOutline, image: '/images/esports-action.png', title: 'Weekend squad matches', place: 'Online or your local gaming cafe', time: 'Saturday · 7:00 PM', spots: '2 teammates needed' },
 ];
 const selectedSport = ref('Basketball');
-const activeGame = computed(
-  () =>
-    sports.find((sport) => sport.name === selectedSport.value) ?? sports[0]!,
-);
+const activeGame = computed(() => sports.find((sport) => sport.name === selectedSport.value) ?? sports[0]!);
+
+const features = [
+  { icon: navigateOutline, title: 'A game closer than you think.', description: 'Find games by sport and distance. See the time, place, and open spots before you make a plan.' },
+  { icon: peopleOutline, title: 'Find your kind of team.', description: 'Join a club, meet players who share your sport, and turn a one-off game into a regular thing.' },
+  { icon: calendarOutline, title: 'Make "someday" game day.', description: 'Host a game, set your player count, and bring everyone together in one place.' },
+  { icon: chatbubblesOutline, title: 'Stay connected.', description: 'Club chats and direct messages keep your crew talking between games.' },
+  { icon: playCircleOutline, title: 'Share the highlights.', description: 'Post photos and reels from game day so your community can relive the best plays.' },
+  { icon: trophyOutline, title: 'Earn your stripes.', description: 'Collect badges as you show up, play more, and grow your sports community.' },
+];
+
 const steps = [
-  {
-    title: 'Make it yours.',
-    description:
-      'Create your account and add the sports you love. First-timer, weekend warrior, or seasoned player — start where you are.',
-  },
-  {
-    title: 'Find your next game.',
-    description:
-      'Explore games near you, check the details, and send a join request. Or host your own and invite people along.',
-  },
-  {
-    title: 'Show up. Connect. Repeat.',
-    description:
-      'Get out there, meet new people, and keep the connection going through your clubs and community.',
-  },
+  { icon: personAddOutline, title: 'Make it yours.', description: 'Create your account and add the sports you love. First-timer or seasoned player — start where you are.' },
+  { icon: searchOutline, title: 'Find your next game.', description: 'Explore games near you, check the details, and send a join request. Or host your own and invite people along.' },
+  { icon: peopleOutline, title: 'Show up. Connect. Repeat.', description: 'Get out there, meet new people, and keep the connection going through your clubs and community.' },
 ];
+
+const communityPoints = [
+  'Join public clubs or request to join private ones.',
+  'Host games for your club and fill open spots fast.',
+  'Meet players at every skill level.',
+];
+
 const questions = [
-  {
-    title: 'Do I need to be good at my sport?',
-    answer:
-      'You don’t need to be a pro to get started. Add your skill level to your profile and read game details to find a group that fits. Everyone starts somewhere.',
-  },
-  {
-    title: 'Can I join without knowing anyone?',
-    answer:
-      'Absolutely. GORA helps you meet players through games and clubs. Find a game you like, send a join request, and let the host bring the group together.',
-  },
-  {
-    title: 'What if there are no games near me yet?',
-    answer:
-      'You can be the one who gets things going. Host a game with a location, time, and player count, or create a club and invite friends to build your local community.',
-  },
-  {
-    title: 'Can I organize games for my club?',
-    answer:
-      'Yes. Active club members can host club games. Clubs also have their own chat, so your community has a place to connect between games.',
-  },
-  {
-    title: 'Do I need to download an app?',
-    answer:
-      'You can get started right here in your browser, on your phone, tablet, or computer. Create an account and you’re ready to explore.',
-  },
+  { title: 'Do I need to be good at my sport?', answer: "You don't need to be a pro to get started. Add your skill level to your profile and read game details to find a group that fits. Everyone starts somewhere." },
+  { title: 'Can I join without knowing anyone?', answer: 'Absolutely. GORA helps you meet players through games and clubs. Find a game you like, send a join request, and let the host bring the group together.' },
+  { title: 'What if there are no games near me yet?', answer: 'You can be the one who gets things going. Host a game with a location, time, and player count, or create a club and invite friends to build your local community.' },
+  { title: 'Can I organize games for my club?', answer: 'Yes. Active club members can host club games. Clubs also have their own chat, so your community has a place to connect between games.' },
+  { title: 'Do I need to download an app?', answer: "You can get started right here in your browser, on your phone, tablet, or computer. Create an account and you're ready to explore." },
 ];
+const openFaq = ref<number | null>(0);
+
+/* ───────── Navigation ───────── */
+const navOpen = ref(false);
+const scrolled = ref(false);
+
+function onScroll(event: CustomEvent<{ scrollTop: number }>): void {
+  scrolled.value = event.detail.scrollTop > 24;
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+}
 
 function scrollTo(id: string): void {
+  navOpen.value = false;
   const target = document.getElementById(id);
-  target?.scrollIntoView({
-    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? 'instant'
-      : 'smooth',
-    block: 'start',
-  });
-  if (target) {
-    target.setAttribute('tabindex', '-1');
-    target.focus({ preventScroll: true });
-  }
+  if (!target) return;
+  target.scrollIntoView({ behavior: prefersReducedMotion() ? 'instant' : 'smooth', block: 'start' });
+  target.setAttribute('tabindex', '-1');
+  target.focus({ preventScroll: true });
 }
+
+/* ───────── Scroll-reveal animation ───────── */
+// Content is only hidden once `motionReady` is set, so it stays visible when
+// JavaScript, IntersectionObserver, or motion is unavailable.
+const motionReady = ref(false);
+let observer: IntersectionObserver | null = null;
+
+function getObserver(): IntersectionObserver | null {
+  if (observer || typeof IntersectionObserver === 'undefined' || prefersReducedMotion()) return observer;
+  observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer?.unobserve(entry.target);
+        }
+      }
+    },
+    { threshold: 0.15, rootMargin: '0px 0px -40px 0px' },
+  );
+  return observer;
+}
+
+const vReveal: Directive<HTMLElement, number | undefined> = {
+  mounted(el, binding) {
+    el.classList.add('lp-reveal');
+    if (binding.value) el.style.setProperty('--reveal-delay', `${binding.value}ms`);
+    const io = getObserver();
+    if (io) io.observe(el);
+    else el.classList.add('is-visible');
+  },
+  unmounted(el) {
+    observer?.unobserve(el);
+  },
+};
+
+onMounted(() => {
+  motionReady.value = !!getObserver();
+});
+
+onBeforeUnmount(() => {
+  observer?.disconnect();
+  observer = null;
+});
 </script>
 
-<style scoped>
-.landing-content {
-  --background: #101113;
+<style scoped lang="scss">
+$accent: #ff6028;
+$accent-2: #ffb347;
+$ink: #101113;
+$ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+.lp-content {
+  --background: #{$ink};
   --padding-start: 0;
   --padding-end: 0;
 }
-.landing {
-  /* The photographic landing page always uses dark surfaces, including when
-     the signed-in app's saved display preference is light. */
-  color-scheme: dark;
-  --ion-background-color: #101113;
-  --ion-background-color-rgb: 16, 17, 19;
-  --ion-text-color: #f5f6f8;
-  --ion-text-color-rgb: 245, 246, 248;
-  --ion-toolbar-background: #101113;
-  --ion-toolbar-color: #f5f6f8;
-  --gora-surface: #1c1d21;
-  --gora-surface-raised: #242529;
-  --gora-surface-hover: #2c2d32;
-  --gora-muted: #aab3bf;
-  --gora-line: rgba(245, 246, 248, 0.12);
-  --gora-line-strong: rgba(245, 246, 248, 0.26);
-  --accent: var(--ion-color-primary);
-  --ink: var(--ion-background-color);
-  --white: var(--ion-text-color);
-  --muted: var(--gora-muted);
-  color: var(--white);
-  font-family: var(--ion-font-family);
+
+.lp {
+  min-height: 100%;
+  overflow-x: hidden;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-family: var(--bs-body-font-family);
+  line-height: var(--bs-body-line-height);
 }
-.landing *,
-.landing *::before,
-.landing *::after {
-  box-sizing: border-box;
+
+.lp section {
+  scroll-margin-top: 80px;
 }
-.container {
-  width: min(1180px, calc(100% - 96px));
-  margin-inline: auto;
-}
-.landing a {
-  text-decoration: none;
-}
-.landing button {
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.landing a,
-.landing button,
-.landing summary {
-  -webkit-tap-highlight-color: transparent;
-}
-.landing :is(a, button, summary):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 6px;
-}
-.landing section {
-  scroll-margin-top: 106px;
-}
-.landing section:focus,
-.landing main:focus {
+
+.lp :is(section, main):focus {
   outline: none;
 }
-.skip-link {
+
+.lp-skip {
   position: absolute;
-  top: -70px;
-  left: 20px;
-  z-index: 50;
-  padding: 14px 20px;
-  background: var(--accent);
-  color: var(--ink);
-  border-radius: 8px;
+  top: -80px;
+  left: 16px;
+  z-index: 100;
+
+  &:focus {
+    top: 16px;
+  }
 }
-.skip-link:focus {
-  top: 16px;
+
+/* ───────── Typography helpers ───────── */
+.lp-display {
+  font-family: 'Gora Condensed', var(--bs-body-font-family);
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(3rem, 7vw, 5.6rem);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
 }
-.site-header {
+
+.lp-heading {
+  font-weight: 800;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin-bottom: 1rem;
+}
+
+.lp-eyebrow {
+  margin-bottom: 0.9rem;
+  color: $accent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.lp-gradient-text {
+  background: linear-gradient(90deg, $accent, $accent-2, $accent);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: lp-shine 5s linear infinite;
+}
+
+.lp-narrow {
+  max-width: 640px;
+}
+
+/* ───────── Navbar ───────── */
+.lp-nav {
   position: sticky;
   top: 0;
-  z-index: 20;
-  background: var(--ion-toolbar-background);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  z-index: 50;
+  padding-block: 1.1rem;
+  padding-top: calc(1.1rem + env(safe-area-inset-top, 0px));
+  background: transparent;
+  transition: background 0.3s, padding 0.3s, box-shadow 0.3s, backdrop-filter 0.3s;
+
+  &--scrolled {
+    padding-block: 0.6rem;
+    padding-top: calc(0.6rem + env(safe-area-inset-top, 0px));
+    background: rgba(16, 17, 19, 0.82);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
 }
-.header-inner {
+
+.lp-brand {
+  font-family: 'Gora Condensed', var(--bs-body-font-family);
+  font-size: 2.1rem;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--bs-body-color);
+}
+
+.lp-toggler {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--bs-body-color);
+  font-size: 1.4rem;
+}
+
+.lp-nav-link {
+  border: 0;
+  background: none;
+  color: var(--bs-secondary-color);
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: color 0.2s;
+
+  &:hover,
+  &:focus-visible {
+    color: $accent;
+  }
+}
+
+.navbar-collapse.show {
+  animation: lp-drop 0.25s $ease-out;
+}
+
+.lp-btn-glow {
+  box-shadow: 0 10px 30px -10px rgba($accent, 0.7);
+  transition: transform 0.2s $ease-out, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px -10px rgba($accent, 0.85);
+  }
+}
+
+.btn-outline-light:hover {
+  transform: translateY(-2px);
+}
+
+.btn {
+  transition: transform 0.2s $ease-out, background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+/* ───────── Hero ───────── */
+.lp-hero {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 88px;
-  gap: 28px;
+  min-height: calc(100vh - 40px);
+  margin-top: -84px;
+  padding: 140px 0 110px;
+  overflow: hidden;
+  isolation: isolate;
+
+  &__bg img {
+    position: absolute;
+    inset: 0;
+    z-index: -3;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: lp-zoom 18s ease-out both;
+  }
+
+  &__shade {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background:
+      linear-gradient(90deg, rgba($ink, 0.96) 0%, rgba($ink, 0.82) 45%, rgba($ink, 0.55) 100%),
+      linear-gradient(0deg, $ink 0%, transparent 35%);
+  }
+
+  &__lead {
+    max-width: 520px;
+  }
 }
-.wordmark {
-  color: var(--white);
-  font-size: 41px;
-  font-weight: 900;
-  letter-spacing: -1.8px;
+
+.lp-blob {
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  pointer-events: none;
+
+  &--one {
+    top: 10%;
+    right: -6%;
+    width: 420px;
+    height: 420px;
+    background: $accent;
+    animation: lp-blob 14s ease-in-out infinite alternate;
+  }
+
+  &--two {
+    bottom: -10%;
+    left: 30%;
+    width: 340px;
+    height: 340px;
+    background: #7a2cff;
+    opacity: 0.25;
+    animation: lp-blob 18s ease-in-out infinite alternate-reverse;
+  }
+}
+
+.lp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba($accent, 0.4);
+  background: rgba($accent, 0.12);
+  color: #ffd2c0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lp-live-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $accent;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: $accent;
+    animation: lp-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
+
+.lp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--bs-secondary-color);
+  font-size: 0.85rem;
+
+  ion-icon {
+    color: $accent;
+  }
+}
+
+/* Hero visual (illustrative UI cards) */
+.lp-stage {
+  position: relative;
+  min-height: 400px;
+  max-width: 520px;
+  margin-inline: auto;
+}
+
+.lp-glass {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(28, 29, 33, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+}
+
+.lp-game-card {
+  position: absolute;
+  top: 70px;
+  left: 6%;
+  width: 82%;
+}
+
+.lp-club-card {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 62%;
+}
+
+.lp-toast-card {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  width: 64%;
+}
+
+.lp-sport-icon,
+.lp-feature__icon,
+.lp-step__icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, $accent, $accent-2);
+  color: $ink;
+  font-size: 1.5rem;
+}
+
+.lp-club-logo {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 10px;
+  background: #000;
+  color: $accent;
+  font-family: 'Gora Condensed', sans-serif;
+  font-size: 0.85rem;
   font-style: italic;
+  font-weight: 800;
+}
+
+.lp-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+
+  span {
+    display: block;
+    width: 80%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, $accent, $accent-2);
+    transform-origin: left;
+    animation: lp-grow 1.6s 0.8s $ease-out both;
+  }
+}
+
+.lp-avatars {
+  display: flex;
+
+  span {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    margin-left: -8px;
+    border: 2px solid #1c1d21;
+    border-radius: 50%;
+    background: #3a3d45;
+    font-size: 0.65rem;
+    font-weight: 700;
+
+    &:first-child {
+      margin-left: 0;
+    }
+
+    &:nth-child(2) { background: #2b5cff; }
+    &:nth-child(3) { background: #13a26b; }
+    &:nth-child(4) { background: #b8329a; }
+  }
+
+  &__more {
+    background: rgba($accent, 0.25) !important;
+    color: #ffd2c0;
+  }
+}
+
+.lp-illustrative {
+  opacity: 0.7;
+}
+
+.lp-scroll-cue {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  width: 28px;
+  height: 46px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  background: none;
+  transform: translateX(-50%);
+
+  span {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 4px;
+    height: 8px;
+    margin-left: -2px;
+    border-radius: 2px;
+    background: #fff;
+    animation: lp-scroll 1.8s ease-in-out infinite;
+  }
+}
+
+/* ───────── Marquee ───────── */
+.lp-marquee {
+  overflow: hidden;
+  padding-block: 1.1rem;
+  border-block: 1px solid var(--bs-border-color);
+  background: linear-gradient(90deg, $accent, #ff8640);
+  color: $ink;
+  transform: rotate(-1.2deg) scale(1.02);
+
+  &__track {
+    display: flex;
+    width: max-content;
+    animation: lp-marquee 32s linear infinite;
+  }
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-inline: 1.6rem;
+    font-family: 'Gora Condensed', var(--bs-body-font-family);
+    font-size: 1.6rem;
+    font-style: italic;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+}
+
+/* ───────── Sections ───────── */
+.lp-section {
+  padding-block: clamp(4.5rem, 9vw, 7.5rem);
+
+  &--alt {
+    background:
+      radial-gradient(circle at 15% 0%, rgba($accent, 0.08), transparent 45%),
+      #15161a;
+  }
+}
+
+.lp-card {
+  border: 1px solid var(--bs-border-color);
+  background: #1c1d21;
+  border-radius: var(--bs-border-radius-lg);
+}
+
+/* Sports picker */
+.lp-sport-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.lp-sport-tab {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--bs-border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--bs-secondary-color);
+  font-weight: 600;
+
+  &:hover {
+    border-color: rgba($accent, 0.6);
+    color: var(--bs-body-color);
+  }
+
+  &.active {
+    border-color: $accent;
+    background: $accent;
+    color: $ink;
+    box-shadow: 0 8px 22px -8px rgba($accent, 0.8);
+  }
+}
+
+.lp-sport-photo {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  min-height: 280px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--bs-border-radius-lg);
+  background: #1c1d21;
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s $ease-out;
+  }
+
+  &:hover img {
+    transform: scale(1.05);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba($ink, 0.55), transparent 50%);
+    pointer-events: none;
+  }
+}
+
+.lp-photo-badge {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.lp-details li {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-block: 0.65rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  color: var(--bs-secondary-color);
+
+  ion-icon {
+    color: $accent;
+    font-size: 1.15rem;
+  }
+}
+
+/* Features */
+.lp-feature {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.35s $ease-out, border-color 0.35s, box-shadow 0.35s;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 0% 0%, rgba($accent, 0.18), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.35s;
+  }
+
+  &:hover {
+    transform: translateY(-6px);
+    border-color: rgba($accent, 0.5);
+    box-shadow: 0 24px 50px -24px rgba($accent, 0.5);
+
+    &::before {
+      opacity: 1;
+    }
+
+    .lp-feature__icon {
+      transform: rotate(-8deg) scale(1.08);
+    }
+  }
+
+  .card-body {
+    position: relative;
+  }
+
+  &__icon {
+    transition: transform 0.35s $ease-out;
+  }
+}
+
+/* Steps */
+.lp-step__num {
+  color: $accent;
+  font-family: 'Gora Condensed', var(--bs-body-font-family);
+  font-size: 2.4rem;
+  font-style: italic;
+  font-weight: 800;
   line-height: 1;
 }
 
-.desktop-nav,
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 30px;
-}
-.desktop-nav button,
-.footer-links button {
-  padding: 10px 0;
-  border: 0;
-  background: transparent;
-  color: #bfc6cb;
-  font-size: 13px;
-  font-weight: 500;
-}
-.desktop-nav button:hover,
-.footer-links button:hover,
-.login-link:hover {
-  color: var(--accent);
-}
-.header-actions {
-  gap: 26px;
-}
-.login-link {
-  color: var(--white);
-  font-size: 13px;
-  font-weight: 600;
-}
-.button {
-  display: inline-flex;
-  min-height: 54px;
-  justify-content: center;
-  align-items: center;
-  gap: 25px;
-  padding: 16px 24px;
-  border: 1px solid transparent;
-  border-radius: var(--gora-radius-control);
-  color: var(--ink);
-  background: var(--accent);
-  font-size: 14px;
-  font-weight: 750;
-  transition:
-    background 0.18s,
-    transform 0.18s;
-}
-.button:hover {
-  background: var(--ion-color-primary-tint);
-  transform: translateY(-2px);
-}
-.button ion-icon {
-  width: 19px;
-  height: 19px;
-}
-.button-small {
-  min-height: 43px;
-  padding: 11px 18px;
-  gap: 20px;
-  font-size: 13px;
-}
-.button-small ion-icon,
-.text-link ion-icon,
-.button-dark ion-icon,
-.footer-links ion-icon {
-  transform: rotate(45deg);
-}
-
-.eyebrow {
-  margin: 0 0 22px;
-  color: var(--accent);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 1.8px;
-  line-height: 1.7;
-}
-
-.live-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-h1 {
-  margin: 0;
-  font-size: clamp(44px, 4.65vw, 67px);
-  font-weight: 850;
-  letter-spacing: -2.8px;
-  line-height: 1.07;
-}
-h1 span {
-  color: var(--accent);
-}
-
-.text-button {
-  display: inline-flex;
-  gap: 9px;
-  align-items: center;
-  padding: 10px 0;
-  border: 0;
-  background: none;
-  font-size: 12px !important;
-  font-weight: 650 !important;
-}
-.text-button:hover {
-  color: var(--accent);
-}
-.play-icon {
-  display: grid;
-  place-items: center;
-  width: 27px;
-  height: 27px;
-  border: 1px solid #4b5660;
-  border-radius: 50%;
-}
-.play-icon ion-icon {
-  width: 9px;
-  margin-left: 2px;
-}
-
-.note-line {
-  width: 28px;
-  height: 1px;
-  background: #596773;
-}
-
-.sport-icon {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  background: var(--accent);
-  color: var(--ink);
-  border-radius: 9px;
-  font-size: 23px;
-  flex-shrink: 0;
-}
-
-.open-tag {
-  margin-left: auto;
-  padding: 5px 6px;
-  border-radius: 4px;
-  background: rgba(var(--ion-color-primary-rgb), 0.1);
-  color: var(--accent);
-  font-size: 8px;
-  white-space: nowrap;
-}
-
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 25px;
-  height: 25px;
-  border: 2px solid var(--gora-surface);
-  border-radius: 50%;
-  font-size: 9px;
-  font-weight: 700;
-}
-.avatar + .avatar {
-  margin-left: -6px;
-}
-.avatar-one {
-  background: #cbb9a0;
-  color: #403128;
-}
-.avatar-two {
-  background: #b5c3b2;
-  color: #2c4627;
-}
-.avatar-three {
-  background: #879cac;
-  color: #182b3b;
-}
-
-.sports-section {
-  border-block: 1px solid #22303b;
-}
-.sports-inner {
-  display: flex;
-  align-items: center;
-  gap: 45px;
-  padding-block: 25px;
-}
-.sports-inner > p {
-  margin: 0;
-  color: #86939e;
-  font-size: 8px;
-  letter-spacing: 1.1px;
-  line-height: 1.8;
-  flex-shrink: 0;
-}
-.sports-inner strong {
-  color: #bdc7cc;
-  font-weight: 600;
-}
-.sport-options {
-  display: flex;
+.lp-step__line {
   flex: 1;
-  justify-content: space-between;
-  gap: 10px;
-}
-.sport-options button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 43px;
-  padding: 9px 13px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: none;
-  color: #bcc7ce;
-  font-size: 12px;
-  white-space: nowrap;
-}
-.sport-options ion-icon {
-  font-size: 20px;
-}
-.sport-options button:hover {
-  background: #132331;
-}
-.sport-options button.selected {
-  border-color: var(--gora-accent-line);
-  background: var(--gora-accent-soft);
-  color: var(--accent);
-}
-.section-space {
-  padding-block: 82px;
-}
-.section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 25px;
-  margin-bottom: 36px;
-}
-.section-heading .eyebrow,
-.community .eyebrow,
-.faq .eyebrow {
-  margin-bottom: 14px;
-}
-h2 {
-  margin: 0;
-  font-size: clamp(30px, 3vw, 43px);
-  font-weight: 750;
-  letter-spacing: -1.6px;
-  line-height: 1.15;
-}
-.section-heading > p {
-  margin: 0 0 2px;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.8;
-}
-.benefit-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-}
-.benefit-card {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  padding: 28px 24px 23px;
-  border: 1px solid #25333f;
-  border-radius: var(--gora-radius-card);
-  background: var(--gora-surface);
-}
-.featured-benefit {
-  background: var(--gora-surface);
-  border-color: var(--gora-accent-line);
-}
-.feature-icon {
-  display: grid;
-  place-items: center;
-  width: 37px;
-  height: 37px;
-  margin-bottom: 23px;
-  border: 1px solid #34434b;
-  border-radius: 9px;
-  color: var(--accent);
-  font-size: 21px;
-}
-.benefit-card h3 {
-  max-width: 235px;
-  margin: 0 0 11px;
-  font-size: 22px;
-  font-weight: 650;
-  line-height: 1.25;
-  letter-spacing: -0.7px;
-}
-.benefit-card > p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.8;
-  min-height: 66px;
-}
-.mini-map {
-  position: relative;
-  width: 100%;
-  height: 142px;
-  margin-block: 24px;
-  overflow: hidden;
-  background: var(--gora-surface-raised);
-  border: 1px solid #344442;
-  border-radius: 8px;
-}
-.map-street {
-  position: absolute;
-  background: #303134;
-  border-inline: 1px solid #48494c;
-}
-.street-one {
-  width: 18px;
-  height: 220px;
-  left: 60px;
-  top: -35px;
-  transform: rotate(30deg);
-}
-.street-two {
-  width: 15px;
-  height: 340px;
-  left: 160px;
-  top: -90px;
-  transform: rotate(76deg);
-}
-.street-three {
-  width: 12px;
-  height: 250px;
-  left: 220px;
-  top: -30px;
-  transform: rotate(20deg);
-}
-.map-park {
-  position: absolute;
-  width: 62px;
-  height: 38px;
-  background: #373032;
-  border-radius: 7px;
-  top: 10px;
-  right: 17px;
-  transform: rotate(15deg);
-}
-.map-ring {
-  position: absolute;
-  width: 115px;
-  height: 115px;
-  left: 50%;
-  top: 42%;
-  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.22);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(var(--ion-color-primary-rgb), 0.025);
-}
-.map-pin {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  left: 54%;
-  top: 18px;
-  width: 35px;
-  height: 35px;
-  background: var(--accent);
-  color: #101113;
-  border: 4px solid #754532;
-  border-radius: 50%;
-  font-size: 20px;
-}
-.map-dot {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-.dot-one {
-  top: 35px;
-  left: 22px;
-}
-.dot-two {
-  right: 23px;
-  bottom: 40px;
-}
-.map-you {
-  position: absolute;
-  top: 71px;
-  left: 37%;
-  color: #d4ddd5;
-  font-size: 9px;
-}
-.map-you::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #b7d3ff;
-  margin-right: 4px;
-}
-.map-label {
-  position: absolute;
-  inset: auto 0 0;
-  padding: 8px;
-  background: #1b1c1f;
-  font-size: 8px;
-  color: #aab3bf;
-  text-align: center;
-}
-.mini-club {
-  display: grid;
-  width: 100%;
-  height: 142px;
-  place-items: center;
-  align-content: center;
-  gap: 7px;
-  margin-block: 24px;
-  background: var(--gora-surface-raised);
-  border: 1px solid var(--gora-line);
-  border-radius: 8px;
-}
-.club-mark {
-  display: grid;
-  place-items: center;
-  width: 37px;
-  height: 37px;
-  border-radius: 50%;
-  background: var(--gora-accent-soft);
-  color: var(--accent);
-  font-size: 23px;
-}
-.mini-club > strong {
-  font-size: 11px;
-}
-.mini-club > span:not(.club-mark) {
-  color: #9cacb8;
-  font-size: 8px;
-}
-.club-chips {
-  display: flex;
-  gap: 6px;
-  margin-top: 2px;
-}
-.club-chips span {
-  background: var(--gora-surface-raised);
-  color: #aebdc7;
-  padding: 4px 7px;
-  font-size: 7px;
-  border-radius: 3px;
-}
-.mini-plan {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: 142px;
-  gap: 12px;
-  margin-block: 24px;
-  padding: 13px;
-  background: var(--gora-surface-raised);
-  border: 1px solid var(--gora-line);
-  border-radius: 8px;
-}
-.plan-date {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 49px;
-  padding: 10px;
-  border: 1px solid var(--gora-accent-line);
-  border-radius: 6px;
-  background: var(--gora-surface);
-}
-.plan-date small {
-  font-size: 8px;
-  color: var(--accent);
-}
-.plan-date strong {
-  font-size: 27px;
-  font-weight: 650;
-}
-.mini-plan > div:last-child {
-  display: grid;
-  gap: 8px;
-}
-.mini-plan > div:last-child > strong {
-  font-size: 10px;
-}
-.mini-plan > div:last-child > span {
-  font-size: 8px;
-  color: #aabac4;
-}
-.plan-status {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  color: var(--accent) !important;
-}
-.plan-status ion-icon {
-  font-size: 12px;
-}
-.card-link {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin-top: auto;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 650;
-}
-.card-link:hover {
-  color: #efffb1;
-}
-.card-link ion-icon {
-  font-size: 15px;
-}
-.illustration-note {
-  margin: 12px 0 0;
-  color: #91a0ab;
-  font-size: 9px;
-}
-.how-section {
-  border-block: 1px solid #22303b;
-  background: var(--gora-surface);
-}
-.text-link {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 8px 0;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 650;
-}
-.steps {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 44px;
-  margin-top: 46px;
-}
-.step-top {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 25px;
-}
-.step-number {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border: 1px solid #35463b;
-  border-radius: 50%;
-  color: var(--accent);
-  font-size: 13px;
-}
-.step-line {
-  flex: 1;
-  height: 1px;
-  background: #2b3b45;
-}
-.steps article:last-child .step-line {
-  background: linear-gradient(90deg, #2b3b45, transparent);
-}
-.steps h3 {
-  margin: 0 0 12px;
-  font-size: 19px;
-  letter-spacing: -0.4px;
-  font-weight: 650;
-}
-.steps p {
-  max-width: 280px;
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.9;
-  color: var(--muted);
-}
-.community {
-  display: grid;
-  grid-template-columns: 0.95fr 1fr;
-  gap: 85px;
-  align-items: center;
-}
-.community-art {
-  position: relative;
-  min-height: 340px;
-  overflow: hidden;
-  border-radius: var(--gora-radius-card);
-  border: 1px solid var(--gora-line);
-  background: #141e28;
-}
-.court-lines {
-  position: absolute;
-  inset: 22px 30px;
-  border: 2px solid #909398;
-  opacity: 0.2;
-}
-.court-lines::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
   height: 2px;
-  background: #909398;
+  background: linear-gradient(90deg, $accent, transparent);
+  transform-origin: left;
 }
-.court-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 150px;
-  height: 150px;
-  border: 2px solid #909398;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
+
+.lp-step__icon {
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--bs-border-color);
+  background: #1c1d21;
+  color: $accent;
 }
-.court-key {
-  position: absolute;
-  left: 50%;
-  width: 170px;
-  height: 90px;
-  border: 2px solid #909398;
-  transform: translateX(-50%);
-}
-.court-key-top {
-  top: -1px;
-}
-.court-key-bottom {
-  bottom: -1px;
-}
-.court-word {
-  position: absolute;
-  top: 61px;
-  left: 36px;
-  font-size: 86px;
-  line-height: 0.94;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: -5px;
-  color: var(--accent);
-}
-.court-caption {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  position: absolute;
-  right: 20px;
-  bottom: 31px;
-  padding: 16px 18px;
-  border-radius: 6px;
-  border-left: 2px solid var(--accent);
-  background: var(--gora-surface);
-  color: var(--white);
-  font-size: 10px;
-  line-height: 1.3;
-  font-weight: 850;
-}
-.court-caption ion-icon {
-  font-size: 24px;
-}
-.community h2 {
-  font-size: clamp(30px, 2.8vw, 39px);
-  line-height: 1.2;
-}
-.community h2 span {
-  color: var(--accent);
-}
-.community-copy > p:not(.eyebrow) {
-  margin: 20px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.85;
-}
-.community .button {
-  margin-top: 24px;
-}
-.faq {
-  display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
-  gap: 80px;
-  border-top: 1px solid #22303b;
-}
-.faq-intro > p:last-child {
-  margin: 20px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.8;
-}
-.faq-list {
-  border-top: 1px solid #293844;
-}
-.faq details {
-  border-bottom: 1px solid #293844;
-}
-.faq summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  padding: 22px 0;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  list-style: none;
-}
-.faq summary::-webkit-details-marker {
-  display: none;
-}
-.faq-plus {
-  display: inline-block;
-  color: var(--accent);
-  font-size: 23px;
-  font-weight: 400;
-  transition: transform 0.2s;
-}
-.faq details[open] .faq-plus {
-  transform: rotate(45deg);
-}
-.faq details > p {
-  padding: 0 30px 23px 0;
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.9;
-}
-.final-cta {
+
+/* Community */
+.lp-court {
   position: relative;
-  padding: 58px 50px 48px;
   overflow: hidden;
-  border-radius: var(--gora-radius-card);
-  border: 1px solid var(--gora-accent-line);
-  background: var(--gora-surface);
-  color: var(--white);
-  text-align: center;
-}
-.final-cta > :not(.cta-court) {
-  position: relative;
-}
-.final-cta .eyebrow {
-  color: var(--accent);
-  margin-bottom: 20px;
-  font-size: 9px;
-}
-.final-cta h2 {
-  font-size: clamp(39px, 4.5vw, 64px);
-  font-weight: 850;
-  letter-spacing: -2.5px;
-  line-height: 1.06;
-}
-.final-cta h2 span {
-  color: var(--accent);
-}
-.final-cta > p:not(.eyebrow) {
-  margin: 20px 0 25px;
-  color: var(--muted);
-  font-size: 14px;
-}
-.button-dark {
-  background: var(--accent);
-  color: var(--ink);
-}
-.button-dark:hover {
-  background: var(--ion-color-primary-tint);
-}
-.cta-note {
-  display: block;
-  margin-top: 15px;
-  color: var(--muted);
-  font-size: 9px;
-}
-.cta-court {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1020px;
-  height: 720px;
-  border: 1px solid var(--gora-line);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-.cta-court::before {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 480px;
-  height: 480px;
-  content: '';
-  border: 1px solid var(--gora-line);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-.site-footer {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  row-gap: 35px;
-  padding-block: 50px 25px;
-}
-.site-footer .wordmark {
-  font-size: 35px;
-}
-.site-footer p {
-  margin: 10px 0 0;
-  color: #9aa8b2;
-  font-size: 10px;
-}
-.footer-links {
-  display: flex;
-  align-items: center;
-  gap: 27px;
-}
-.footer-links :is(a, button) {
-  color: #b6c0c7;
-  font-size: 11px;
-}
-.footer-links a:last-child {
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.copyright {
-  grid-column: 1 / -1;
-  padding-top: 20px;
-  border-top: 1px solid #22303b;
-  color: #8b9ba8;
-  font-size: 9px;
-}
-@media (min-width: 1450px) {
-}
-@media (max-width: 1100px) {
-  .container {
-    width: calc(100% - 64px);
-  }
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: 0 40px 80px -40px rgba($accent, 0.45);
 
-  h1 {
-    font-size: 53px;
-    letter-spacing: -3px;
-  }
-
-  .sports-inner {
-    gap: 23px;
-  }
-  .sport-options {
-    gap: 2px;
-  }
-  .sport-options button {
-    font-size: 10px;
-    padding-inline: 8px;
-  }
-  .benefit-card {
-    padding: 25px 18px 20px;
-  }
-  .mini-plan {
-    gap: 7px;
-    padding-inline: 8px;
-  }
-  .plan-date {
-    width: 41px;
-  }
-  .community {
-    gap: 50px;
-  }
-  .faq {
-    gap: 45px;
-  }
-}
-@media (max-width: 920px) {
-  .container {
-    width: calc(100% - 40px);
-  }
-  .header-inner {
-    height: 72px;
-    gap: 16px;
-  }
-  .wordmark {
-    font-size: 36px;
-  }
-  .desktop-nav {
-    display: none;
-  }
-  .header-actions {
-    gap: 18px;
-  }
-  .button-small {
-    min-height: 39px;
-    padding: 9px 14px;
-    font-size: 12px;
-    gap: 10px;
-  }
-  .login-link {
-    font-size: 12px;
-  }
-
-  h1 {
-    font-size: clamp(38px, 8.8vw, 64px);
-    letter-spacing: -2.5px;
-  }
-
-  .sports-inner {
+  img {
     display: block;
-    padding-block: 23px 18px;
-  }
-  .sports-inner > p {
-    font-size: 8px;
-    margin-bottom: 12px;
-  }
-  .sports-inner > p br {
-    display: none;
-  }
-  .sports-inner > p strong {
-    margin-left: 5px;
-  }
-  .sport-options {
-    flex-wrap: wrap;
-    justify-content: start;
-    gap: 6px;
-  }
-  .sport-options button {
-    font-size: 11px;
-    padding: 9px 13px;
-    min-height: 40px;
-    border-color: #24333d;
-  }
-  .sport-options ion-icon {
-    font-size: 17px;
-  }
-  .section-space {
-    padding-block: 54px;
-  }
-  .section-heading {
-    align-items: start;
-    flex-direction: column;
-    gap: 18px;
-    margin-bottom: 26px;
-  }
-  h2 {
-    font-size: 34px;
-    letter-spacing: -1.2px;
-  }
-  .section-heading > p br {
-    display: none;
-  }
-  .benefit-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  .benefit-card {
-    padding: 25px;
-  }
-  .benefit-card h3 {
-    max-width: none;
-    font-size: 23px;
-  }
-  .benefit-card > p {
-    max-width: 490px;
-    min-height: 0;
-    font-size: 13px;
-  }
-  .feature-icon {
-    margin-bottom: 17px;
-  }
-  .mini-map,
-  .mini-club,
-  .mini-plan {
-    height: 152px;
-    margin-block: 21px;
-  }
-  .mini-plan {
-    justify-content: center;
-    gap: 20px;
-  }
-  .mini-plan > div:last-child > strong {
-    font-size: 12px;
-  }
-  .mini-plan > div:last-child > span {
-    font-size: 10px;
-  }
-  .plan-date {
-    width: 55px;
-  }
-  .mini-club > strong {
-    font-size: 13px;
-  }
-  .mini-club > span:not(.club-mark) {
-    font-size: 10px;
-  }
-  .club-chips span {
-    font-size: 9px;
-  }
-  .card-link {
-    font-size: 12px;
-  }
-  .steps {
-    grid-template-columns: 1fr;
-    gap: 28px;
-    margin-top: 28px;
-  }
-  .step-top {
-    margin-bottom: 16px;
-  }
-  .steps h3 {
-    font-size: 21px;
-  }
-  .steps p {
-    max-width: 490px;
-    font-size: 13px;
-  }
-  .community {
-    grid-template-columns: 1fr;
-    gap: 42px;
-  }
-  .community-art {
-    min-height: 300px;
-    margin-inline: 8px;
-  }
-  .court-word {
-    font-size: 80px;
-    top: 42px;
-  }
-  .community h2 {
-    font-size: 34px;
-  }
-  .faq {
-    grid-template-columns: 1fr;
-    gap: 30px;
-  }
-  .faq summary {
-    padding-block: 21px;
-  }
-  .faq details > p {
-    font-size: 13px;
-  }
-  .final-cta {
-    padding: 43px 20px 37px;
-  }
-  .final-cta h2 {
-    font-size: clamp(36px, 8.3vw, 57px);
-    letter-spacing: -1.8px;
-  }
-  .final-cta .eyebrow {
-    font-size: 8px;
-    letter-spacing: 1px;
-  }
-  .final-cta > p:not(.eyebrow) {
-    font-size: 12px;
-  }
-  .site-footer {
-    gap: 25px;
-    padding-top: 36px;
-  }
-  .footer-links {
-    gap: 14px;
-  }
-  .footer-links :is(a, button) {
-    font-size: 9px;
-  }
-  .landing section {
-    scroll-margin-top: 85px;
-  }
-}
-@media (max-width: 380px) {
-  .container {
-    width: calc(100% - 32px);
-  }
-  .header-actions {
-    gap: 13px;
-  }
-  h1 {
-    font-size: 35px;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    transition: transform 1s $ease-out;
   }
 
-  .text-button {
-    font-size: 10px !important;
+  &:hover img {
+    transform: scale(1.04);
   }
 
-  .community h2 {
-    font-size: 29px;
-  }
-  .site-footer {
-    grid-template-columns: 1fr;
-  }
-  .copyright {
-    grid-column: 1;
-  }
-  .footer-links {
-    justify-content: space-between;
-  }
-  .footer-links :is(a, button) {
-    font-size: 11px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .landing *,
-  .landing *::before,
-  .landing *::after {
-    transition: none !important;
-    scroll-behavior: auto !important;
-  }
-  .button:hover {
-    transform: none;
+  &__word {
+    position: absolute;
+    bottom: 1.2rem;
+    left: 1.4rem;
+    color: #fff;
+    font-family: 'Gora Condensed', var(--bs-body-font-family);
+    font-size: clamp(2.6rem, 6vw, 4.2rem);
+    font-style: italic;
+    font-weight: 800;
+    line-height: 0.9;
+    text-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
+    text-transform: uppercase;
   }
 }
 
-/* The reference uses a single cinematic hero rather than a floating app mockup. */
-.container {
-  width: min(1500px, 80%);
+/* FAQ accordion */
+.lp-accordion {
+  --bs-accordion-bg: #1c1d21;
+  --bs-accordion-border-color: var(--bs-border-color);
+  --bs-accordion-border-radius: var(--bs-border-radius-lg);
+  --bs-accordion-inner-border-radius: var(--bs-border-radius-lg);
+  --bs-accordion-btn-padding-y: 1.25rem;
+  --bs-accordion-active-bg: rgba(255, 96, 40, 0.1);
+  --bs-accordion-active-color: #{$accent};
+  --bs-accordion-btn-focus-box-shadow: 0 0 0 0.2rem rgba(255, 96, 40, 0.35);
+
+  .accordion-item {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg) !important;
+    overflow: hidden;
+  }
+
+  .accordion-button {
+    font-weight: 700;
+    border-radius: 0 !important;
+  }
 }
-.site-header {
-  background: #101113;
-  padding-top: env(safe-area-inset-top, 0px);
+
+.lp-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s $ease-out;
+
+  &.is-open {
+    grid-template-rows: 1fr;
+  }
+
+  &__inner {
+    overflow: hidden;
+  }
 }
-.header-inner {
-  height: 104px;
-}
-.wordmark {
-  display: inline-flex;
-  align-items: center;
-  font-size: 43px;
-  letter-spacing: -1.8px;
-  gap: 0;
-}
-.brand-dot {
-  color: var(--accent);
-}
-.brand-mark {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 3px;
-  margin-right: 20px;
-  transform: skew(-20deg);
-}
-.brand-mark span {
-  display: block;
-  width: 5px;
-  height: 32px;
-  background: var(--accent);
-}
-.brand-mark span:nth-child(2) {
-  height: 24px;
-}
-.brand-mark span:nth-child(3) {
-  height: 17px;
-}
-.button {
-  min-height: 56px;
-  padding: 17px 26px;
-  border-radius: 5px;
-  color: white;
-  font-size: 14px;
-}
-.button-small {
-  min-height: 52px;
-  padding: 14px 23px;
-  gap: 15px;
-}
-.button-small ion-icon {
-  transform: none;
-}
-.hero {
+
+/* Final CTA */
+.lp-cta {
   position: relative;
   overflow: hidden;
-  background: #101113;
-}
-.hero-backdrop,
-.hero-shade {
-  position: absolute;
-  inset: 0;
-}
-.hero-backdrop {
-  display: block;
-}
-.hero-backdrop img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 43%;
-}
-.hero-shade {
-  background:
-    linear-gradient(
-      90deg,
-      #101113 0%,
-      rgba(16, 17, 19, 0.97) 26%,
-      rgba(16, 17, 19, 0.72) 43%,
-      rgba(16, 17, 19, 0.15) 70%
-    ),
-    linear-gradient(0deg, #101113 0%, transparent 24%);
-}
-.hero-inner {
-  position: relative;
-  min-height: 740px;
-  padding-top: 92px;
-  padding-bottom: 120px;
-}
-.hero-copy {
-  max-width: 960px;
-}
-.hero .eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin-bottom: 36px;
-  font-size: 11px;
-  letter-spacing: 2px;
-}
-.eyebrow-line {
-  width: 22px;
-  height: 2px;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-.hero h1 {
-  margin: 0;
-  font-family: 'Gora Condensed', Impact, 'Arial Narrow', sans-serif;
-  font-size: clamp(64px, 6.2vw, 112px);
-  font-weight: 800;
-  font-style: italic;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  line-height: 1.07;
-}
-.hero-line {
-  display: block;
-  color: var(--white);
-  white-space: nowrap;
-}
-.hero h1 em {
-  color: var(--accent);
-  font-style: inherit;
-}
-.hero-description {
-  max-width: 480px;
-  margin: 31px 0 34px;
-  color: #c4c5ca;
-  font-size: 16px;
-  line-height: 1.85;
-}
-.hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.hero-actions .button {
-  min-width: 176px;
-  min-height: 60px;
-}
-.button-secondary {
-  border: 1px solid #38393d;
-  background: #242529;
-  color: var(--white);
-}
-.button-secondary:hover {
-  background: #303136;
-}
-.hero-note {
-  margin: 27px 0 0 24px;
-  color: #94969f;
-  font-size: 11px;
-}
-.hero-caption {
-  position: absolute;
-  right: 0;
-  bottom: 155px;
-  max-width: 238px;
-  padding-left: 20px;
-  border-left: 2px solid var(--accent);
-}
-.hero-caption span {
-  display: block;
-  margin-bottom: 12px;
-  color: #bfc2c9;
-  font-size: 9px;
-  letter-spacing: 2px;
-}
-.hero-caption strong {
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.65;
-}
-.hero-footer {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  min-height: 78px;
-  border-top: 1px solid var(--gora-line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-.hero-footer > span {
-  color: #9699a2;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 3.5px;
-}
-.hero-footer a {
-  display: flex;
-  gap: 11px;
-  align-items: center;
-  color: var(--white);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1.8px;
-}
-.hero-footer a:hover {
-  color: var(--accent);
-}
-.sport-preview {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  padding-block: 22px;
-  border-top: 1px solid var(--gora-line);
-}
-.sport-preview > div {
-  display: grid;
-  gap: 7px;
-}
-.preview-kicker {
-  color: var(--accent);
-  font-size: 8px;
-  font-weight: 750;
-  letter-spacing: 1.5px;
-}
-.sport-preview strong {
-  font-size: 15px;
-}
-.sport-preview > div > span:last-child {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.8;
-}
-.sport-preview .text-link ion-icon {
-  transform: none;
-}
-.benefit-card {
-  border-color: var(--gora-line);
-}
-.featured-benefit {
-  border-color: var(--gora-accent-line);
-}
-.final-cta h2 {
-  font-family: 'Gora Condensed', Impact, 'Arial Narrow', sans-serif;
-  font-style: italic;
-  text-transform: uppercase;
-  font-size: clamp(46px, 5vw, 76px);
-  letter-spacing: 0.3px;
-}
-@media (min-width: 1750px) {
-  .hero-inner {
-    min-height: 795px;
-    padding-top: 105px;
+  padding: clamp(3rem, 7vw, 5.5rem) clamp(1.25rem, 5vw, 4rem);
+  border-radius: 2rem;
+  background: linear-gradient(120deg, $accent, $accent-2, #ff3d5a, $accent);
+  background-size: 300% 300%;
+  color: $ink;
+  animation: lp-gradient 10s ease infinite;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 60px);
+    pointer-events: none;
   }
-  .hero-description {
-    max-width: 520px;
-    font-size: 17px;
+
+  > * {
+    position: relative;
+  }
+
+  &__title {
+    font-size: clamp(2.6rem, 6.5vw, 5rem);
+  }
+
+  &__copy {
+    font-size: 1.1rem;
+    font-weight: 600;
   }
 }
-@media (max-width: 1100px) {
-  .container {
-    width: calc(100% - 64px);
+
+/* Footer */
+.lp-footer {
+  padding-block: 3rem calc(2rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--bs-border-color);
+}
+
+/* ───────── Entrance & reveal animations ───────── */
+.lp-enter {
+  animation: lp-up 0.8s $ease-out both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.lp-float {
+  animation: lp-float 6s ease-in-out infinite;
+
+  &--slow {
+    animation-duration: 8s;
+    animation-delay: -2s;
   }
-  .hero h1 {
-    font-size: 76px;
-  }
-  .hero-copy {
-    max-width: 750px;
-  }
-  .hero-caption {
-    max-width: 200px;
-  }
-  .header-inner {
-    height: 92px;
-  }
-  .desktop-nav {
-    gap: 20px;
+
+  &--fast {
+    animation-duration: 5s;
+    animation-delay: -1s;
   }
 }
-@media (max-width: 920px) {
-  .container {
-    width: calc(100% - 40px);
+
+.lp-reveal {
+  transition:
+    opacity 0.8s $ease-out var(--reveal-delay, 0ms),
+    transform 0.8s $ease-out var(--reveal-delay, 0ms);
+}
+
+.lp--motion .lp-reveal:not(.is-visible) {
+  opacity: 0;
+  transform: translateY(32px);
+}
+
+.lp--motion .lp-steps:not(.is-visible) .lp-step__line {
+  transform: scaleX(0);
+}
+
+.lp-steps .lp-step__line {
+  transition: transform 1s $ease-out calc(var(--step) * 250ms + 300ms);
+}
+
+.lp-fade-enter-active,
+.lp-fade-leave-active {
+  transition: opacity 0.35s ease, transform 0.5s $ease-out;
+}
+
+.lp-fade-enter-from {
+  opacity: 0;
+  transform: scale(1.06);
+}
+
+.lp-fade-leave-to {
+  opacity: 0;
+}
+
+.lp-slide-enter-active,
+.lp-slide-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.lp-slide-enter-from {
+  opacity: 0;
+  transform: translateX(16px);
+}
+
+.lp-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-16px);
+}
+
+@keyframes lp-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes lp-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes lp-blob {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-60px, 40px) scale(1.15); }
+}
+
+@keyframes lp-zoom {
+  from { transform: scale(1.12); }
+  to { transform: scale(1); }
+}
+
+@keyframes lp-ping {
+  75%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes lp-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes lp-scroll {
+  0% { opacity: 0; transform: translateY(0); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(16px); }
+}
+
+@keyframes lp-marquee {
+  to { transform: translateX(-50%); }
+}
+
+@keyframes lp-shine {
+  to { background-position: 200% center; }
+}
+
+@keyframes lp-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes lp-drop {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ───────── Responsive ───────── */
+@media (max-width: 991.98px) {
+  .lp-nav {
+    background: rgba(16, 17, 19, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
-  .header-inner {
-    height: 76px;
+
+  .lp-hero {
+    min-height: auto;
+    padding: 130px 0 100px;
   }
-  .wordmark {
-    font-size: 31px;
+
+  .lp-stage {
+    min-height: 360px;
   }
-  .brand-mark {
-    margin-right: 12px;
-    gap: 2px;
-  }
-  .brand-mark span {
-    width: 4px;
-    height: 24px;
-  }
-  .brand-mark span:nth-child(2) {
-    height: 18px;
-  }
-  .brand-mark span:nth-child(3) {
-    height: 12px;
-  }
-  .hero h1 {
-    font-size: clamp(55px, 9vw, 80px);
-  }
-  .hero-inner {
-    min-height: 720px;
-    padding-top: 70px;
-  }
-  .hero .eyebrow {
-    font-size: 9px;
-  }
-  .hero-description {
-    max-width: 430px;
-    font-size: 15px;
-  }
-  .hero-caption {
-    bottom: 113px;
-  }
-  .hero-shade {
-    background:
-      linear-gradient(
-        90deg,
-        rgba(16, 17, 19, 0.99),
-        rgba(16, 17, 19, 0.75) 45%,
-        rgba(16, 17, 19, 0.3)
-      ),
-      linear-gradient(0deg, #101113, transparent 60%);
-  }
-  .button-small {
-    min-height: 43px;
-    padding: 11px 16px;
-    font-size: 12px;
-  }
-  .header-actions {
-    gap: 16px;
-  }
-  .hero-footer {
-    min-height: 70px;
+
+  .lp-sport-photo {
+    min-height: 220px;
   }
 }
-@media (max-width: 600px) {
-  /* Keep the mobile header below the status bar and center its actions vertically. */
-  .site-header {
-    padding-top: env(safe-area-inset-top, 0px);
+
+@media (max-width: 575.98px) {
+  .lp-stage {
+    min-height: 330px;
   }
-  .header-inner {
-    height: 68px;
-  }
-  .login-link {
-    display: inline-flex;
-    min-height: 43px;
-    align-items: center;
-  }
-  .hero-inner {
-    min-height: 720px;
-    padding-top: 62px;
-    padding-bottom: 135px;
-  }
-  .hero h1 {
-    font-size: clamp(45px, 11vw, 64px);
-    line-height: 1.09;
-    letter-spacing: 0;
-  }
-  .hero-line {
-    white-space: normal;
-  }
-  .hero-copy {
-    max-width: 100%;
-  }
-  .hero .eyebrow {
-    font-size: 8px;
-    letter-spacing: 1.3px;
-    margin-bottom: 26px;
-  }
-  .hero-description {
-    margin-block: 26px;
-    font-size: 14px;
-    max-width: 330px;
-  }
-  .hero-actions {
-    gap: 10px;
-  }
-  .hero-actions .button {
-    min-width: 0;
-    flex: 1;
-    min-height: 52px;
-    padding-inline: 14px;
-    font-size: 12px;
-  }
-  .hero-note {
-    margin-left: 0;
-    font-size: 10px;
-  }
-  .hero-caption {
-    right: 0;
-    bottom: 105px;
-    max-width: none;
-    padding-left: 14px;
-  }
-  .hero-caption span {
-    font-size: 8px;
-    margin-bottom: 7px;
-  }
-  .hero-caption strong {
-    font-size: 11px;
-  }
-  .hero-backdrop img {
-    object-position: 64% center;
-    opacity: 0.75;
-  }
-  .hero-shade {
-    background:
-      linear-gradient(
-        90deg,
-        rgba(16, 17, 19, 0.94),
-        rgba(16, 17, 19, 0.68) 60%,
-        rgba(16, 17, 19, 0.42)
-      ),
-      linear-gradient(0deg, #101113 0%, transparent 50%);
-  }
-  .hero-footer > span {
-    font-size: 8px;
-    letter-spacing: 1.9px;
-  }
-  .hero-footer a {
-    font-size: 8px;
-    letter-spacing: 1px;
-  }
-  .sport-preview {
-    align-items: start;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .sport-preview .text-link {
-    font-size: 11px;
-  }
-  .hero-caption br {
-    display: none;
-  }
-}
-@media (max-width: 380px) {
-  .container {
-    width: calc(100% - 32px);
-  }
-  .wordmark {
-    font-size: 27px;
-  }
-  .brand-mark {
-    margin-right: 9px;
-  }
-  .header-actions {
-    gap: 12px;
-  }
-  .button-small {
-    padding-inline: 12px;
-    font-size: 11px;
-    gap: 8px;
-  }
-  .login-link {
-    font-size: 11px;
-  }
-  .hero .eyebrow {
-    font-size: 7px;
-  }
-  .hero h1 {
-    font-size: 44px;
-  }
-  .hero-caption {
+
+  .lp-game-card {
     left: 0;
-    right: auto;
+    width: 100%;
   }
-  .hero-inner {
-    min-height: 735px;
+
+  .lp-club-card {
+    width: 78%;
+  }
+
+  .lp-toast-card {
+    width: 82%;
+  }
+
+  .lp-marquee__item {
+    font-size: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp *,
+  .lp *::before,
+  .lp *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .lp-marquee__track {
+    flex-wrap: wrap;
+    width: auto;
   }
 }
 </style>

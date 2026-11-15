@@ -222,8 +222,8 @@ async function upload(): Promise<void> {
     caption.value = '';
     visibility.value = 'PUBLIC';
     customViewerIds.value = [];
-    void showNotice('Reel uploaded to your Highlights.');
-    await router.replace('/profile/reels');
+    void showNotice('Reel uploaded. Now playing in Reels.');
+    await router.replace({ path: '/reels', query: { reel: result.reel.id } });
   } finally {
     uploadController = null;
     isSaving.value = false;

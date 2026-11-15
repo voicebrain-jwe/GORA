@@ -12,6 +12,7 @@ vi.mock('@ionic/vue', async () => {
   const { onMounted } = await import('vue');
   return {
     IonIcon: { template: '<span />' },
+    IonSpinner: { template: '<span />' },
     IonModal: { props: ['isOpen'], template: '<div v-if="isOpen"><slot /></div>' },
     IonDatetime: { name: 'IonDatetime', props: ['value', 'min', 'max'], template: '<div />' },
     IonPage: { template: '<div><slot /></div>' },
@@ -21,6 +22,7 @@ vi.mock('@ionic/vue', async () => {
     onIonViewDidLeave: vi.fn(),
   };
 });
+vi.mock('@/components/map/LocationMapPicker.vue', () => ({ default: { props: ['center', 'point', 'fly'], template: '<div />' } }));
 vi.mock('@/components/layout/SubPageHeader.vue', () => ({ default: { template: '<header>Game</header>' } }));
 vi.mock('@/components/games/GamePreviewCard.vue', () => ({
   default: { props: ['game'], template: '<article>{{ game.title }}</article>' },

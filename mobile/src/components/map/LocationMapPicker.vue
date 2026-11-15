@@ -38,7 +38,8 @@ import { resolveMapProvider } from '@/services/map-provider';
 import { isValidPoint, type MapPoint } from '@/utils/location-map';
 import GoogleLocationMapPicker from './GoogleLocationMapPicker.vue';
 
-const props = defineProps<{ center: MapPoint; point: MapPoint | null }>();
+/** `fly`: animate to the pin whenever it moves (e.g. after picking a search result). */
+const props = defineProps<{ center: MapPoint; point: MapPoint | null; fly?: boolean }>();
 const emit = defineEmits<{ select: [point: MapPoint] }>();
 const provider = resolveMapProvider();
 const container = ref<HTMLElement | null>(null);
@@ -82,7 +83,12 @@ function updatePin(): void {
   }
 }
 
-watch([() => props.point?.latitude, () => props.point?.longitude], updatePin);
+watch([() => props.point?.latitude, () => props.point?.longitude], () => {
+  updatePin();
+  if (props.fly && map && props.point && isValidPoint(props.point)) {
+    map.flyTo([props.point.latitude, props.point.longitude], Math.max(map.getZoom(), 17), { duration: 0.9 });
+  }
+});
 watch([() => props.center.latitude, () => props.center.longitude], () => {
   if (map && isValidPoint(props.center)) map.panTo([props.center.latitude, props.center.longitude], { animate: false });
 });

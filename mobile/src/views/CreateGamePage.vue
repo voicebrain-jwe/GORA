@@ -166,18 +166,64 @@
         </section>
 
         <section v-if="activeStep === 3" class="create-game__step" :aria-label="currentStep.title">
-          <div class="create-game__field" @focusout="touch('locationName')">
+          <div class="create-game__field create-game__place" @focusout="onPlaceBlur">
             <label class="create-game__label" for="game-location">Location *</label>
-            <input
-              id="game-location"
-              v-model="form.locationName"
-              class="create-game__input"
-              :maxlength="GAME_LOCATION_MAX"
-              placeholder="BGC Court, Taguig"
-              autocomplete="off"
-            />
+            <div class="create-game__place-box">
+              <ion-icon :icon="searchOutline" class="create-game__place-icon" aria-hidden="true" />
+              <input
+                id="game-location"
+                v-model="form.locationName"
+                class="create-game__input create-game__place-input"
+                :maxlength="GAME_LOCATION_MAX"
+                placeholder="Search a court, park, or address"
+                autocomplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="game-location-results"
+                :aria-expanded="showPlaceResults"
+                :aria-activedescendant="activePlace >= 0 ? `game-place-${activePlace}` : undefined"
+                @input="onPlaceInput"
+                @focus="placeFocused = true"
+                @keydown.down.prevent="movePlace(1)"
+                @keydown.up.prevent="movePlace(-1)"
+                @keydown.enter="pickActivePlace"
+                @keydown.esc="placeFocused = false"
+              />
+              <ion-spinner v-if="placeLoading" name="crescent" class="create-game__place-spinner" />
+            </div>
+            <ul v-if="showPlaceResults" id="game-location-results" class="create-game__places" role="listbox">
+              <li
+                v-for="(place, index) in placeResults"
+                :id="`game-place-${index}`"
+                :key="place.id"
+                role="option"
+                :aria-selected="index === activePlace"
+                class="create-game__place-option"
+                :class="{ 'is-active': index === activePlace }"
+                @mousedown.prevent="pickPlace(place)"
+              >
+                <ion-icon :icon="locationOutline" aria-hidden="true" />
+                <span>
+                  <strong>{{ place.name }}</strong>
+                  <small v-if="place.detail">{{ place.detail }}</small>
+                </span>
+              </li>
+              <li v-if="placeError" class="create-game__place-note" role="alert">{{ placeError }}</li>
+              <li v-else-if="placeLoading && placeResults.length === 0" class="create-game__place-note">Searching…</li>
+              <li v-else-if="placeResults.length === 0" class="create-game__place-note">
+                No places found. Try another name, or tap the map below.
+              </li>
+            </ul>
             <p v-if="shown('locationName')" class="create-game__error">{{ errors.locationName }}</p>
           </div>
+
+          <LocationMapPicker
+            class="create-game__map"
+            :center="mapCenter"
+            :point="selectedGamePoint"
+            fly
+            @select="onMapPoint"
+          />
 
           <div class="create-game__grid">
             <div class="create-game__field" @focusout="touch('latitude')">
@@ -203,10 +249,7 @@
               <p v-if="shown('longitude')" class="create-game__error">{{ errors.longitude }}</p>
             </div>
           </div>
-          <button type="button" class="create-game__pick-location" @click="locationPickerOpen = true">
-            {{ selectedGameLocation ? 'Change location on map' : 'Choose location on map' }}
-          </button>
-          <p class="create-game__hint">Select a point on the map to save the location and coordinates with this game.</p>
+          <p class="create-game__hint">Search a place and pick a result: the pin jumps there. Tap the map or drag the pin to fine-tune.</p>
         </section>
 
         <section v-if="isReview" class="create-game__step create-game__review" aria-label="Game review">
@@ -296,12 +339,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { IonContent, IonFooter, IonPage, onIonViewDidLeave, onIonViewWillEnter } from '@ionic/vue';
+import { IonContent, IonFooter, IonIcon, IonPage, IonSpinner, onIonViewDidLeave, onIonViewWillEnter } from '@ionic/vue';
+import { locationOutline, searchOutline } from 'ionicons/icons';
 import GameDateField from '@/components/games/GameDateField.vue';
 import GamePreviewCard from '@/components/games/GamePreviewCard.vue';
 import LocationPickerModal from '@/components/feed/LocationPickerModal.vue';
+import LocationMapPicker from '@/components/map/LocationMapPicker.vue';
+import { PHOTON_MIN_QUERY, searchPhoton, type PhotonPlace } from '@/services/photon.service';
+import { LOCATION_PICKER_CENTER } from '@/utils/location-picker';
 import SubPageHeader from '@/components/layout/SubPageHeader.vue';
 import { useClubsStore } from '@/stores/clubs';
 import { useGamesStore } from '@/stores/games';
@@ -432,6 +479,110 @@ const editBlocker = computed(() => {
 function touch(field: GameFormField): void {
   touched.value = new Set(touched.value).add(field);
 }
+
+/* ───────── Location search (Photon) ───────── */
+const placeResults = ref<PhotonPlace[]>([]);
+const placeLoading = ref(false);
+const placeError = ref<string | null>(null);
+const placeFocused = ref(false);
+const placeSearched = ref(false);
+const activePlace = ref(-1);
+let placeTimer: ReturnType<typeof setTimeout> | undefined;
+let placeAbort: AbortController | null = null;
+
+const showPlaceResults = computed(
+  () =>
+    placeFocused.value &&
+    form.value.locationName.trim().length >= PHOTON_MIN_QUERY &&
+    (placeLoading.value || placeSearched.value || !!placeError.value),
+);
+/** The pin follows the coordinates, even before the place has a name. */
+const selectedGamePoint = computed(() => {
+  const point = { latitude: Number(String(form.value.latitude).trim()), longitude: Number(String(form.value.longitude).trim()) };
+  return String(form.value.latitude).trim() && String(form.value.longitude).trim() && isValidPoint(point) ? point : null;
+});
+/** The map opens on the chosen pin, else Metro Manila. */
+const mapCenter = computed(() => selectedGamePoint.value ?? LOCATION_PICKER_CENTER);
+
+function onPlaceInput(): void {
+  placeFocused.value = true;
+  activePlace.value = -1;
+  placeSearched.value = false;
+  placeError.value = null;
+  if (placeTimer) clearTimeout(placeTimer);
+  const query = form.value.locationName.trim();
+  if (query.length < PHOTON_MIN_QUERY) {
+    placeAbort?.abort();
+    placeResults.value = [];
+    placeLoading.value = false;
+    return;
+  }
+  placeLoading.value = true;
+  placeTimer = setTimeout(() => void runPlaceSearch(query), 320);
+}
+
+async function runPlaceSearch(query: string): Promise<void> {
+  placeAbort?.abort();
+  const controller = new AbortController();
+  placeAbort = controller;
+  placeLoading.value = true;
+  placeError.value = null;
+  try {
+    const results = await searchPhoton(query, { near: mapCenter.value, signal: controller.signal });
+    if (controller.signal.aborted) return;
+    placeResults.value = results;
+    placeSearched.value = true;
+  } catch {
+    if (controller.signal.aborted) return;
+    placeResults.value = [];
+    placeError.value = 'Place search is unavailable right now. Tap the map to set the location.';
+  } finally {
+    if (placeAbort === controller) placeLoading.value = false;
+  }
+}
+
+function movePlace(step: number): void {
+  if (!placeResults.value.length) return;
+  placeFocused.value = true;
+  const count = placeResults.value.length;
+  activePlace.value = (activePlace.value + step + count) % count;
+}
+
+function pickActivePlace(event: KeyboardEvent): void {
+  const place = placeResults.value[activePlace.value];
+  if (!showPlaceResults.value || !place) return;
+  event.preventDefault();
+  pickPlace(place);
+}
+
+/** Picking a result names the game location and moves the map pin there. */
+function pickPlace(place: PhotonPlace): void {
+  const area = place.detail.split(', ')[0];
+  const name = area ? `${place.name}, ${area}` : place.name;
+  applyGameLocation({ name: name.slice(0, GAME_LOCATION_MAX), latitude: place.latitude, longitude: place.longitude });
+  placeFocused.value = false;
+  placeResults.value = [];
+  placeSearched.value = false;
+  activePlace.value = -1;
+}
+
+function onPlaceBlur(): void {
+  placeFocused.value = false;
+  touch('locationName');
+}
+
+/** Tapping the map or dragging the pin keeps the name and moves the coordinates. */
+function onMapPoint(point: { latitude: number; longitude: number }): void {
+  form.value.latitude = point.latitude.toFixed(6);
+  form.value.longitude = point.longitude.toFixed(6);
+  touch('latitude');
+  touch('longitude');
+}
+
+onBeforeUnmount(() => {
+  if (placeTimer) clearTimeout(placeTimer);
+  placeAbort?.abort();
+});
 
 function applyGameLocation(location: PostLocation): void {
   form.value.locationName = location.name;
@@ -737,6 +888,119 @@ textarea.create-game__input {
   margin: -6px 0 0;
   color: #7d8a93;
   font-size: 0.72rem;
+}
+
+.create-game__place {
+  position: relative;
+}
+
+.create-game__place-box {
+  position: relative;
+}
+
+.create-game__place-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  color: var(--gora-muted);
+  font-size: 1.1rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.create-game__place-input.create-game__place-input {
+  padding-right: 40px;
+  padding-left: 40px;
+}
+
+.create-game__place-input:focus {
+  border-color: var(--ion-color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gora-accent-soft);
+}
+
+.create-game__place-spinner {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  color: var(--ion-color-primary);
+  transform: translateY(-50%);
+}
+
+.create-game__places {
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--gora-line-strong);
+  border-radius: 16px;
+  background: var(--gora-surface);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.7);
+  list-style: none;
+  animation: create-game-drop 0.18s ease-out;
+}
+
+.create-game__place-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.create-game__place-option ion-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--ion-color-primary);
+  font-size: 1.1rem;
+}
+
+.create-game__place-option span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.create-game__place-option strong {
+  font-size: 0.9rem;
+}
+
+.create-game__place-option small {
+  overflow: hidden;
+  color: var(--gora-muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create-game__place-option:hover,
+.create-game__place-option.is-active {
+  background: var(--gora-accent-soft);
+}
+
+.create-game__place-note {
+  padding: 10px 12px;
+  color: var(--gora-muted);
+  font-size: 0.82rem;
+}
+
+.create-game__map {
+  margin-top: 4px;
+}
+
+@keyframes create-game-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 .create-game__pick-location {

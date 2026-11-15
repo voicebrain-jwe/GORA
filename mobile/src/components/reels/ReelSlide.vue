@@ -30,7 +30,7 @@
       <span>Check your connection, then try again.</span>
       <button type="button" @click="retryVideo">Try again</button>
     </div>
-    <ion-icon v-else :icon="visual.icon" class="reel-slide__placeholder" aria-hidden="true" />
+    <ion-icon v-if="!reel.videoUrl" :icon="visual.icon" class="reel-slide__placeholder" aria-hidden="true" />
 
     <ion-icon v-if="showHeart" :icon="heart" class="reel-slide__heart" aria-hidden="true" />
     <div v-if="reel.videoUrl" class="reel-slide__player-controls" @click.stop>

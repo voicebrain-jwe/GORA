@@ -27,14 +27,12 @@ export function usePostActions() {
       void showNotice('Open a saved post to join the conversation.');
       return;
     }
-    // A bottom sheet keeps the reader in the feed, like Facebook.
+    // A bottom panel keeps the reader in the feed, like Facebook.
     void (async () => {
       const sheet = await modalController.create({
         component: PostCommentsSheet,
         componentProps: { postId: post.id, postAuthorId: post.author.id, initialCount: post.comments },
-        breakpoints: [0, 0.75, 1],
-        initialBreakpoint: 0.75,
-        handle: false,
+        // A fixed half-height panel: the comment box is visible without dragging.
         cssClass: 'post-comments-modal',
       });
       await sheet.present();

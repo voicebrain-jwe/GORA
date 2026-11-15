@@ -230,14 +230,26 @@
   color: var(--ion-text-color);
 }
 
-/* Feed comment sheet (PostCommentsSheet). */
+/* Feed comments (PostCommentsSheet): a bottom panel about 60% of the screen tall. */
 ion-modal.post-comments-modal {
-  --border-radius: 20px;
+  --width: 100%;
+  --height: 62%;
+  --border-radius: 20px 20px 0 0;
   --background: var(--gora-surface);
+  align-items: flex-end;
+}
+
+/* With the keyboard open the window is smaller, so let the panel use all of it. */
+html.gora-keyboard-open ion-modal.post-comments-modal {
+  --height: 100%;
+  --border-radius: 0;
 }
 
 @media (min-width: 768px) {
   ion-modal.post-comments-modal {
     --width: 560px;
+    --height: 70%;
+    --border-radius: 20px;
+    align-items: center;
   }
 }

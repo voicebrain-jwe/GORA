@@ -1,7 +1,6 @@
 <template>
   <section class="post-comments-sheet">
     <header class="post-comments-sheet__header">
-      <span class="post-comments-sheet__grabber" aria-hidden="true" />
       <h2>Comments <span>{{ commentCount }}</span></h2>
       <button type="button" class="post-comments-sheet__close" aria-label="Close comments" @click="close">
         <ion-icon :icon="closeOutline" aria-hidden="true" />
@@ -186,7 +185,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px 16px 12px;
+  padding: 16px;
   border-bottom: 1px solid var(--gora-line);
 }
 

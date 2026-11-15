@@ -484,7 +484,7 @@ async function confirmAccountAction(action: 'deactivate' | 'delete'): Promise<vo
     await auth.logout();
     activeSetting.value = null;
     isAccountSection.value = false;
-    await router.replace('/login');
+    await router.replace('/');
   }, deleting ? 'Could not delete account.' : 'Could not deactivate account.');
 }
 
@@ -549,7 +549,7 @@ async function logOut(): Promise<void> {
 
   try {
     await auth.logout();
-    await router.replace('/login');
+    await router.replace('/');
   } finally {
     isLoggingOut.value = false;
   }

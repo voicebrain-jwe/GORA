@@ -61,6 +61,7 @@ async function open(section = '') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
+      { path: '/', component: { template: '<div />' } },
       { path: '/admin', component: AdminDashboardPage },
       { path: '/home', component: { template: '<div />' } },
       { path: '/login', component: { template: '<div />' } },
@@ -109,7 +110,7 @@ describe('Super admin dashboard', () => {
     await page.find('.sidebar-footer .logout-button').trigger('click');
     await flushPromises();
     expect(useAuthStore().isAuthenticated).toBe(false);
-    expect(page.vm.$route.path).toBe('/login');
+    expect(page.vm.$route.path).toBe('/');
   });
   it('renders API counts and an accessible registration chart', async () => {
     const page = await open();

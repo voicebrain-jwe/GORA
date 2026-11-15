@@ -1012,7 +1012,7 @@ async function logOut() {
   isLoggingOut.value = true;
   try {
     await auth.logout();
-    await router.replace('/login');
+    await router.replace('/');
   } finally {
     isLoggingOut.value = false;
   }

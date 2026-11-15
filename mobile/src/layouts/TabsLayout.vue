@@ -92,13 +92,12 @@ function refreshIfSelected(path: string, tab: RefreshableMainTab): void {
   if (route.path === path) requestTabRefresh(tab);
 }
 
-// An API call that got 401 (expired or revoked token) ends the session; return to Log In
-// and come back to this page afterwards.
+// Ended sessions return to the public landing page, including explicit logout.
 watch(
   () => auth.isAuthenticated,
   (isAuthenticated) => {
     if (!isAuthenticated && route.matched.some((record) => record.meta.requiresAuth)) {
-      void router.replace({ path: '/login', query: { redirect: route.fullPath } });
+      void router.replace('/');
     }
   },
 );

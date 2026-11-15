@@ -16,11 +16,23 @@
       />
       <LiveRail :active="liveVisible" />
 
-      <router-link to="/create/post" class="home__composer">
-        <UserAvatar v-if="postsStore.me" :user="postsStore.me" :size="38" />
-        <span class="home__composer-prompt">Share a game moment…</span>
-        <ion-icon :icon="imageOutline" class="home__composer-icon" aria-label="Add photos" />
-      </router-link>
+      <div class="home__composer">
+        <router-link to="/create/post" class="home__composer-main">
+          <UserAvatar v-if="postsStore.me" :user="postsStore.me" :size="40" />
+          <span class="home__composer-prompt">Share a game moment…</span>
+        </router-link>
+        <nav class="home__composer-actions" aria-label="Create">
+          <router-link to="/create/post" class="home__composer-action">
+            <ion-icon :icon="imageOutline" aria-hidden="true" /> Photo
+          </router-link>
+          <router-link to="/create/game" class="home__composer-action">
+            <ion-icon :icon="calendarOutline" aria-hidden="true" /> Game
+          </router-link>
+          <router-link to="/create/reel" class="home__composer-action">
+            <ion-icon :icon="filmOutline" aria-hidden="true" /> Reel
+          </router-link>
+        </nav>
+      </div>
 
       <section class="home__section">
         <div class="home__feed-heading">
@@ -117,7 +129,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonContent, IonIcon, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter, onIonViewDidLeave } from '@ionic/vue';
-import { imageOutline, peopleOutline, refreshOutline, newspaperOutline } from 'ionicons/icons';
+import { calendarOutline, filmOutline, imageOutline, peopleOutline, refreshOutline, newspaperOutline } from 'ionicons/icons';
 import UserAvatar from '@/components/common/UserAvatar.vue';
 import FeedEntry from '@/components/feed/FeedEntry.vue';
 import AppHeader from '@/components/layout/AppHeader.vue';
@@ -280,155 +292,245 @@ async function loadHomeData(): Promise<void> {
 </script>
 
 <style scoped>
+/* Composer */
+.home__composer {
+  margin: 12px 16px 4px;
+  padding: 14px 14px 8px;
+  border: 1px solid var(--gora-line);
+  border-radius: var(--gora-radius-card);
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+}
+
+.home__composer-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.home__composer-prompt {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: 999px;
+  background: var(--gora-surface-raised);
+  color: var(--gora-muted);
+  font-size: 0.9rem;
+  transition: background var(--gora-motion);
+}
+
+.home__composer-main:hover .home__composer-prompt {
+  background: var(--gora-surface-hover);
+}
+
+.home__composer-actions {
+  display: grid;
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--gora-line);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.home__composer-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  color: var(--gora-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: background var(--gora-motion), color var(--gora-motion);
+}
+
+.home__composer-action:hover {
+  background: var(--gora-surface-hover);
+  color: var(--ion-text-color);
+}
+
+.home__composer-action ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 18px;
+}
+
+/* Feed */
+.home__section {
+  padding: 12px 16px 32px;
+}
+
 .home__feed-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--gora-line);
+  gap: 12px;
 }
+
 .home__tabs {
-  display: flex;
-  gap: 24px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--gora-line);
+  border-radius: 999px;
+  background: var(--gora-surface);
 }
+
 .home__tabs button {
-  padding: 13px 0;
+  padding: 7px 16px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: 999px;
   background: transparent;
   color: var(--gora-muted);
-  font: inherit;
-  font-size: 0.88rem;
-  font-weight: 700;
   cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  transition: background var(--gora-motion), color var(--gora-motion);
 }
+
+.home__tabs button:hover:not(.home__tab--active) {
+  color: var(--ion-text-color);
+}
+
 .home__tabs .home__tab--active {
-  color: var(--ion-color-primary);
-  border-bottom-color: var(--ion-color-primary);
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
 }
+
 .home__refresh {
   display: grid;
+  width: 38px;
+  height: 38px;
   place-items: center;
-  width: 34px;
-  height: 34px;
   border: 1px solid var(--gora-line);
   border-radius: 50%;
   background: var(--gora-surface);
   color: var(--gora-muted);
   cursor: pointer;
+  font-size: 18px;
+  transition: color var(--gora-motion), border-color var(--gora-motion);
 }
+
+.home__refresh:hover:not(:disabled) {
+  border-color: var(--gora-accent-line);
+  color: var(--ion-color-primary);
+}
+
 .home__feed-note {
-  margin: 12px 0 16px;
+  margin: 10px 2px 14px;
   color: var(--gora-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
+
 .home__error {
   display: flex;
   align-items: center;
-  gap: 12px;
   justify-content: space-between;
-  margin: 12px 0;
-  padding: 12px;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
   border: 1px solid var(--gora-accent-line);
-  border-radius: 10px;
-  color: var(--gora-muted);
-  font-size: 0.8rem;
+  border-radius: var(--gora-radius-card);
+  background: var(--gora-accent-soft);
+  color: var(--ion-text-color);
+  font-size: 0.82rem;
 }
+
 .home__error button {
   flex-shrink: 0;
   border: 0;
   background: transparent;
   color: var(--ion-color-primary);
   cursor: pointer;
+  font: inherit;
+  font-weight: 700;
 }
+
 .home__empty {
-  padding: 32px 20px;
+  padding: 36px 20px;
   border: 1px solid var(--gora-line);
-  border-radius: 14px;
+  border-radius: var(--gora-radius-card);
   background: var(--gora-surface);
   text-align: center;
 }
+
 .home__empty > ion-icon {
-  font-size: 28px;
+  display: inline-grid;
+  width: 56px;
+  height: 56px;
+  padding: 14px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--gora-accent-soft);
   color: var(--ion-color-primary);
+  font-size: 28px;
 }
+
 .home__empty h2 {
   margin: 14px 0 8px;
   color: var(--ion-text-color);
   font-size: 1.05rem;
 }
+
 .home__empty p {
   max-width: 340px;
   margin: 0 auto 18px;
   color: var(--gora-muted);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   line-height: 1.6;
 }
+
 .home__empty a {
   display: inline-block;
-  padding: 9px 16px;
-  border-radius: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
   background: var(--ion-color-primary);
   color: var(--ion-color-primary-contrast);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
   text-decoration: none;
-}
-.home__load-more {
-  display: block;
-  margin: 20px auto 0;
-  padding: 10px 20px;
-  border: 1px solid var(--gora-line);
-  border-radius: 999px;
-  background: var(--gora-surface);
-  color: var(--ion-text-color);
-  font: inherit;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-.home__spinning {
-  animation: home-spin 1s linear infinite;
-}
-@keyframes home-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .home__spinning {
-    animation: none;
-  }
-}
-.home__composer {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 12px 16px 8px;
-  padding: 16px;
-  border: 1px solid var(--gora-line);
-  border-radius: var(--gora-radius-card);
-  background: var(--gora-surface);
-  color: var(--gora-muted);
-  font-size: 0.88rem;
-  text-decoration: none;
-}
-
-.home__composer-prompt {
-  flex: 1;
-}
-
-.home__composer-icon {
-  color: var(--ion-color-primary);
-  font-size: 22px;
-}
-
-.home__section {
-  padding: 8px 16px 32px;
 }
 
 .home__stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
+}
+
+.home__load-more {
+  display: block;
+  margin: 20px auto 0;
+  padding: 10px 22px;
+  border: 1px solid var(--gora-line);
+  border-radius: 999px;
+  background: var(--gora-surface);
+  color: var(--ion-text-color);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.home__load-more:hover:not(:disabled) {
+  border-color: var(--gora-accent-line);
+  color: var(--ion-color-primary);
+}
+
+.home__spinning {
+  animation: home-spin 1s linear infinite;
+}
+
+@keyframes home-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home__spinning {
+    animation: none;
+  }
 }
 </style>

@@ -5,7 +5,10 @@
     <ion-content :fullscreen="true">
       <PullToRefresh :reload="refreshDiscoverData" />
       <div class="discover">
-        <h1 class="discover__title">Discover</h1>
+        <header class="discover__header">
+          <h1 class="discover__title">Discover</h1>
+          <p class="discover__subtitle">Games, players, clubs, and highlights from the GORA community.</p>
+        </header>
         <p v-if="filters.isActive" class="discover__filters">
           Showing {{ filters.sport ?? 'all sports' }} within {{ formatDistanceFilter(filters.maxDistanceKm) }}
           <button type="button" @click="filters.reset()">Clear</button>
@@ -35,7 +38,7 @@
         </template>
 
         <template v-else-if="tab === 'CLUBS'">
-          <section class="discover__section">
+          <section class="discover__section discover__card">
             <SectionHeader title="Your clubs">
               <router-link to="/profile/clubs" class="discover__accent discover__link">My Clubs</router-link>
             </SectionHeader>
@@ -69,23 +72,9 @@
         </template>
 
         <template v-else>
-          <GoraPointsRanking />
+          <div class="discover__card discover__card--component"><NearbyGamesSection /></div>
 
-          <section class="discover__section">
-            <SectionHeader title="Popular Players" />
-            <ul class="discover__rail">
-              <li v-for="player in feed.popularPlayers" :key="player.id" class="discover__player">
-                <router-link :to="`/profile/${player.username}`" class="discover__profile-link">
-                  <UserAvatar :user="player" :size="64" />
-                  <strong>{{ player.displayName }}</strong>
-                </router-link>
-                <span>{{ player.primarySport }}</span>
-                <span class="discover__accent">{{ formatCompactNumber(player.followers) }} followers</span>
-              </li>
-            </ul>
-          </section>
-
-          <section class="discover__section">
+          <section class="discover__section discover__card">
             <SectionHeader title="Trending Sports" />
             <div class="discover__grid">
               <SportTile
@@ -98,7 +87,7 @@
             </div>
           </section>
 
-          <section class="discover__section">
+          <section class="discover__section discover__card">
             <SectionHeader title="Popular Games" />
             <div class="discover__rail discover__rail--cards">
               <GameCard
@@ -112,17 +101,30 @@
             </div>
           </section>
 
-          <section class="discover__section">
+          <section class="discover__section discover__card">
             <SectionHeader title="Trending Reels" />
             <div class="discover__rail discover__rail--reels">
               <ReelThumb v-for="reel in feed.trendingReels" :key="reel.id" :reel="reel" class="discover__reel" />
             </div>
           </section>
 
-          <NearbyGamesSection />
+          <section class="discover__section discover__card">
+            <SectionHeader title="Popular Players" />
+            <ul class="discover__rail">
+              <li v-for="player in feed.popularPlayers" :key="player.id" class="discover__player">
+                <router-link :to="`/profile/${player.username}`" class="discover__profile-link">
+                  <UserAvatar :user="player" :size="64" />
+                  <strong>{{ player.displayName }}</strong>
+                </router-link>
+                <span>{{ player.primarySport }}</span>
+                <span class="discover__accent">{{ formatCompactNumber(player.followers) }} followers</span>
+              </li>
+            </ul>
+          </section>
 
+          <div class="discover__card discover__card--component"><GoraPointsRanking /></div>
 
-          <section class="discover__section">
+          <section class="discover__section discover__card">
             <SectionHeader title="Featured Athletes" />
             <ul class="discover__stack discover__featured-list">
               <li
@@ -144,7 +146,7 @@
             </ul>
           </section>
 
-          <section class="discover__section">
+          <section class="discover__section discover__card">
             <SectionHeader title="Popular Clubs" />
             <p v-if="feed.popularClubs.length === 0" class="discover__empty">No clubs match your filters.</p>
             <ul class="discover__stack discover__club-list">
@@ -152,7 +154,7 @@
             </ul>
           </section>
 
-          <section class="discover__section">
+          <section class="discover__section discover__posts">
             <SectionHeader title="Public Posts" />
             <div class="discover__stack">
               <PostCard
@@ -356,39 +358,208 @@ async function refreshDiscoverData(): Promise<void> {
 
 <style scoped>
 .discover {
-  padding: 8px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 16px 32px;
+}
+
+/* Header */
+.discover__header {
+  padding: 4px 2px 0;
 }
 
 .discover__title {
-  margin: 4px 0 0;
-  font-size: 1.6rem;
+  margin: 0;
+  font-size: 1.7rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
-.discover__section {
-  margin-top: 24px;
-}
-
-.discover__tabs {
-  margin-top: 14px;
-}
-
-.discover__intro {
-  margin: 14px 0 0;
+.discover__subtitle {
+  margin: 4px 0 0;
   color: var(--gora-muted);
+  font-size: 0.88rem;
+}
+
+.discover__filters {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 7px 8px 7px 14px;
+  border: 1px solid var(--gora-accent-line);
+  border-radius: 999px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-text-color);
   font-size: 0.8rem;
 }
 
-.discover__feed {
+.discover__filters button {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Cards */
+.discover__card {
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 14px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+}
+
+/* Embedded sections bring their own top margin; the card spacing replaces it. */
+.discover__card--component > :deep(*) {
+  margin-top: 0;
+}
+
+.discover__section {
+  margin: 0;
+}
+
+.discover__posts {
+  margin-top: 6px;
+}
+
+.discover__posts > :deep(.section-header) {
+  padding: 0 2px;
+}
+
+.discover__intro {
+  margin: 0;
+  padding: 0 2px;
+  color: var(--gora-muted);
+  font-size: 0.82rem;
+}
+
+.discover__feed,
+.discover__stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin-top: 16px;
+  gap: 14px;
+}
+
+.discover__empty {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--gora-line-strong);
+  border-radius: var(--gora-radius-card);
+  color: var(--gora-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.discover__card .discover__empty {
+  border: 0;
+  padding: 6px 0;
+  text-align: left;
+}
+
+.discover__accent {
+  color: var(--ion-color-primary);
+  font-size: 0.75rem;
+  font-weight: 650;
 }
 
 .discover__link {
   text-decoration: none;
+}
+
+/* Horizontal rails bleed to the card edges and snap item by item. */
+.discover__rail {
+  display: flex;
+  gap: 12px;
+  margin: 0 -16px;
+  padding: 2px 16px 6px;
+  overflow-x: auto;
+  list-style: none;
+  scroll-padding-inline: 16px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.discover__rail::-webkit-scrollbar {
+  display: none;
+}
+
+.discover__rail > * {
+  scroll-snap-align: start;
+}
+
+.discover__profile-link {
+  display: contents;
+  color: inherit;
+  text-decoration: none;
+}
+
+.discover__player {
+  display: flex;
+  width: 116px;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 16px 8px 14px;
+  border: 1px solid var(--gora-line);
+  border-radius: 12px;
+  background: var(--gora-surface-raised);
+  text-align: center;
+  transition: border-color var(--gora-motion), transform var(--gora-motion);
+}
+
+.discover__player:hover {
+  border-color: var(--gora-accent-line);
+  transform: translateY(-2px);
+}
+
+.discover__player strong {
+  max-width: 100%;
+  margin-top: 8px;
+  overflow: hidden;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discover__player span {
+  color: var(--gora-muted);
+  font-size: 0.72rem;
+}
+
+.discover__player .discover__accent {
+  color: var(--ion-color-primary);
+}
+
+.discover__grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .discover__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.discover__game {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.discover__reel {
+  width: 128px;
+  flex-shrink: 0;
 }
 
 .discover__club-rail {
@@ -402,7 +573,8 @@ async function refreshDiscoverData(): Promise<void> {
   align-items: center;
   gap: 6px;
   color: var(--ion-text-color);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 600;
   text-align: center;
   text-decoration: none;
 }
@@ -414,111 +586,15 @@ async function refreshDiscoverData(): Promise<void> {
   -webkit-line-clamp: 2;
 }
 
-.discover__club-list {
-  margin: 0;
-  padding: 0;
-}
-
-.discover__filters {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 0;
-  color: var(--gora-muted);
-  font-size: 0.8rem;
-}
-
-.discover__filters button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ion-color-primary);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-}
-
-.discover__empty {
-  margin: 0;
-  color: #7d8a93;
-  font-size: 0.85rem;
-}
-
-.discover__accent {
-  color: var(--ion-color-primary);
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.discover__rail {
-  display: flex;
-  gap: 12px;
-  margin: 0 -16px;
-  padding: 0 16px 4px;
-  overflow-x: auto;
-  list-style: none;
-  scrollbar-width: none;
-}
-
-.discover__profile-link {
-  display: contents;
-  color: inherit;
-  text-decoration: none;
-}
-
-.discover__player {
-  display: flex;
-  width: 104px;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 14px 8px;
-  border-radius: var(--gora-radius-card);
-  background: var(--gora-surface);
-  text-align: center;
-}
-
-.discover__player strong {
-  margin-top: 8px;
-  overflow: hidden;
-  max-width: 100%;
-  font-size: 0.8rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.discover__player span {
-  color: var(--gora-muted);
-  font-size: 0.7rem;
-}
-
-.discover__grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.discover__game {
-  width: 280px;
-  flex-shrink: 0;
-}
-
-.discover__reel {
-  width: 120px;
-  flex-shrink: 0;
-}
-
-.discover__stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+.discover__club-list,
 .discover__featured-list {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.discover__featured-list {
+  gap: 10px;
 }
 
 .discover__featured {
@@ -527,11 +603,26 @@ async function refreshDiscoverData(): Promise<void> {
   align-items: center;
   gap: 14px;
   padding: 16px;
-  border-radius: var(--gora-radius-card);
+  overflow: hidden;
+  border-radius: 12px;
+  color: #fff;
+}
+
+.discover__featured::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent);
+  content: '';
+  pointer-events: none;
+}
+
+.discover__featured > * {
+  position: relative;
 }
 
 .discover__featured-text {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 2px;
 }
@@ -541,7 +632,7 @@ async function refreshDiscoverData(): Promise<void> {
 }
 
 .discover__featured-text span {
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 0.75rem;
 }
 
@@ -549,7 +640,7 @@ async function refreshDiscoverData(): Promise<void> {
   position: absolute;
   top: 12px;
   right: 12px;
-  color: var(--ion-color-primary);
+  color: #ffd27a;
   font-size: 18px;
 }
 </style>

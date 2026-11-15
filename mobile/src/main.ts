@@ -5,6 +5,7 @@ import router from './router';
 import { initializeAppPreferences } from './stores/app-preferences';
 
 import { IonicVue } from '@ionic/vue';
+import { chevronBack } from 'ionicons/icons';
 
 import '@ionic/vue/css/core.css';
 import '@ionic/vue/css/normalize.css';
@@ -21,11 +22,18 @@ import './theme/variables.css';
 import './theme/responsive.css';
 import './theme/profile-mobile.css';
 import './theme/keyboard.css';
+import './theme/navigation.css';
 
 initializeAppPreferences();
 
 // The shared viewport handler also covers native HTML inputs and overlay forms.
-const app = createApp(App).use(IonicVue, { scrollAssist: false, scrollPadding: false }).use(createPinia()).use(router);
+const app = createApp(App).use(IonicVue, {
+    scrollAssist: false,
+    scrollPadding: false,
+    // Same chevron on Android, iOS and web; the button is icon-only.
+    backButtonIcon: chevronBack,
+    backButtonText: '',
+  }).use(createPinia()).use(router);
 
 router.isReady().then(() => {
   app.mount('#app');

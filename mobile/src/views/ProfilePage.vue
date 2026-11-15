@@ -167,15 +167,15 @@
             No posts, reels, or games yet. <router-link to="/create/post">Create your first post</router-link>
           </p>
           <div class="profile-feed">
-            <div v-for="item in myFeed" :key="item.id" class="profile-card profile-feed__item">
-              <FeedEntry
-                :item="item"
-                :now-ms="now"
-                @like="likePost"
-                @comment="commentOnPost"
-                @share="sharePost"
-              />
-            </div>
+            <FeedEntry
+              v-for="item in myFeed"
+              :key="item.id"
+              :item="item"
+              :now-ms="now"
+              @like="likePost"
+              @comment="commentOnPost"
+              @share="sharePost"
+            />
           </div>
         </section>
       </div>
@@ -754,8 +754,10 @@ onMounted(() => {
   gap: 10px;
 }
 
-.profile-feed__item {
-  padding: 14px;
+@media (max-width: 767px) {
+  .profile-feed {
+    padding: 0 12px;
+  }
 }
 
 /* Loading & error */

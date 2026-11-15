@@ -100,7 +100,12 @@ const emit = defineEmits<{
 .feed-entry {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--gora-line);
+  border-radius: var(--gora-radius-card);
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
 }
 
 .feed-entry__header {

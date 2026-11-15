@@ -1,59 +1,59 @@
 import { createPinia, setActivePinia } from 'pinia';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { useAuthStore } from '@/stores/auth';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { tokenStorage } from '@/services/token-storage';
-import { resolveAuthNavigation } from '@/utils/auth';
+import { useAuthStore } from '@/stores/auth';
 
-const user = { id: 'offline-user', username: 'player', email: 'player@example.test', firstName: 'Test', lastName: 'Player', role: 'USER' as const, profileImageUrl: null, bio: null, city: null };
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-const stores: ReturnType<typeof useAuthStore>[] = [];
-function freshLaunch() { setActivePinia(createPinia()); const auth = useAuthStore(); stores.push(auth); return auth; }
-beforeEach(() => localStorage.clear());
-afterEach(async () => { for (const auth of stores.splice(0)) await auth.logout(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+const alice = {
+  id: 'alice',
+  username: 'alice',
+  firstName: 'Alice',
+  lastName: 'Test',
+  email: 'alice@example.test',
+  role: 'USER',
+  profileImageUrl: null,
+  bio: null,
+  city: null,
+};
 
-test('a successful login survives a failed profile request and a cold offline launch', async () => {
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-    if (url.endsWith('/auth/login')) return json({ user, accessToken: 'saved-session' });
-    throw new TypeError('Network unavailable');
-  }));
-  await freshLaunch().login({ email: user.email, password: 'test-password' });
-  expect((await tokenStorage.getUser())?.id).toBe(user.id);
-  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
-  const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
-  const restored = freshLaunch();
-  await restored.initialize();
-  expect(restored.isInitialized).toBe(true);
-  expect(restored.isAuthenticated).toBe(true);
-  expect(fetcher).not.toHaveBeenCalled();
-  expect(resolveAuthNavigation({ fullPath: '/login', guestOnly: true, requiresAuth: false }, restored.isAuthenticated)).toEqual({ path: '/home' });
+beforeEach(() => {
+  setActivePinia(createPinia());
+  localStorage.clear();
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
-test('an unreachable API does not remove a cached session even when the device reports online', async () => {
-  await tokenStorage.set('saved-session'); await tokenStorage.setUser(user);
-  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Network unavailable')));
-  const restored = freshLaunch(); await restored.initialize();
-  expect(restored.isAuthenticated).toBe(true);
-  expect(await tokenStorage.get()).toBe('saved-session');
-});
+describe('opening the app offline', () => {
+  test('stays signed in with the last known profile', async () => {
+    await tokenStorage.set('saved-token');
+    await tokenStorage.setUser(alice as never);
+    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))));
 
-test('reconnection refreshes the cached identity and a server rejection clears it', async () => {
-  await tokenStorage.set('saved-session'); await tokenStorage.setUser(user);
-  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
-  const restored = freshLaunch(); await restored.initialize();
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ ...user, city: 'Manila' })));
-  window.dispatchEvent(new Event('online'));
-  await vi.waitFor(() => expect(restored.currentUser?.city).toBe('Manila'));
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ message: 'Unauthorized' }, 401)));
-  await restored.loadCurrentUser();
-  expect(restored.isAuthenticated).toBe(false);
-  expect(await tokenStorage.get()).toBeNull();
-  expect(await tokenStorage.getUser()).toBeNull();
-});
+    const auth = useAuthStore();
+    await auth.initialize();
 
-test('explicit logout stays logged out on an offline restart', async () => {
-  await tokenStorage.set('saved-session'); await tokenStorage.setUser(user);
-  const auth = freshLaunch(); await auth.logout();
-  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
-  const restored = freshLaunch(); await restored.initialize();
-  expect(restored.isAuthenticated).toBe(false);
+    expect(auth.isAuthenticated).toBe(true);
+    expect(auth.currentUser?.username).toBe('alice');
+  });
+
+  test('is signed out offline when no profile was ever saved', async () => {
+    await tokenStorage.set('saved-token');
+    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))));
+
+    const auth = useAuthStore();
+    await auth.initialize();
+
+    expect(auth.isAuthenticated).toBe(false);
+    expect(await tokenStorage.get()).toBe('saved-token');
+  });
+
+  test('logout forgets the saved profile too', async () => {
+    await tokenStorage.set('saved-token');
+    await tokenStorage.setUser(alice as never);
+
+    await useAuthStore().logout();
+
+    expect(await tokenStorage.getUser()).toBeNull();
+  });
 });

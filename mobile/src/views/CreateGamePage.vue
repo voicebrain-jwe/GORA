@@ -23,6 +23,18 @@
 
       <form id="create-game-form" ref="formRef" v-else class="create-game" novalidate @submit.prevent="advance">
         <header class="create-game__step-header">
+          <ol class="cg-stepper" aria-hidden="true">
+            <li
+              v-for="(meta, index) in STEP_META"
+              :key="meta.label"
+              :class="{ 'is-done': index < activeStep, 'is-active': index === activeStep }"
+            >
+              <span class="cg-stepper__dot">
+                <ion-icon :icon="index < activeStep ? checkmarkOutline : meta.icon" />
+              </span>
+              <span class="cg-stepper__label">{{ meta.label }}</span>
+            </li>
+          </ol>
           <p class="create-game__step-count">Step {{ activeStep + 1 }} of {{ GAME_STEPS.length }}</p>
           <div
             class="create-game__progress"
@@ -39,9 +51,23 @@
         </header>
         <p v-if="sportsError" class="create-game__alert" role="alert">{{ sportsError }}</p>
         <section v-if="activeStep === 0" class="create-game__step" :aria-label="currentStep.title">
-          <div class="create-game__field" @focusout="touch('sportId')">
+          <div class="create-game__field cg-sport" @focusout="touch('sportId')">
             <label class="create-game__label" for="game-sport">Sport *</label>
-            <select id="game-sport" v-model="form.sportId" class="create-game__input">
+            <div v-if="sportOptions.length" class="cg-sport-chips" aria-hidden="true">
+              <button
+                v-for="option in sportOptions"
+                :key="option.id"
+                type="button"
+                tabindex="-1"
+                class="cg-sport-chip"
+                :class="{ 'is-active': form.sportId === option.id }"
+                @click="pickSport(option.id)"
+              >
+                <SportIcon :name="option.name" :size="22" />
+                <span>{{ option.name }}</span>
+              </button>
+            </div>
+            <select id="game-sport" v-model="form.sportId" class="create-game__input cg-sr-only">
               <option value="" disabled>{{ sportOptions.length ? 'Choose a sport' : 'Loading sports…' }}</option>
               <option v-for="option in sportOptions" :key="option.id" :value="option.id">{{ option.name }}</option>
             </select>
@@ -86,17 +112,25 @@
         <section v-if="activeStep === 1" class="create-game__step" :aria-label="currentStep.title">
           <div class="create-game__field" @focusout="touch('requiredPlayers')">
             <label class="create-game__label" for="game-players">Required players *</label>
-            <input
-              id="game-players"
-              v-model="form.requiredPlayers"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              :max="GAME_PLAYERS_MAX"
-              step="1"
-              class="create-game__input create-game__input--narrow"
-              placeholder="12"
-            />
+            <div class="cg-count">
+              <button type="button" class="cg-count__btn" aria-label="Fewer players" @click="bumpPlayers(-1)">
+                <ion-icon :icon="removeOutline" aria-hidden="true" />
+              </button>
+              <input
+                id="game-players"
+                v-model="form.requiredPlayers"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                :max="GAME_PLAYERS_MAX"
+                step="1"
+                class="create-game__input cg-count__input"
+                placeholder="12"
+              />
+              <button type="button" class="cg-count__btn" aria-label="More players" @click="bumpPlayers(1)">
+                <ion-icon :icon="addOutline" aria-hidden="true" />
+              </button>
+            </div>
             <p v-if="shown('requiredPlayers')" class="create-game__error">{{ errors.requiredPlayers }}</p>
             <p v-else class="create-game__hint">
               Everyone who plays, including you if you play. You are not added automatically.
@@ -105,7 +139,31 @@
 
           <div class="create-game__field">
             <label class="create-game__label" for="game-acceptance">Player approval</label>
-            <select id="game-acceptance" v-model="form.autoAccept" class="create-game__input">
+            <div class="cg-choice" aria-hidden="true">
+              <button
+                type="button"
+                tabindex="-1"
+                class="cg-choice__card"
+                :class="{ 'is-active': !form.autoAccept }"
+                @click="form.autoAccept = false"
+              >
+                <span class="cg-choice__icon"><ion-icon :icon="shieldCheckmarkOutline" /></span>
+                <strong>Manual accept</strong>
+                <small>You review each request</small>
+              </button>
+              <button
+                type="button"
+                tabindex="-1"
+                class="cg-choice__card"
+                :class="{ 'is-active': form.autoAccept }"
+                @click="form.autoAccept = true"
+              >
+                <span class="cg-choice__icon cg-choice__icon--green"><ion-icon :icon="flashOutline" /></span>
+                <strong>Auto accept</strong>
+                <small>Players join instantly</small>
+              </button>
+            </div>
+            <select id="game-acceptance" v-model="form.autoAccept" class="create-game__input cg-sr-only">
               <option :value="false">Manual Accept</option>
               <option :value="true">Auto Accept</option>
             </select>
@@ -252,6 +310,8 @@
             @select="onMapPoint"
           />
 
+          <details class="cg-advanced" :open="shown('latitude') || shown('longitude') || undefined">
+            <summary>Coordinates (advanced)</summary>
           <div class="create-game__grid">
             <div class="create-game__field" @focusout="touch('latitude')">
               <label class="create-game__label" for="game-lat">Latitude</label>
@@ -276,13 +336,24 @@
               <p v-if="shown('longitude')" class="create-game__error">{{ errors.longitude }}</p>
             </div>
           </div>
+          </details>
           <p class="create-game__hint">Search a place and pick a result: the pin jumps there. Tap the map or drag the pin to fine-tune.</p>
         </section>
 
         <section v-if="isReview" class="create-game__step create-game__review" aria-label="Game review">
+          <div class="cg-preview" aria-hidden="true">
+            <img :src="getSportImage(selectedSportName)" alt="" />
+            <div class="cg-preview__shade" />
+            <div class="cg-preview__body">
+              <span class="cg-preview__sport"><SportIcon :name="selectedSportName" :size="18" /> {{ selectedSportName }}</span>
+              <strong>{{ form.title.trim() }}</strong>
+              <span v-if="form.gameDate">{{ formatGameDay(form.gameDate) }} · {{ formatGameTimeRange(form.startTime, form.endTime) }}</span>
+              <span v-if="form.locationName.trim()">📍 {{ form.locationName.trim() }}</span>
+            </div>
+          </div>
           <article class="create-game__review-card">
             <div class="create-game__review-heading">
-              <h3>Game details</h3>
+              <h3><ion-icon :icon="documentTextOutline" aria-hidden="true" /> Game details</h3>
               <button type="button" aria-label="Edit game details" @click="goToStep(0)">Edit</button>
             </div>
             <strong>{{ form.title.trim() }}</strong>
@@ -293,7 +364,7 @@
           </article>
           <article class="create-game__review-card">
             <div class="create-game__review-heading">
-              <h3>Players &amp; approval</h3>
+              <h3><ion-icon :icon="peopleOutline" aria-hidden="true" /> Players &amp; approval</h3>
               <button type="button" aria-label="Edit players and approval" @click="goToStep(1)">Edit</button>
             </div>
             <p>{{ form.requiredPlayers }} players</p>
@@ -302,7 +373,7 @@
           </article>
           <article class="create-game__review-card">
             <div class="create-game__review-heading">
-              <h3>Schedule</h3>
+              <h3><ion-icon :icon="calendarOutline" aria-hidden="true" /> Schedule</h3>
               <button type="button" aria-label="Edit schedule" @click="goToStep(2)">Edit</button>
             </div>
             <p>{{ formatGameDay(form.gameDate) }}</p>
@@ -311,7 +382,7 @@
           </article>
           <article class="create-game__review-card">
             <div class="create-game__review-heading">
-              <h3>Location</h3>
+              <h3><ion-icon :icon="locationOutline" aria-hidden="true" /> Location</h3>
               <button type="button" aria-label="Edit location" @click="goToStep(3)">Edit</button>
             </div>
             <p>{{ form.locationName.trim() }}</p>
@@ -343,7 +414,7 @@
           class="create-game__submit"
           :disabled="gamesStore.isSaving"
         >
-          Next
+          Next <ion-icon :icon="arrowForward" aria-hidden="true" />
         </button>
         <button
           v-else
@@ -370,7 +441,23 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { IonContent, IonFooter, IonIcon, IonPage, IonSpinner, onIonViewDidLeave, onIonViewWillEnter } from '@ionic/vue';
-import { locationOutline, navigateOutline, searchOutline } from 'ionicons/icons';
+import {
+  addOutline,
+  arrowForward,
+  calendarOutline,
+  checkmarkDoneOutline,
+  checkmarkOutline,
+  documentTextOutline,
+  flashOutline,
+  locationOutline,
+  navigateOutline,
+  peopleOutline,
+  removeOutline,
+  searchOutline,
+  shieldCheckmarkOutline,
+} from 'ionicons/icons';
+import SportIcon from '@/components/sports/SportIcon.vue';
+import { getSportImage } from '@/utils/sports';
 import GameDateField from '@/components/games/GameDateField.vue';
 import GamePreviewCard from '@/components/games/GamePreviewCard.vue';
 import LocationPickerModal from '@/components/feed/LocationPickerModal.vue';
@@ -454,7 +541,26 @@ const GAME_STEPS: readonly { title: string; hint: string; fields: readonly GameF
   },
   { title: 'Review', hint: 'Check your game before confirming. You can edit any section.', fields: [] },
 ];
+/** Icons and short labels for the stepper, in GAME_STEPS order. */
+const STEP_META = [
+  { label: 'Details', icon: documentTextOutline },
+  { label: 'Players', icon: peopleOutline },
+  { label: 'Schedule', icon: calendarOutline },
+  { label: 'Place', icon: locationOutline },
+  { label: 'Review', icon: checkmarkDoneOutline },
+];
 const currentStep = computed(() => GAME_STEPS[activeStep.value]);
+
+function pickSport(id: string): void {
+  form.value.sportId = id;
+  touch('sportId');
+}
+
+function bumpPlayers(step: number): void {
+  const current = Number(String(form.value.requiredPlayers).trim()) || 0;
+  form.value.requiredPlayers = Math.min(GAME_PLAYERS_MAX, Math.max(1, current + step));
+  touch('requiredPlayers');
+}
 const isReview = computed(() => activeStep.value === GAME_STEPS.length - 1);
 
 const original = computed(() => (editId ? gamesStore.gameById(editId) : null));
@@ -1299,6 +1405,457 @@ textarea.create-game__input {
   .game-created,
   .game-created__badge {
     animation: none;
+  }
+}
+
+/* ═════════ Create Game redesign ═════════ */
+.create-game {
+  max-width: 640px;
+  margin: 0 auto;
+  gap: 18px;
+  padding: 18px 16px 48px;
+}
+
+.cg-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  border: 0 !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+/* Header + stepper */
+.create-game__step-header {
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 96, 40, 0.16), transparent 55%),
+    var(--gora-surface);
+}
+
+.cg-stepper {
+  display: grid;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.cg-stepper li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  color: var(--gora-muted);
+}
+
+.cg-stepper li + li::before {
+  position: absolute;
+  z-index: 0;
+  top: 17px;
+  right: 50%;
+  left: -50%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gora-line-strong);
+  content: '';
+  transition: background 0.35s;
+}
+
+.cg-stepper li.is-done + li::before,
+.cg-stepper li.is-done + li.is-active::before {
+  background: var(--ion-color-primary);
+}
+
+.cg-stepper__dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 2px solid var(--gora-line-strong);
+  border-radius: 50%;
+  background: var(--gora-surface);
+  font-size: 1.05rem;
+  transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cg-stepper li.is-done .cg-stepper__dot {
+  border-color: var(--ion-color-primary);
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+}
+
+.cg-stepper li.is-active .cg-stepper__dot {
+  border-color: var(--ion-color-primary);
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  box-shadow: 0 0 0 5px rgba(255, 96, 40, 0.14);
+  transform: scale(1.08);
+}
+
+.cg-stepper__label {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.cg-stepper li.is-active .cg-stepper__label {
+  color: var(--ion-text-color);
+}
+
+.create-game__step-count {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.create-game__progress {
+  display: none;
+}
+
+.create-game__step-title {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+}
+
+/* Steps animate in */
+.create-game__step {
+  gap: 18px;
+  animation: cg-step-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.create-game__label {
+  color: var(--ion-text-color);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.create-game__label span,
+.create-game__counter {
+  color: var(--gora-muted);
+  font-weight: 600;
+}
+
+.create-game__input {
+  min-height: 50px;
+  border-radius: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.create-game__input:focus {
+  border-color: var(--ion-color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gora-accent-soft);
+}
+
+/* Sport chips */
+.cg-sport-chips {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  border-radius: 16px;
+}
+
+.cg-sport:focus-within .cg-sport-chips {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 4px;
+}
+
+.cg-sport-chip {
+  display: flex;
+  min-height: 74px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border: 1.5px solid var(--gora-line);
+  border-radius: 16px;
+  background: var(--gora-surface);
+  color: var(--ion-text-color);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  transition: border-color 0.2s, background 0.2s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cg-sport-chip:active {
+  transform: scale(0.95);
+}
+
+.cg-sport-chip.is-active {
+  border-color: var(--ion-color-primary);
+  background: var(--gora-accent-soft);
+  box-shadow: 0 8px 20px -12px rgba(255, 96, 40, 0.8);
+  color: var(--ion-color-primary);
+  transform: translateY(-2px);
+}
+
+/* Player count stepper */
+.cg-count {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 10px;
+}
+
+.cg-count__btn {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border: 1px solid var(--gora-line-strong);
+  border-radius: 50%;
+  background: var(--gora-surface);
+  color: var(--ion-color-primary);
+  cursor: pointer;
+  font-size: 1.3rem;
+  transition: transform 0.15s, background 0.2s;
+}
+
+.cg-count__btn:active {
+  background: var(--gora-accent-soft);
+  transform: scale(0.92);
+}
+
+.cg-count__input.cg-count__input {
+  width: 96px;
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.cg-count__input::-webkit-outer-spin-button,
+.cg-count__input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+/* Approval cards */
+.cg-choice {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.cg-choice__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border: 1.5px solid var(--gora-line);
+  border-radius: 18px;
+  background: var(--gora-surface);
+  color: var(--ion-text-color);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cg-choice__card strong {
+  font-size: 0.9rem;
+}
+
+.cg-choice__card small {
+  color: var(--gora-muted);
+  font-size: 0.76rem;
+}
+
+.cg-choice__card.is-active {
+  border-color: var(--ion-color-primary);
+  background: var(--gora-accent-soft);
+  transform: translateY(-2px);
+}
+
+.cg-choice__icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 1.2rem;
+}
+
+.cg-choice__icon--green {
+  background: rgba(47, 191, 113, 0.14);
+  color: #2fbf71;
+}
+
+/* Advanced coordinates */
+.cg-advanced {
+  border: 1px solid var(--gora-line);
+  border-radius: 16px;
+  background: var(--gora-surface);
+}
+
+.cg-advanced summary {
+  padding: 12px 14px;
+  color: var(--gora-muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cg-advanced[open] summary {
+  border-bottom: 1px solid var(--gora-line);
+}
+
+.cg-advanced .create-game__grid {
+  padding: 12px 14px 14px;
+}
+
+/* Review */
+.cg-preview {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  min-height: 190px;
+  align-items: flex-end;
+  border-radius: 22px;
+  background: #111;
+  color: #fff;
+  isolation: isolate;
+}
+
+.cg-preview img {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cg-preview__shade {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.88));
+}
+
+.cg-preview__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 16px;
+  font-size: 0.82rem;
+}
+
+.cg-preview__body strong {
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.cg-preview__body > span:not(.cg-preview__sport) {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.cg-preview__sport {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding: 3px 10px 3px 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.create-game__review-card {
+  border-radius: 18px;
+}
+
+.create-game__review-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.create-game__review-heading h3 ion-icon {
+  color: var(--ion-color-primary);
+}
+
+/* Footer */
+.create-game__actions {
+  border-top-color: transparent;
+  background: color-mix(in srgb, var(--ion-background-color) 88%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.create-game__submit {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--ion-color-primary), #ff8a3d);
+  box-shadow: 0 12px 26px -12px rgba(255, 96, 40, 0.85);
+  font-weight: 800;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.create-game__submit ion-icon {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.create-game__submit:hover ion-icon {
+  transform: translateX(4px);
+}
+
+.create-game__submit:not(:disabled):active,
+.create-game__back:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.create-game__back {
+  flex: 0 0 auto;
+  min-width: 100px;
+  min-height: 52px;
+}
+
+@keyframes cg-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-game__step,
+  .cg-stepper__dot,
+  .cg-sport-chip,
+  .cg-choice__card {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .cg-choice {
+    grid-template-columns: 1fr;
   }
 }
 </style>

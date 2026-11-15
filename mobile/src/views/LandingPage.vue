@@ -106,7 +106,7 @@
 
             <div class="container position-relative">
               <div class="row align-items-center g-5 lp-hero__row">
-                <div class="col-lg-6">
+                <div class="col-lg-8 col-xl-7">
                   <span class="badge rounded-pill lp-pill lp-enter" style="--enter-delay: 0ms">
                     <span class="lp-live-dot" aria-hidden="true" /> Less scrolling. More showing up.
                   </span>
@@ -147,51 +147,6 @@
                   </ul>
                 </div>
 
-                <div class="col-lg-6 d-none d-lg-block">
-                  <div class="lp-stage" aria-hidden="true">
-                    <div class="card lp-glass lp-game-card lp-float">
-                      <div class="card-body p-4">
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                          <span class="lp-sport-icon"><ion-icon :icon="basketballOutline" /></span>
-                          <div>
-                            <div class="fw-bold">Saturday pickup crew</div>
-                            <small class="text-body-secondary">Neighborhood court · Sat · 4:00 PM</small>
-                          </div>
-                        </div>
-                        <div class="d-flex justify-content-between small mb-2">
-                          <span class="text-body-secondary">Players</span>
-                          <span class="fw-semibold">8 / 10</span>
-                        </div>
-                        <div class="lp-progress mb-3"><span /></div>
-                        <div class="d-flex align-items-center justify-content-between">
-                          <div class="lp-avatars">
-                            <span v-for="initial in ['JT', 'MA', 'KR', 'PL']" :key="initial">{{ initial }}</span>
-                            <span class="lp-avatars__more">+4</span>
-                          </div>
-                          <span class="btn btn-primary btn-sm rounded-pill px-3">Join game</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="card lp-glass lp-club-card lp-float lp-float--slow">
-                      <div class="card-body d-flex align-items-center gap-3 p-3">
-                        <span class="lp-club-logo">PLAY</span>
-                        <div>
-                          <div class="fw-bold small">Weekend Court Crew</div>
-                          <small class="text-body-secondary">Basketball club · Public</small>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="card lp-glass lp-toast-card lp-float lp-float--fast">
-                      <div class="card-body d-flex align-items-center gap-2 p-3">
-                        <ion-icon :icon="checkmarkCircle" class="text-success fs-4" />
-                        <span class="small fw-semibold">You're in! See you Saturday.</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p class="text-center small text-body-secondary mt-3 mb-0 lp-illustrative">Illustrative preview</p>
-                </div>
               </div>
             </div>
 

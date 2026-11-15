@@ -285,17 +285,27 @@ describe('MySportsSection.vue', () => {
     expect(failed.emitted('retry')).toHaveLength(1);
   });
 
-  test('shows real sports as icon tiles; your own open Edit and Remove', () => {
+  test('shows sports on the profile as icons with the skill level', () => {
     const wrapper = mount(MySportsSection, { props: { sports: [BASKETBALL], editable: true } });
 
-    expect(wrapper.text()).toContain('Basketball');
-    expect(wrapper.find('button[aria-label^="Basketball,"][aria-label$="Edit or remove"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Advanced');
+    expect(wrapper.find('[aria-label^="Basketball,"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Edit Basketball"]').exists()).toBe(false);
+  });
+
+  test('the manage view edits and removes sports', async () => {
+    const wrapper = mount(MySportsSection, { props: { sports: [BASKETBALL], editable: true, layout: 'list' } });
+
+    await wrapper.find('[aria-label="Edit Basketball"]').trigger('click');
+    await wrapper.find('[aria-label="Remove Basketball"]').trigger('click');
+    expect(wrapper.emitted('edit')?.[0]).toEqual([BASKETBALL]);
+    expect(wrapper.emitted('remove')?.[0]).toEqual([BASKETBALL]);
   });
 
   test('is read-only on other profiles', () => {
-    const wrapper = mount(MySportsSection, { props: { sports: [BASKETBALL] } });
+    const wrapper = mount(MySportsSection, { props: { sports: [BASKETBALL], layout: 'list' } });
 
-    expect(wrapper.text()).toContain('Basketball');
-    expect(wrapper.find('[aria-label$="Edit or remove"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Edit Basketball"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Remove Basketball"]').exists()).toBe(false);
   });
 });

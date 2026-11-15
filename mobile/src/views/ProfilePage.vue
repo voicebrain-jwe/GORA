@@ -54,6 +54,12 @@
 
         <ion-popover :is-open="coverMenuEvent !== null" :event="coverMenuEvent" side="bottom" alignment="end" @did-dismiss="coverMenuEvent = null">
           <nav class="profile-cover-menu__links" aria-label="Profile options">
+            <router-link to="/profile/edit" class="profile-cover-menu__link" @click="coverMenuEvent = null">
+              <ion-icon :icon="createOutline" aria-hidden="true" /> Edit profile
+            </router-link>
+            <button type="button" class="profile-cover-menu__link" @click="openManageSports">
+              <ion-icon :icon="basketballOutline" aria-hidden="true" /> Edit sports
+            </button>
             <router-link to="/profile/archive" class="profile-cover-menu__link" @click="coverMenuEvent = null">
               <ion-icon :icon="archiveOutline" aria-hidden="true" /> Archive
             </router-link>
@@ -105,15 +111,39 @@
           <MySportsSection
             :sports="sportsStore.mySports"
             editable
-            :busy-id="sportsStore.busyId"
             :loading="sportsStore.mySportsStatus === 'loading'"
             :error="sportsStore.mySportsError"
             @add="openAddSport"
-            @edit="openEditSport"
-            @remove="confirmRemoveSport"
             @retry="sportsStore.fetchMySports({ force: true })"
           />
         </div>
+
+        <ion-modal :is-open="manageSportsOpen" @did-dismiss="manageSportsOpen = false">
+          <ion-header>
+            <ion-toolbar>
+              <ion-title>Edit sports</ion-title>
+              <ion-buttons slot="end">
+                <ion-button @click="manageSportsOpen = false">Done</ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content>
+            <div class="profile-manage-sports">
+              <MySportsSection
+                layout="list"
+                :sports="sportsStore.mySports"
+                editable
+                :busy-id="sportsStore.busyId"
+                :loading="sportsStore.mySportsStatus === 'loading'"
+                :error="sportsStore.mySportsError"
+                @add="openAddSport"
+                @edit="openEditSport"
+                @remove="confirmRemoveSport"
+                @retry="sportsStore.fetchMySports({ force: true })"
+              />
+            </div>
+          </ion-content>
+        </ion-modal>
 
         <section class="profile-card" aria-label="My clubs">
           <SectionHeader title="My Clubs">
@@ -197,16 +227,22 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import {
   IonButton,
+  IonButtons,
   IonContent,
+  IonHeader,
   IonIcon,
+  IonModal,
   IonPage,
   IonPopover,
   IonSkeletonText,
+  IonTitle,
+  IonToolbar,
   alertController,
   onIonViewWillEnter,
 } from '@ionic/vue';
 import {
   archiveOutline,
+  basketballOutline,
   bookmarkOutline,
   chevronDown,
   createOutline,
@@ -269,6 +305,13 @@ const sections = computed(() =>
 /** The click that opened the More menu, used to anchor it. Null when closed. */
 const moreEvent = ref<Event | null>(null);
 const coverMenuEvent = ref<Event | null>(null);
+/** "..." → Edit sports: add, change, or remove sports. */
+const manageSportsOpen = ref(false);
+
+function openManageSports(): void {
+  coverMenuEvent.value = null;
+  manageSportsOpen.value = true;
+}
 /** Every club you are an ACTIVE member of (the same list as My Clubs → Your clubs), owner first. */
 const myClubs = computed(() => groupMyClubs(clubsStore.clubs).joined);
 
@@ -490,8 +533,11 @@ onMounted(() => {
 /* Stats strip inside the hero card */
 .profile-stats {
   display: grid;
-  margin: 16px 16px 0;
-  border-top: 1px solid var(--gora-line);
+  margin: 14px 16px 12px;
+  padding: 2px 0;
+  border: 1px solid var(--gora-line);
+  border-radius: 12px;
+  background: var(--gora-surface-raised);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -500,8 +546,8 @@ onMounted(() => {
   min-width: 0;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 16px 4px 18px;
+  gap: 0;
+  padding: 7px 4px;
   color: var(--ion-text-color);
   text-decoration: none;
   transition: color var(--gora-motion);
@@ -516,7 +562,7 @@ onMounted(() => {
 }
 
 .profile-stats__item strong {
-  font-size: 1.3rem;
+  font-size: 1rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   transition: color var(--gora-motion);
@@ -524,8 +570,23 @@ onMounted(() => {
 
 .profile-stats__item span {
   color: var(--gora-muted);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 600;
+}
+
+.profile-manage-sports {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+button.profile-cover-menu__link {
+  width: 100%;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
 }
 
 /* Section pills */

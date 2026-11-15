@@ -1,7 +1,11 @@
 <template>
   <section class="my-sports" aria-labelledby="my-sports-title">
-    <header class="my-sports__header">
+    <header v-if="layout === 'list' || !hideHeader" class="my-sports__header">
       <h2 id="my-sports-title">{{ editable ? 'My Sports' : 'Sports' }}</h2>
+      <button v-if="layout === 'list' && editable && sports.length > 0" type="button" class="my-sports__add" @click="emit('add')">
+        <ion-icon :icon="addOutline" aria-hidden="true" />
+        Add Sport
+      </button>
     </header>
 
     <div v-if="loading && sports.length === 0" class="my-sports__list" aria-busy="true" aria-label="Loading sports">
@@ -27,52 +31,74 @@
       </button>
     </div>
 
-    <ul v-else class="my-sports__rail">
-      <li v-for="sport in sports" :key="sport.sportId">
-        <component
-          :is="editable ? 'button' : 'div'"
-          :type="editable ? 'button' : undefined"
-          class="my-sports__tile"
-          :disabled="editable && busyId !== null"
-          :aria-label="editable ? `${sport.name}, ${describeUserSport(sport)}. Edit or remove` : `${sport.name}, ${describeUserSport(sport)}`"
-          @click="editable && openActions(sport)"
-        >
-          <span class="my-sports__ring" :title="sport.name">
-            <span class="my-sports__inner">
-              <SportIcon :name="sport.name" :icon-url="sport.iconUrl" :size="60" />
-            </span>
-            <ion-spinner v-if="busyId === sport.sportId" name="crescent" class="my-sports__tile-spinner" />
-          </span>
-          <span class="my-sports__level">{{ skillLevelLabel(sport.skillLevel) }}</span>
-        </component>
+    <!-- Manage view (from the profile "..." menu): edit level or remove each sport. -->
+    <ul v-else-if="layout === 'list'" class="my-sports__list">
+      <li v-for="sport in sports" :key="sport.sportId" class="my-sports__card">
+        <SportIcon :name="sport.name" :icon-url="sport.iconUrl" />
+        <span class="my-sports__text">
+          <strong>{{ sport.name }}</strong>
+          <span>{{ describeUserSport(sport) }}</span>
+        </span>
+        <template v-if="editable">
+          <ion-spinner v-if="busyId === sport.sportId" name="crescent" class="my-sports__spinner" />
+          <template v-else>
+            <button
+              type="button"
+              class="my-sports__icon-button"
+              :aria-label="`Edit ${sport.name}`"
+              :disabled="busyId !== null"
+              @click="emit('edit', sport)"
+            >
+              <ion-icon :icon="createOutline" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="my-sports__icon-button"
+              :aria-label="`Remove ${sport.name}`"
+              :disabled="busyId !== null"
+              @click="emit('remove', sport)"
+            >
+              <ion-icon :icon="trashOutline" aria-hidden="true" />
+            </button>
+          </template>
+        </template>
       </li>
-      <li v-if="editable">
-        <button type="button" class="my-sports__tile my-sports__tile--add" :disabled="busyId !== null" @click="emit('add')">
-          <span class="my-sports__ring my-sports__ring--add"><ion-icon :icon="addOutline" aria-hidden="true" /></span>
-          <span class="my-sports__level">Add</span>
-        </button>
+    </ul>
+
+    <!-- Profile view: story-style circles, icon with the level underneath. -->
+    <ul v-else class="my-sports__rail">
+      <li v-for="sport in sports" :key="sport.sportId" class="my-sports__tile" :aria-label="`${sport.name}, ${describeUserSport(sport)}`">
+        <span class="my-sports__ring" :title="sport.name">
+          <span class="my-sports__inner">
+            <SportIcon :name="sport.name" :icon-url="sport.iconUrl" :size="60" />
+          </span>
+        </span>
+        <span class="my-sports__level">{{ skillLevelLabel(sport.skillLevel) }}</span>
       </li>
     </ul>
   </section>
 </template>
 
 <script setup lang="ts">
-import { IonIcon, IonSkeletonText, IonSpinner, actionSheetController } from '@ionic/vue';
+import { IonIcon, IonSkeletonText, IonSpinner } from '@ionic/vue';
 import { addOutline, createOutline, trashOutline } from 'ionicons/icons';
 import SportIcon from '@/components/sports/SportIcon.vue';
 import type { UserSportEntry } from '@/types/profile';
 import { describeUserSport, skillLevelLabel } from '@/utils/sports-profile';
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     sports: readonly UserSportEntry[];
     editable?: boolean;
+    /** 'rail' shows icons on a profile; 'list' is the manage view with Edit and Remove. */
+    layout?: 'rail' | 'list';
+    hideHeader?: boolean;
     /** The sport currently being saved or removed. */
     busyId?: string | null;
     loading?: boolean;
     error?: string | null;
   }>(),
-  { editable: false, busyId: null, loading: false, error: null },
+  { editable: false, layout: 'rail', hideHeader: false, busyId: null, loading: false, error: null },
 );
 const emit = defineEmits<{
   add: [];
@@ -80,21 +106,6 @@ const emit = defineEmits<{
   remove: [sport: UserSportEntry];
   retry: [];
 }>();
-
-/** Tap a sport on your own profile: edit its level or remove it. */
-async function openActions(sport: UserSportEntry): Promise<void> {
-  if (props.busyId !== null) return;
-  const sheet = await actionSheetController.create({
-    header: sport.name,
-    subHeader: describeUserSport(sport),
-    buttons: [
-      { text: 'Edit level & position', icon: createOutline, handler: () => emit('edit', sport) },
-      { text: 'Remove sport', role: 'destructive', icon: trashOutline, handler: () => emit('remove', sport) },
-      { text: 'Cancel', role: 'cancel' },
-    ],
-  });
-  await sheet.present();
-}
 </script>
 
 <style scoped>
@@ -270,9 +281,6 @@ async function openActions(sport: UserSportEntry): Promise<void> {
   text-align: center;
 }
 
-button.my-sports__tile {
-  cursor: pointer;
-}
 
 /* Same ring as a story avatar. */
 .my-sports__ring {
@@ -300,10 +308,6 @@ button.my-sports__tile {
   border-radius: 50%;
 }
 
-button.my-sports__tile:hover .my-sports__ring,
-button.my-sports__tile:focus-visible .my-sports__ring {
-  transform: translateY(-2px);
-}
 
 .my-sports__ring--add {
   background: transparent;

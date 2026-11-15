@@ -79,8 +79,7 @@
                   v-if="APP_DOWNLOAD_URL"
                   :href="APP_DOWNLOAD_URL"
                   class="btn btn-link text-decoration-none text-body-secondary px-2 lp-nav-download"
-                  target="_blank"
-                  rel="noopener"
+                  download="GORA.apk"
                 >
                   <ion-icon :icon="logoAndroid" class="me-1 align-middle" aria-hidden="true" />Download app
                 </a>
@@ -133,8 +132,7 @@
                     :href="APP_DOWNLOAD_URL"
                     class="lp-hero__download lp-enter"
                     style="--enter-delay: 540ms"
-                    target="_blank"
-                    rel="noopener"
+                    download="GORA.apk"
                   >
                     <ion-icon :icon="logoAndroid" aria-hidden="true" />
                     Download for Android
@@ -375,28 +373,57 @@
           <section id="download" class="lp-section pt-0" aria-labelledby="download-heading">
             <div class="container">
               <div v-reveal class="lp-download">
-                <div class="lp-download__icon" aria-hidden="true">
-                  <ion-icon :icon="logoAndroid" />
-                </div>
                 <div class="lp-download__copy">
-                  <p class="lp-eyebrow mb-2">GORA for Android</p>
-                  <h2 id="download-heading" class="lp-heading mb-2">Take GORA everywhere.</h2>
-                  <p class="text-body-secondary mb-0">
+                  <p class="lp-eyebrow mb-2">
+                    <ion-icon :icon="logoAndroid" class="lp-download__android" aria-hidden="true" /> GORA for Android
+                  </p>
+                  <h2 id="download-heading" class="lp-heading mb-3">Take GORA everywhere.</h2>
+                  <p class="text-body-secondary mb-4">
                     Get game alerts, chat with your crew, and go live from the court with the GORA app.
                   </p>
+
+                  <a v-if="APP_DOWNLOAD_URL" :href="APP_DOWNLOAD_URL" class="lp-store-btn" download="GORA.apk">
+                    <ion-icon :icon="logoAndroid" class="lp-store-btn__logo" aria-hidden="true" />
+                    <span class="lp-store-btn__text">
+                      <small>Download the APK</small>
+                      <strong>Download now</strong>
+                    </span>
+                    <ion-icon :icon="downloadOutline" class="lp-store-btn__arrow" aria-hidden="true" />
+                  </a>
+                  <span v-else class="lp-store-btn is-disabled" aria-disabled="true">
+                    <ion-icon :icon="logoAndroid" class="lp-store-btn__logo" aria-hidden="true" />
+                    <span class="lp-store-btn__text">
+                      <small>GORA for Android</small>
+                      <strong>Coming soon</strong>
+                    </span>
+                  </span>
+
+                  <ul class="lp-download__meta list-unstyled">
+                    <li><ion-icon :icon="checkmarkCircle" aria-hidden="true" /> Free</li>
+                    <li><ion-icon :icon="checkmarkCircle" aria-hidden="true" /> Android 7.0+</li>
+                    <li><ion-icon :icon="checkmarkCircle" aria-hidden="true" /> About 30 MB</li>
+                  </ul>
+
+                  <ol class="lp-download__steps list-unstyled">
+                    <li v-for="(step, index) in installSteps" :key="step">
+                      <span class="lp-download__step-num">{{ index + 1 }}</span>
+                      <span>{{ step }}</span>
+                    </li>
+                  </ol>
                 </div>
-                <a
-                  v-if="APP_DOWNLOAD_URL"
-                  :href="APP_DOWNLOAD_URL"
-                  class="btn btn-primary btn-lg rounded-pill px-4 lp-btn-glow lp-download__button"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  <ion-icon :icon="downloadOutline" class="me-2 align-middle" aria-hidden="true" />Download now
-                </a>
-                <span v-else class="btn btn-outline-light btn-lg rounded-pill px-4 disabled lp-download__button" aria-disabled="true">
-                  Coming soon
-                </span>
+
+                <div class="lp-download__visual" aria-hidden="true">
+                  <span class="lp-download__glow" />
+                  <div class="lp-phone">
+                    <img src="/images/gora-court-small.webp" alt="" loading="lazy" decoding="async" />
+                    <div class="lp-phone__shade" />
+                    <div class="lp-phone__app">
+                      <img src="/favicon.png" alt="" width="64" height="64" />
+                      <strong>GORA</strong>
+                      <span>Find your game.</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -477,6 +504,13 @@ import {
 import { Capacitor } from '@capacitor/core';
 import { APP_DOWNLOAD_URL, GORA_NAME, GORA_TAGLINE } from '@/constants/brand';
 import '@/theme/landing-bootstrap.scss';
+
+/** Shown under "Download now": how to install an APK from outside the Play Store. */
+const installSteps = [
+  'Tap Download now. GORA.apk saves to your phone.',
+  'Open the file and allow installs from your browser if asked.',
+  'Open GORA and sign in. You\'re in.',
+];
 
 const year = new Date().getFullYear();
 /** The installed app opens straight to Sign in / Create account. */
@@ -727,43 +761,242 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .lp-download {
-  display: flex;
-  flex-wrap: wrap;
+  position: relative;
+  display: grid;
+  overflow: hidden;
   align-items: center;
-  gap: 24px;
-  padding: clamp(1.5rem, 4vw, 2.5rem);
+  gap: clamp(2rem, 5vw, 4rem);
+  padding: clamp(1.75rem, 5vw, 3.5rem);
   border: 1px solid var(--bs-border-color);
-  border-radius: 1.5rem;
+  border-radius: 1.75rem;
   background:
-    radial-gradient(circle at 0% 0%, rgba(61, 220, 132, 0.14), transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba($accent, 0.18), transparent 55%),
-    #1c1d21;
+    radial-gradient(circle at 0% 0%, rgba(61, 220, 132, 0.12), transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba($accent, 0.2), transparent 55%),
+    #17181b;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
 }
 
-.lp-download__icon {
-  display: grid;
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
-  place-items: center;
-  border-radius: 20px;
-  background: rgba(61, 220, 132, 0.14);
+.lp-download__android {
+  margin-right: 4px;
   color: #3ddc84;
-  font-size: 2.4rem;
+  font-size: 1rem;
+  vertical-align: -3px;
 }
 
 .lp-download__copy {
-  min-width: 220px;
-  flex: 1;
+  min-width: 0;
 }
 
-.lp-download__button {
+.lp-store-btn {
   display: inline-flex;
   align-items: center;
+  gap: 14px;
+  padding: 12px 22px 12px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, $accent, #ff8a3d);
+  box-shadow: 0 14px 34px -12px rgba($accent, 0.75);
+  color: #fff;
+  text-decoration: none;
+  transition: transform 0.2s $ease-out, box-shadow 0.2s $ease-out;
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+    box-shadow: 0 18px 40px -12px rgba($accent, 0.9);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.is-disabled {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+    color: var(--bs-secondary-color);
+    pointer-events: none;
+  }
 }
 
-@media (max-width: 575.98px) {
-  .lp-download__button {
+.lp-store-btn__logo {
+  font-size: 2rem;
+}
+
+.lp-store-btn__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+
+  small {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
+    text-transform: uppercase;
+  }
+
+  strong {
+    font-size: 1.2rem;
+    font-weight: 800;
+  }
+}
+
+.lp-store-btn__arrow {
+  margin-left: 6px;
+  font-size: 1.35rem;
+  animation: lp-download-bob 1.8s ease-in-out infinite;
+}
+
+.lp-download__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 18px 0 0;
+  color: var(--bs-secondary-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  ion-icon {
+    color: #3ddc84;
+    font-size: 1rem;
+  }
+}
+
+.lp-download__steps {
+  display: grid;
+  gap: 10px;
+  margin: 26px 0 0;
+  padding-top: 22px;
+  border-top: 1px solid var(--bs-border-color);
+  color: var(--bs-secondary-color);
+  font-size: 0.9rem;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+.lp-download__step-num {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba($accent, 0.16);
+  color: $accent;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.lp-download__visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.lp-download__glow {
+  position: absolute;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba($accent, 0.45), transparent 70%);
+  filter: blur(30px);
+}
+
+.lp-phone {
+  position: relative;
+  width: min(220px, 100%);
+  aspect-ratio: 9 / 18.5;
+  overflow: hidden;
+  border: 8px solid #0b0b0d;
+  border-radius: 34px;
+  background: #0b0b0d;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 30px 60px -20px rgba(0, 0, 0, 0.8);
+  transform: rotate(4deg);
+
+  > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.lp-phone__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.75));
+}
+
+.lp-phone__app {
+  position: absolute;
+  inset: auto 0 18%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  text-align: center;
+
+  img {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 6px;
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  }
+
+  strong {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  span {
+    font-size: 0.78rem;
+    opacity: 0.8;
+  }
+}
+
+@keyframes lp-download-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-store-btn__arrow {
+    animation: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .lp-download {
+    grid-template-columns: 1fr;
+  }
+
+  .lp-download__visual {
+    display: none;
+  }
+
+  .lp-store-btn {
     width: 100%;
     justify-content: center;
   }

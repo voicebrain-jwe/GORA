@@ -1,6 +1,18 @@
 <template>
   <ul class="highlight-grid">
     <li v-for="highlight in highlights" :key="highlight.id" class="highlight-grid__item" :style="itemStyle(highlight)">
+      <!-- No thumbnail yet: show the video's first frame instead of a blank tile. -->
+      <video
+        v-if="highlight.videoUrl && !thumbnailOf(highlight)"
+        class="highlight-grid__frame"
+        :src="firstFrameUrl(highlight.videoUrl)"
+        muted
+        playsinline
+        preload="metadata"
+        disablepictureinpicture
+        aria-hidden="true"
+        tabindex="-1"
+      />
       <button
         v-if="highlight.videoUrl"
         type="button"
@@ -67,9 +79,18 @@ const editableById = computed(() => new Map(props.editableReels.map((reel) => [r
 const playingId = ref<string | null>(null);
 const playingHighlight = computed(() => props.highlights.find((highlight) => highlight.id === playingId.value));
 
+function thumbnailOf(highlight: Highlight): string | null {
+  return editableById.value.get(highlight.id)?.thumbnailUrl ?? null;
+}
+
+/** "#t=0.1" makes browsers paint the first frame without playing the video. */
+function firstFrameUrl(url: string): string {
+  return url.includes('#') ? url : `${url}#t=0.1`;
+}
+
 function itemStyle(highlight: Highlight): Record<string, string> {
   const { gradient } = getSportVisual(highlight.sport);
-  const thumbnail = editableById.value.get(highlight.id)?.thumbnailUrl;
+  const thumbnail = thumbnailOf(highlight);
 
   return thumbnail
     ? { background: `center / cover no-repeat url("${encodeURI(thumbnail)}"), ${gradient}` }
@@ -191,5 +212,20 @@ function privacyLabel(highlight: Highlight): string {
 .highlight-grid__viewer p {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+/* Painted above the tile background but beneath every label and button. */
+.highlight-grid__item {
+  isolation: isolate;
+}
+
+.highlight-grid__frame {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
 }
 </style>

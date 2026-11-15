@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -19,16 +20,20 @@ import {
   UpdateGameDto,
 } from './dto/game.dto';
 import { DiscoverGamesQueryDto } from './dto/discover-games.dto';
+import { CreatePostCommentDto, ListPostsQueryDto } from '../posts/dto/post.dto';
 import { GameDiscoveryService } from './game-discovery.service';
 import type {
   GameDiscoveryResult,
   GameView,
   JoinedGameView,
 } from './game.types';
-import { GAME_NOT_FOUND_MESSAGE, GamesService } from './games.service';
+import { GAME_NOT_FOUND_MESSAGE, GamesService, type GameCommentPage } from './games.service';
 
 const gameIdPipe = new ParseUUIDPipe({
   exceptionFactory: () => new NotFoundException(GAME_NOT_FOUND_MESSAGE),
+});
+const commentIdPipe = new ParseUUIDPipe({
+  exceptionFactory: () => new NotFoundException('Comment not found.'),
 });
 
 /** Game creation and the basic lifecycle. Join requests and players have their own controllers. */
@@ -105,5 +110,32 @@ export class GamesController {
     @Param('gameId', gameIdPipe) gameId: string,
   ): Promise<GameView> {
     return this.games.cancel(viewer.id, gameId);
+  }
+
+  @Get(':gameId/comments')
+  listComments(
+    @CurrentUser() viewer: CurrentUserContext,
+    @Param('gameId', gameIdPipe) gameId: string,
+    @Query() query: ListPostsQueryDto,
+  ): Promise<GameCommentPage> {
+    return this.games.listComments(viewer.id, gameId, query.cursor, query.limit);
+  }
+
+  @Post(':gameId/comments')
+  addComment(
+    @CurrentUser() viewer: CurrentUserContext,
+    @Param('gameId', gameIdPipe) gameId: string,
+    @Body() dto: CreatePostCommentDto,
+  ) {
+    return this.games.addComment(viewer.id, gameId, dto.content);
+  }
+
+  @Delete(':gameId/comments/:commentId')
+  deleteComment(
+    @CurrentUser() viewer: CurrentUserContext,
+    @Param('gameId', gameIdPipe) gameId: string,
+    @Param('commentId', commentIdPipe) commentId: string,
+  ) {
+    return this.games.deleteComment(viewer.id, gameId, commentId);
   }
 }

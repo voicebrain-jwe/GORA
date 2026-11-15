@@ -3,21 +3,23 @@
   <p v-else-if="!game" class="server-game__missing">Loading game…</p>
 
   <div v-else class="server-game">
-    <header class="server-game__hero" :style="{ background: visual.gradient }">
-      <div class="server-game__chips">
-        <span class="server-game__sport">
-          <SportIcon :name="game.sport.name" :icon-url="game.sport.iconUrl" :size="22" />
+    <header class="sg-hero">
+      <img class="sg-hero__img" :src="sportImage" alt="" aria-hidden="true" />
+      <div class="sg-hero__shade" :style="{ '--sport-tint': visual.gradient }" aria-hidden="true" />
+      <div class="sg-hero__top">
+        <span class="sg-hero__sport">
+          <SportIcon :name="game.sport.name" :icon-url="game.sport.iconUrl" :size="20" />
           {{ game.sport.name }}
         </span>
         <GameStatusBadge :status="game.status" />
-        <div class="server-game__header-actions">
-          <button type="button" class="server-game__share" @click="shareGame">
-            <ion-icon :icon="shareSocialOutline" aria-hidden="true" /> Share
+        <div class="sg-hero__actions">
+          <button type="button" class="sg-hero__btn" aria-label="Share game" @click="shareGame">
+            <ion-icon :icon="shareSocialOutline" aria-hidden="true" />
           </button>
           <button
             v-if="game.isHost && (game.canEdit || game.canCancel)"
             type="button"
-            class="server-game__more"
+            class="sg-hero__btn"
             aria-label="More game options"
             :disabled="gamesStore.cancellingId === game.id"
             @click="openHostActions"
@@ -26,95 +28,89 @@
           </button>
         </div>
       </div>
-      <h1 class="server-game__title">{{ game.title }}</h1>
-      <p v-if="game.description" class="server-game__description">{{ game.description }}</p>
+      <div class="sg-hero__body">
+        <h1 class="sg-hero__title">{{ game.title }}</h1>
+        <p v-if="game.description" class="sg-hero__description">{{ game.description }}</p>
+        <router-link :to="`/profile/${game.host.username}`" class="sg-hero__host">
+          <UserAvatar :user="gameHostSummary(game)" :size="26" />
+          <span>Hosted by <strong>{{ game.host.displayName }}</strong></span>
+        </router-link>
+      </div>
     </header>
 
-    <section class="server-game__facts" aria-label="When and where">
-      <p>{{ game.autoAccept ? 'Auto Accept: join instantly while slots are available.' : 'Manual Accept: the host reviews join requests.' }}</p>
-      <p>Registration closes: {{ game.registrationClosesAt ? formatRegistrationDeadline(game.registrationClosesAt) : 'when the game starts' }}</p>
-      <p><span aria-hidden="true">📅</span> {{ formatGameDay(game.gameDate) }}</p>
-      <p><span aria-hidden="true">⏰</span> {{ formatGameTimeRange(game.startTime, game.endTime) }}</p>
-      <router-link
-        v-if="mapPath"
-        :to="mapPath"
-        class="server-game__location"
-        :aria-label="`Location: ${game.locationName}. Open map`"
-      >
-        <span aria-hidden="true">📍</span> {{ game.locationName }}
-        <ion-icon :icon="chevronForward" aria-hidden="true" />
-      </router-link>
-      <p v-else><span aria-hidden="true">📍</span> {{ game.locationName }}</p>
-      <router-link v-if="mapPath" :to="mapPath" class="server-game__map-button">
-        <span aria-hidden="true">🗺️</span> View on Map
-      </router-link>
-    </section>
+    <div class="sg-layout">
+      <div class="sg-main">
+        <p v-if="game.status === 'CANCELLED'" class="sg-notice sg-notice--cancelled">
+          <ion-icon :icon="closeCircleOutline" aria-hidden="true" /> The host cancelled this game.
+        </p>
+        <p v-else-if="game.status === 'COMPLETED'" class="sg-notice">
+          <ion-icon :icon="checkmarkDoneOutline" aria-hidden="true" /> This game has been played.
+        </p>
 
-    <GameLocationPreview
-      v-if="mapPath && game.latitude !== null && game.longitude !== null"
-      :name="game.locationName"
-      :latitude="game.latitude"
-      :longitude="game.longitude"
-      :map-path="mapPath"
-    />
+        <section class="sg-stats" aria-label="When">
+          <div class="sg-stat">
+            <span class="sg-stat__icon"><ion-icon :icon="calendarOutline" aria-hidden="true" /></span>
+            <span class="sg-stat__label">Date</span>
+            <strong>{{ formatGameDay(game.gameDate) }}</strong>
+          </div>
+          <div class="sg-stat">
+            <span class="sg-stat__icon"><ion-icon :icon="timeOutline" aria-hidden="true" /></span>
+            <span class="sg-stat__label">Time</span>
+            <strong>{{ formatGameTimeRange(game.startTime, game.endTime) }}</strong>
+          </div>
+          <div class="sg-stat">
+            <span class="sg-stat__icon"><ion-icon :icon="peopleOutline" aria-hidden="true" /></span>
+            <span class="sg-stat__label">Players</span>
+            <strong>{{ game.currentPlayers }}/{{ game.requiredPlayers }}</strong>
+          </div>
+        </section>
 
-    <p v-if="game.status === 'CANCELLED'" class="server-game__notice server-game__notice--cancelled">
-      The host cancelled this game.
-    </p>
-    <p v-else-if="game.status === 'COMPLETED'" class="server-game__notice">This game has been played.</p>
+        <section class="sg-card sg-place" aria-label="Location">
+          <component
+            :is="mapPath ? RouterLink : 'div'"
+            :to="mapPath ?? undefined"
+            class="sg-place__row"
+            :aria-label="mapPath ? `Location: ${game.locationName}. Open map` : undefined"
+          >
+            <span class="sg-icon-box"><ion-icon :icon="locationOutline" aria-hidden="true" /></span>
+            <span class="sg-place__text">
+              <small>Location</small>
+              <strong>{{ game.locationName }}</strong>
+            </span>
+            <span v-if="mapPath" class="sg-place__go">
+              Map <ion-icon :icon="chevronForward" aria-hidden="true" />
+            </span>
+          </component>
+          <GameLocationPreview
+            v-if="mapPath && game.latitude !== null && game.longitude !== null"
+            class="sg-place__map"
+            :name="game.locationName"
+            :latitude="game.latitude"
+            :longitude="game.longitude"
+            :map-path="mapPath"
+          />
+        </section>
 
-    <section class="server-game__capacity" aria-label="Player capacity">
-      <p class="server-game__count">
-        <span class="server-game__count-label">Players</span>
-        <strong>{{ game.currentPlayers }}/{{ game.requiredPlayers }}</strong>
-      </p>
-      <p class="server-game__remaining">{{ remainingLabel }}</p>
-      <div
-        class="server-game__bar"
-        role="progressbar"
-        :aria-valuenow="game.currentPlayers"
-        aria-valuemin="0"
-        :aria-valuemax="game.requiredPlayers"
-      >
-        <span :style="{ width: `${(game.currentPlayers / game.requiredPlayers) * 100}%` }" />
-      </div>
-    </section>
-
-    <section class="server-game__section server-game__section--host">
-      <SectionHeader title="Host" />
-      <router-link :to="`/profile/${game.host.username}`" class="server-game__host">
-        <UserAvatar :user="gameHostSummary(game)" :size="44" />
-        <span>
-          <strong>{{ game.host.displayName }}</strong>
-          <span>@{{ game.host.username }} · Organizer</span>
-        </span>
-      </router-link>
-      <router-link v-if="club" :to="`/clubs/${club.id}`" class="server-game__club">
-        <ClubAvatar :club="club" :image-url="game.club?.profileImageUrl ?? null" :size="36" />
-        <span>
-          <strong>{{ club.name }}</strong>
-          <span>Club game</span>
-        </span>
-      </router-link>
-    </section>
-
-    <section class="server-game__section server-game__section--roster" aria-label="Player roster">
-      <SectionHeader title="Player Roster" />
-      <p v-if="rosterStatus === 'error' && !roster" class="server-game__hint" role="alert">
-        {{ rosterError }}
-        <button type="button" class="server-game__link" @click="reloadRoster">Try again</button>
-      </p>
-      <ol class="server-game__roster">
-        <li v-for="slot in slots" :key="slot.label" class="server-game__slot">
-          <span class="server-game__slot-number">{{ slot.label }}</span>
-          <template v-if="slot.player">
-            <router-link :to="`/profile/${slot.player.username}`" class="server-game__player">
-              <UserAvatar :user="rosterPlayerSummary(slot.player)" :size="30" />
-              <span>
-                <strong>{{ slot.player.displayName }}</strong>
-                <span v-if="slot.player.id === viewerId" class="server-game__you">You</span>
-              </span>
-            </router-link>
+        <section class="sg-card sg-roster" aria-label="Player roster">
+          <div class="sg-card__head">
+            <h2 class="sg-card__title">Player roster</h2>
+            <span class="sg-chip">{{ game.currentPlayers }} of {{ game.requiredPlayers }}</span>
+          </div>
+          <p v-if="rosterStatus === 'error' && !roster" class="server-game__hint" role="alert">
+            {{ rosterError }}
+            <button type="button" class="server-game__link" @click="reloadRoster">Try again</button>
+          </p>
+          <ol class="sg-roster__list">
+            <li v-for="slot in slots" :key="slot.label" class="sg-slot" :class="{ 'sg-slot--open': !slot.player }">
+              <template v-if="slot.player">
+                <router-link :to="`/profile/${slot.player.username}`" class="sg-slot__player">
+                  <UserAvatar :user="rosterPlayerSummary(slot.player)" :size="38" />
+                  <span class="sg-slot__name">
+                    <strong>{{ slot.player.displayName }}</strong>
+                    <span>@{{ slot.player.username }}</span>
+                  </span>
+                  <span v-if="slot.player.id === viewerId" class="sg-tag">You</span>
+                </router-link>
             <div v-if="game.isHost && game.status === 'COMPLETED'" class="server-game__attendance">
               <span v-if="slot.player.attendanceStatus === 'ATTENDED'" class="server-game__attendance-state server-game__attendance-state--present">Attended · +3 GORA</span>
               <span v-else-if="slot.player.attendanceStatus === 'NO_SHOW'" class="server-game__attendance-state server-game__attendance-state--absent">Reported no-show · −2 GORA</span>
@@ -133,16 +129,70 @@
             >
               {{ gamePlayers.removingUserId === slot.player.id ? 'Removing…' : 'Remove Player' }}
             </button>
-          </template>
-          <span v-else class="server-game__slot-open">Open</span>
-        </li>
-      </ol>
-    </section>
+              </template>
+              <template v-else>
+                <span class="sg-slot__open-icon" aria-hidden="true"><ion-icon :icon="addOutline" /></span>
+                <span class="sg-slot__open">Open spot</span>
+              </template>
+            </li>
+          </ol>
+        </section>
 
-    <HostJoinRequests v-if="game.isHost" class="server-game__requests" :game="game" />
-    <HostLeaveRequests v-if="game.isHost" class="server-game__requests" :game="game" />
+        <GameComments class="sg-comments" :game-id="game.id" :host-id="game.host.id" />
+      </div>
 
-    <div class="server-game__actions">
+      <aside class="sg-side">
+        <section class="sg-card sg-capacity" aria-label="Player capacity">
+          <div class="sg-capacity__top">
+            <span class="sg-stat__label">Spots filled</span>
+            <strong>{{ game.currentPlayers }}<span>/{{ game.requiredPlayers }}</span></strong>
+          </div>
+          <div
+            class="sg-capacity__bar"
+            role="progressbar"
+            :aria-valuenow="game.currentPlayers"
+            aria-valuemin="0"
+            :aria-valuemax="game.requiredPlayers"
+          >
+            <span :style="{ width: `${Math.min(100, (game.currentPlayers / game.requiredPlayers) * 100)}%` }" />
+          </div>
+          <p class="sg-capacity__left">{{ remainingLabel }}</p>
+        </section>
+
+        <section class="sg-card sg-rules" aria-label="How to join">
+          <div class="sg-rule">
+            <span class="sg-icon-box" :class="{ 'sg-icon-box--green': game.autoAccept }">
+              <ion-icon :icon="game.autoAccept ? flashOutline : shieldCheckmarkOutline" aria-hidden="true" />
+            </span>
+            <span>
+              <strong>{{ game.autoAccept ? 'Instant join' : 'Host approval' }}</strong>
+              <small>{{ game.autoAccept ? 'Join right away while spots are open.' : 'The host reviews each join request.' }}</small>
+            </span>
+          </div>
+          <div class="sg-rule">
+            <span class="sg-icon-box"><ion-icon :icon="hourglassOutline" aria-hidden="true" /></span>
+            <span>
+              <strong>Registration closes</strong>
+              <small>{{ game.registrationClosesAt ? formatRegistrationDeadline(game.registrationClosesAt) : 'When the game starts' }}</small>
+            </span>
+          </div>
+        </section>
+
+        <section v-if="club" class="sg-card sg-host" aria-label="Club">
+          <router-link :to="`/clubs/${club.id}`" class="sg-host__row">
+            <ClubAvatar :club="club" :image-url="game.club?.profileImageUrl ?? null" :size="44" />
+            <span>
+              <small>Club game</small>
+              <strong>{{ club.name }}</strong>
+            </span>
+            <ion-icon :icon="chevronForward" class="sg-host__go" aria-hidden="true" />
+          </router-link>
+        </section>
+
+        <HostJoinRequests v-if="game.isHost" class="server-game__requests" :game="game" />
+        <HostLeaveRequests v-if="game.isHost" class="server-game__requests" :game="game" />
+
+        <div class="server-game__actions">
       <template v-if="game.isHost">
         <button
           v-if="roster && roster.players.length > 0 && game.status !== 'COMPLETED'"
@@ -192,6 +242,9 @@
       </button>
     </div>
 
+      </aside>
+    </div>
+
     <JoinRequestModal
       :is-open="isRequestModalOpen"
       :game-title="game.title"
@@ -209,9 +262,24 @@
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { actionSheetController, IonIcon, alertController } from '@ionic/vue';
-import { chevronForward, createOutline, ellipsisHorizontal, shareSocialOutline, trashOutline } from 'ionicons/icons';
+import {
+  addOutline,
+  calendarOutline,
+  checkmarkDoneOutline,
+  chevronForward,
+  closeCircleOutline,
+  createOutline,
+  ellipsisHorizontal,
+  flashOutline,
+  hourglassOutline,
+  locationOutline,
+  peopleOutline,
+  shareSocialOutline,
+  shieldCheckmarkOutline,
+  timeOutline,
+  trashOutline,
+} from 'ionicons/icons';
 import ClubAvatar from '@/components/clubs/ClubAvatar.vue';
-import SectionHeader from '@/components/common/SectionHeader.vue';
 import UserAvatar from '@/components/common/UserAvatar.vue';
 import SportIcon from '@/components/sports/SportIcon.vue';
 import { useGameShare } from '@/composables/useGameShare';
@@ -232,7 +300,8 @@ import { buildRosterSlots } from '@/utils/games';
 import { joinRequestAction, pastParticipationNote, rosterPlayerSummary } from '@/utils/join-requests';
 import { locationMapPath } from '@/utils/location-map';
 import { showNotice } from '@/utils/notice';
-import { getSportVisual } from '@/utils/sports';
+import { getSportImage, getSportVisual } from '@/utils/sports';
+import GameComments from './GameComments.vue';
 import GameStatusBadge from './GameStatusBadge.vue';
 import GameLocationPreview from '@/components/map/GameLocationPreview.vue';
 import HostJoinRequests from './HostJoinRequests.vue';
@@ -272,6 +341,7 @@ const isSubmitting = computed(() => joinRequests.submittingGameId === props.game
 const status = computed(() => gamesStore.detailStatus[props.gameId]);
 const error = computed(() => gamesStore.detailError[props.gameId] ?? 'This game is not available.');
 const visual = computed(() => getSportVisual(game.value?.sport.name ?? ''));
+const sportImage = computed(() => getSportImage(game.value?.sport.name ?? ''));
 const club = computed(() => (game.value ? gameClubSummary(game.value) : null));
 // ACTIVE players from the server fill the first slots; the rest are generated as Open.
 const slots = computed(() =>
@@ -465,17 +535,8 @@ async function confirmCancelRequest(): Promise<void> {
 
 <style scoped>
 .server-game {
-  padding: 12px 0 36px;
-}
-
-.server-game__section--host,
-.server-game__section--roster {
-  margin-bottom: 18px;
-}
-
-.server-game__requests {
-  display: block;
-  margin: 0 16px 18px;
+  padding: 12px 0 0;
+  animation: sg-in 0.35s ease-out;
 }
 
 .server-game__missing {
@@ -484,293 +545,519 @@ async function confirmCancelRequest(): Promise<void> {
   text-align: center;
 }
 
-.server-game__hero {
+/* ───────── Hero ───────── */
+.sg-hero {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  min-height: 300px;
+  flex-direction: column;
+  justify-content: space-between;
   margin: 0 12px;
-  padding: 20px clamp(16px, 4vw, 38px) 22px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  box-shadow: var(--gora-shadow);
+  padding: 14px;
+  border-radius: 24px;
+  background: #111;
+  box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+  color: #fff;
+  isolation: isolate;
 }
 
-.server-game__chips {
+.sg-hero__img {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: sg-zoom 14s ease-in-out infinite alternate;
+}
+
+.sg-hero__shade {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.05) 35%, rgba(0, 0, 0, 0.55) 62%, rgba(0, 0, 0, 0.92) 100%);
+}
+
+.sg-hero__top {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-start;
   gap: 8px;
 }
 
-.server-game__header-actions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-left: auto;
-}
-
-.server-game__sport {
+.sg-hero__sport {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px 3px 4px;
+  padding: 4px 12px 4px 5px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.4);
-  font-size: 0.75rem;
-  font-weight: 700;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.server-game__share {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.25);
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.server-game__more {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.25);
-  color: #fff;
-  cursor: pointer;
-  font-size: 22px;
-}
-
-.server-game__more:disabled { opacity: 0.55; cursor: progress; }
-
-.server-game__title {
-  margin: 12px 0 6px;
-  font-size: clamp(1.4rem, 5.5vw, 2.2rem);
-  font-weight: 800;
-  line-height: 1.1;
-  overflow-wrap: anywhere;
-}
-
-.server-game__description {
-  margin: 0;
-  color: rgba(245, 247, 242, 0.85);
-  font-size: 0.88rem;
-  white-space: pre-line;
-}
-
-.server-game__facts {
+.sg-hero__actions {
   display: flex;
-  flex-direction: column;
-  gap: 9px;
-  margin: 14px 12px 0;
-  padding: 14px;
-  border: 1px solid var(--gora-line);
-  border-radius: 16px;
-  background: var(--gora-surface);
+  gap: 8px;
+  margin-left: auto;
+}
+
+.sg-hero__btn {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  cursor: pointer;
+  font-size: 19px;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.sg-hero__btn:hover {
+  background: rgba(0, 0, 0, 0.65);
+  transform: scale(1.06);
+}
+
+.sg-hero__btn:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+.sg-hero__body {
+  padding: 4px 4px 2px;
+}
+
+.sg-hero__title {
+  margin: 0 0 6px;
+  font-size: clamp(1.55rem, 6.5vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.5);
+}
+
+.sg-hero__description {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.82);
   font-size: 0.9rem;
+  line-height: 1.45;
+  white-space: pre-line;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
-.server-game__facts p {
-  margin: 0;
-}
-
-.server-game__facts p:first-child {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--gora-accent-soft);
-  color: var(--ion-text-color);
-  font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.server-game__facts p:nth-child(2) {
-  color: var(--gora-muted);
-  font-size: 0.78rem;
-}
-
-.server-game__facts p:nth-child(3),
-.server-game__facts p:nth-child(4) {
-  padding: 3px 0;
-  font-weight: 650;
-}
-
-.server-game__location {
+.sg-hero__host {
   display: inline-flex;
-  width: 100%;
   align-items: center;
   gap: 8px;
-  margin-top: 3px;
-  padding-top: 10px;
-  border-top: 1px solid var(--gora-line);
-  color: var(--ion-text-color);
-  text-decoration: none;
-}
-
-.server-game__location:hover {
-  text-decoration: underline;
-}
-
-.server-game__map-button {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  padding: 8px 14px;
-  background: var(--gora-accent-soft);
-  border: 1px solid var(--ion-color-primary);
+  padding: 4px 12px 4px 4px;
   border-radius: 999px;
-  color: var(--ion-color-primary);
-  font-size: 0.82rem;
-  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
   text-decoration: none;
 }
 
-.server-game__notice {
-  margin: 14px 16px 0;
-  padding: 10px 12px;
-  border-radius: var(--gora-radius-card);
+.sg-hero__host strong {
+  color: #fff;
+}
+
+/* ───────── Layout ───────── */
+.sg-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 12px 0;
+}
+
+.sg-main,
+.sg-side {
+  display: contents;
+}
+
+/* Phone order: quick facts first, then how to join, place, people. */
+.sg-notice { order: 0; }
+.sg-stats { order: 1; }
+.sg-capacity { order: 2; }
+.sg-rules { order: 3; }
+.sg-place { order: 4; }
+.sg-host { order: 5; }
+.sg-roster { order: 6; }
+.sg-comments { order: 7; }
+.server-game__requests { order: 8; }
+.server-game__actions { order: 9; }
+
+.sg-card {
+  padding: 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 20px;
+  background: var(--gora-surface);
+}
+
+.sg-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sg-card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.sg-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.sg-icon-box {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 1.25rem;
+}
+
+.sg-icon-box--green {
+  background: rgba(47, 191, 113, 0.14);
+  color: #2fbf71;
+}
+
+.sg-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
   background: var(--gora-surface);
   color: var(--gora-muted);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
-.server-game__notice--cancelled {
+.sg-notice ion-icon {
+  font-size: 1.2rem;
+}
+
+.sg-notice--cancelled {
   background: rgba(239, 91, 91, 0.12);
   color: #ef5b5b;
 }
 
-.server-game__capacity {
-  margin: 14px 12px 16px;
-  padding: 14px 16px;
+/* Date / Time / Players */
+.sg-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sg-stat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 12px;
   border: 1px solid var(--gora-line);
-  border-radius: var(--gora-radius-card);
+  border-radius: 18px;
   background: var(--gora-surface);
 }
 
-.server-game__count {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
+.sg-stat__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  margin-bottom: 8px;
+  border-radius: 11px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 1.1rem;
 }
 
-.server-game__count-label {
+.sg-stat__label {
   color: var(--gora-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.68rem;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.server-game__count strong {
-  font-size: 1.5rem;
+.sg-stat strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
-.server-game__remaining {
-  margin: 2px 0 10px;
+/* Capacity */
+.sg-capacity__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sg-capacity__top strong {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sg-capacity__top strong span {
   color: var(--gora-muted);
-  font-size: 0.8rem;
+  font-size: 1rem;
 }
 
-.server-game__bar {
-  height: 6px;
+.sg-capacity__bar {
+  height: 10px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--gora-line);
 }
 
-.server-game__bar span {
+.sg-capacity__bar span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--ion-color-primary);
+  background: linear-gradient(90deg, var(--ion-color-primary), #ffb347);
+  animation: sg-fill 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transform-origin: left;
 }
 
-.server-game__section {
-  padding: 0 16px;
+.sg-capacity__left {
+  margin: 10px 0 0;
+  color: var(--gora-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
-.server-game__host,
-.server-game__club {
+/* Join rules */
+.sg-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sg-rule {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.sg-rule > span:last-child,
+.sg-place__text,
+.sg-host__row > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sg-rule strong,
+.sg-place__text strong,
+.sg-host__row strong {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.sg-rule small,
+.sg-place__text small,
+.sg-host__row small {
+  color: var(--gora-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* Location */
+.sg-place {
+  padding: 0;
+  overflow: hidden;
+}
+
+.sg-place__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
   color: var(--ion-text-color);
   text-decoration: none;
 }
 
-.server-game__host {
-  margin-bottom: 12px;
+.sg-place__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding: 6px 10px 6px 12px;
+  border-radius: 999px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.server-game__club {
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  border-radius: var(--gora-radius-card);
-  background: var(--gora-surface);
+.sg-place__map {
+  display: block;
+  margin: 0 12px 12px;
 }
 
-.server-game__host > span,
-.server-game__club > span {
+/* Host / club */
+.sg-host {
+  padding: 0;
+}
+
+.sg-host__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  color: var(--ion-text-color);
+  text-decoration: none;
+}
+
+.sg-host__go {
+  margin-left: auto;
+  color: var(--gora-muted);
+}
+
+/* Roster */
+.sg-roster__list {
   display: flex;
   flex-direction: column;
-  font-size: 0.9rem;
-}
-
-.server-game__host > span span,
-.server-game__club > span span {
-  color: var(--gora-muted);
-  font-size: 0.78rem;
-}
-
-.server-game__roster {
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.server-game__slot {
+.sg-slot {
   display: flex;
   flex-wrap: wrap;
-  min-height: 44px;
   align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid var(--gora-line);
+  gap: 10px;
+  min-height: 58px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--gora-surface-raised);
 }
 
-.server-game__slot-number {
-  width: 28px;
+.sg-slot--open {
+  border: 1.5px dashed var(--gora-line-strong);
+  background: transparent;
+}
+
+.sg-slot__player {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  color: var(--ion-text-color);
+  text-decoration: none;
+}
+
+.sg-slot__name {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.sg-slot__name strong {
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sg-slot__name span {
+  overflow: hidden;
   color: var(--gora-muted);
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.server-game__slot-open {
-  color: #7d8a93;
-  font-size: 0.85rem;
+.sg-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 0.68rem;
+  font-weight: 800;
 }
 
+.sg-slot__open-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1.5px dashed var(--gora-line-strong);
+  border-radius: 50%;
+  color: var(--gora-muted);
+  font-size: 1.1rem;
+}
+
+.sg-slot__open {
+  color: var(--gora-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.server-game__requests {
+  display: block;
+}
+
+/* ───────── Actions (sticky on phones) ───────── */
 .server-game__actions {
+  position: sticky;
+  z-index: 5;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 20px 16px 0;
+  margin: 0 -12px;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--gora-line);
+  background: color-mix(in srgb, var(--gora-surface) 88%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.server-game__actions:empty {
+  display: none;
 }
 
 .server-game__primary,
 .server-game__secondary,
 .server-game__danger {
   display: block;
+  width: 100%;
+  min-height: 50px;
   padding: 13px 16px;
   border-radius: 999px;
   cursor: pointer;
@@ -778,49 +1065,77 @@ async function confirmCancelRequest(): Promise<void> {
   font-weight: 800;
   text-align: center;
   text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.2s;
 }
 
 .server-game__primary {
   border: 0;
-  background: var(--ion-color-primary);
+  background: linear-gradient(135deg, var(--ion-color-primary), #ff8a3d);
+  box-shadow: 0 12px 26px -12px rgba(255, 96, 40, 0.8);
   color: var(--ion-color-primary-contrast);
+}
+
+.server-game__primary:not(:disabled):active {
+  transform: scale(0.98);
 }
 
 .server-game__primary:disabled {
   border: 1px solid var(--gora-line-strong);
   background: transparent;
+  box-shadow: none;
   color: var(--gora-muted);
   cursor: default;
 }
 
-.server-game__player {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  align-items: center;
-  gap: 10px;
+.server-game__secondary {
+  border: 1px solid var(--gora-line-strong);
+  background: transparent;
   color: var(--ion-text-color);
-  font-size: 0.9rem;
-  text-decoration: none;
 }
 
-.server-game__player:hover strong {
-  text-decoration: underline;
+.server-game__secondary:disabled,
+.server-game__danger:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
-.server-game__you {
+.server-game__danger {
+  border: 1px solid rgba(239, 91, 91, 0.5);
+  background: transparent;
+  color: #ef5b5b;
+}
+
+.server-game__hint {
+  margin: 0;
+  color: var(--gora-muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.server-game__declined {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(239, 91, 91, 0.12);
+  color: #ef5b5b;
+  font-weight: 700;
+  text-align: center;
+}
+
+.server-game__link {
   margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--gora-surface);
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--ion-color-primary);
-  font-size: 0.7rem;
+  cursor: pointer;
+  font: inherit;
   font-weight: 700;
 }
 
 .server-game__remove {
   margin-left: auto;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border: 1px solid rgba(239, 91, 91, 0.5);
   border-radius: 999px;
   background: transparent;
@@ -845,7 +1160,7 @@ async function confirmCancelRequest(): Promise<void> {
 }
 
 .server-game__attendance-state {
-  font-size: .72rem;
+  font-size: 0.72rem;
   font-weight: 800;
 }
 
@@ -859,7 +1174,7 @@ async function confirmCancelRequest(): Promise<void> {
   border-radius: 999px;
   cursor: pointer;
   font: inherit;
-  font-size: .7rem;
+  font-size: 0.7rem;
   font-weight: 800;
 }
 
@@ -876,201 +1191,117 @@ async function confirmCancelRequest(): Promise<void> {
 }
 
 .server-game__attendance-present:disabled,
-.server-game__attendance-absent:disabled { opacity: .55; cursor: default; }
+.server-game__attendance-absent:disabled { opacity: 0.55; cursor: default; }
 
-.server-game__link {
-  margin-left: 6px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ion-color-primary);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
+@keyframes sg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
-.server-game__secondary {
-  border: 1px solid var(--gora-line-strong);
-  background: transparent;
-  color: var(--ion-text-color);
+@keyframes sg-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
 }
 
-.server-game__secondary:disabled {
-  opacity: 0.6;
-  cursor: default;
+@keyframes sg-fill {
+  from { transform: scaleX(0); }
 }
 
-.server-game__hint {
-  margin: 0;
-  color: var(--gora-muted);
-  font-size: 0.8rem;
-  text-align: center;
+@media (prefers-reduced-motion: reduce) {
+  .server-game,
+  .sg-hero__img,
+  .sg-capacity__bar span {
+    animation: none;
+  }
 }
 
-.server-game__declined {
-  margin: 0;
-  padding: 12px 16px;
-  border-radius: var(--gora-radius-card);
-  background: rgba(239, 91, 91, 0.12);
-  color: #ef5b5b;
-  font-weight: 700;
-  text-align: center;
+@media (max-width: 380px) {
+  .sg-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sg-stat:last-child {
+    grid-column: 1 / -1;
+  }
 }
 
-.server-game__danger {
-  border: 1px solid rgba(239, 91, 91, 0.5);
-  background: transparent;
-  color: #ef5b5b;
-}
-
-.server-game__danger:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-@media (min-width: 768px) {
+/* ───────── Tablet / desktop: two columns ───────── */
+@media (min-width: 900px) {
   .server-game {
     max-width: 1180px;
     margin-inline: auto;
-    padding: 20px 24px 48px;
+    padding: 20px 0 48px;
   }
 
-  .server-game__hero {
+  .sg-hero {
+    min-height: 380px;
     margin: 0;
-    grid-column: 1 / -1;
-    grid-row: 1;
-    min-height: clamp(220px, 28vw, 340px);
+    padding: 22px 26px;
+    border-radius: 28px;
+  }
+
+  .sg-hero__body {
+    max-width: 760px;
+    padding: 0 4px 6px;
+  }
+
+  .sg-hero__title {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+  }
+
+  .sg-layout {
+    display: grid;
+    align-items: start;
+    gap: 22px;
+    padding: 22px 0 0;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+  }
+
+  .sg-main,
+  .sg-side {
     display: flex;
+    min-width: 0;
     flex-direction: column;
-    justify-content: flex-end;
-    padding: 30px 38px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 24px;
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+    gap: 18px;
   }
 
-  .server-game__title {
-    max-width: 780px;
-    font-size: clamp(2rem, 4vw, 3rem);
-    line-height: 1.1;
+  .sg-side {
+    position: sticky;
+    top: 20px;
   }
 
-  .server-game__description {
-    max-width: 720px;
-    font-size: 1rem;
-    line-height: 1.55;
+  .sg-card {
+    padding: 20px 22px;
   }
 
-  .server-game__facts,
-  .server-game__capacity,
-  .server-game__section--host,
-  .server-game__section--roster,
-  .server-game__requests,
-  .server-game__actions,
-  .server-game__notice {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 20px;
-    border: 1px solid var(--gora-line);
-    border-radius: 20px;
-    background: var(--gora-surface);
+  .sg-place,
+  .sg-host {
+    padding: 0;
   }
 
-  .server-game__facts {
-    margin: 0;
-    gap: 12px;
-    padding: 22px 24px;
-    font-size: 0.95rem;
+  .sg-place__row,
+  .sg-host__row {
+    padding: 18px 22px;
   }
 
-  .server-game__capacity {
-    padding: 22px;
+  .sg-place__map {
+    margin: 0 16px 16px;
   }
 
-  .server-game__notice {
-    align-self: start;
-  }
-
-  .server-game__section--host {
-    padding: 20px 24px;
-  }
-
-  .server-game__section--roster {
-    padding: 20px 24px;
-  }
-
-  .server-game__requests {
-    display: block;
+  .sg-place :deep(.game-location-preview__map) {
+    height: 300px;
   }
 
   .server-game__actions {
     position: static;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    margin: 0;
     padding: 18px;
+    border: 1px solid var(--gora-line);
+    border-radius: 20px;
+    background: var(--gora-surface);
+    backdrop-filter: none;
   }
-
-  .server-game__host {
-    min-height: 52px;
-  }
-
-  .server-game__club {
-    margin: 14px 0 0;
-  }
-
-  .server-game__slot {
-    min-height: 52px;
-  }
-
-  .server-game__slot-number {
-    width: 34px;
-  }
-
-  .server-game__primary,
-  .server-game__secondary,
-  .server-game__danger {
-    width: 100%;
-  }
-}
-
-@media (min-width: 1000px) {
-  .server-game {
-    display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.85fr);
-    align-items: start;
-    column-gap: 24px;
-    row-gap: 22px;
-  }
-
-  .server-game__hero {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    min-height: 280px;
-    border-radius: 28px;
-    padding: 34px 42px;
-  }
-  .server-game__facts { grid-column: 1; grid-row: 2; }
-  .server-game__capacity { grid-column: 2; grid-row: 2; }
-  .server-game > .game-location-preview { grid-column: 1; grid-row: 3; }
-  .server-game__section--host { grid-column: 2; grid-row: 3; }
-  .server-game__section--roster { grid-column: 1; grid-row: 4; }
-  .server-game__requests { grid-column: 2; }
-  .server-game__notice { grid-column: 1 / -1; }
-  .server-game__actions {
-    grid-column: 2;
-    align-self: start;
-    position: sticky;
-    top: 20px;
-  }
-  .server-game :deep(.game-location-preview__map) { height: 320px; }
-}
-
-@media (max-width: 420px) {
-  .server-game__hero { padding-inline: 14px; }
-  .server-game__chips { gap: 6px; }
-  .server-game__sport { max-width: 100%; }
-  .server-game__facts { font-size: 0.84rem; }
-  .server-game__capacity { margin-inline: 12px; }
 }
 </style>

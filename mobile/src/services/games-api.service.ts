@@ -1,5 +1,6 @@
 import type { GameDiscoveryQuery, GameDiscoveryResponse } from '@/types/discovery';
 import type { ApiGame, CreateGameInput, GameListQuery, JoinedGame, UpdateGameInput } from '@/types/game';
+import type { ApiPostComment } from '@/types/post';
 import { apiRequest } from './api-client';
 
 function toSearch(query: object): string {
@@ -59,4 +60,32 @@ export function updateGame(token: string, gameId: string, input: UpdateGameInput
 
 export function cancelGame(token: string, gameId: string): Promise<ApiGame> {
   return apiRequest<ApiGame>(`/games/${encodeURIComponent(gameId)}/cancel`, { method: 'PATCH', token });
+}
+
+/** GET/POST/DELETE /games/:id/comments: discussion under a posted game. */
+export interface GameCommentPage {
+  comments: ApiPostComment[];
+  nextCursor: string | null;
+  total: number;
+}
+
+export function listGameComments(token: string, gameId: string, cursor?: string): Promise<GameCommentPage> {
+  const query = new URLSearchParams({ limit: '20' });
+  if (cursor) query.set('cursor', cursor);
+  return apiRequest<GameCommentPage>(`/games/${encodeURIComponent(gameId)}/comments?${query}`, { token });
+}
+
+export function addGameComment(
+  token: string,
+  gameId: string,
+  content: string,
+): Promise<{ comment: ApiPostComment; total: number }> {
+  return apiRequest(`/games/${encodeURIComponent(gameId)}/comments`, { method: 'POST', body: { content }, token });
+}
+
+export function deleteGameComment(token: string, gameId: string, commentId: string): Promise<{ total: number }> {
+  return apiRequest(`/games/${encodeURIComponent(gameId)}/comments/${encodeURIComponent(commentId)}`, {
+    method: 'DELETE',
+    token,
+  });
 }

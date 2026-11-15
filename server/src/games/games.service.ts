@@ -38,6 +38,37 @@ import type { GameView, JoinedGameView } from './game.types';
 import { visibleGamesWhere } from './game-visibility';
 import { successfulGamePoints } from './game-completion-points';
 
+const GAME_COMMENT_PAGE_SIZE = 30;
+const GAME_COMMENT_SELECT = {
+  id: true,
+  content: true,
+  createdAt: true,
+  user: { select: AUTHOR_SELECT },
+} as const;
+
+export interface GameCommentView {
+  id: string;
+  content: string;
+  createdAt: Date;
+  author: { id: string; username: string; firstName: string; lastName: string; profileImageUrl: string | null };
+}
+
+export interface GameCommentPage {
+  comments: GameCommentView[];
+  nextCursor: string | null;
+  total: number;
+}
+
+function toGameComment(row: {
+  id: string;
+  content: string;
+  createdAt: Date;
+  user: GameCommentView['author'];
+}): GameCommentView {
+  const { user, ...comment } = row;
+  return { ...comment, author: user };
+}
+
 export const GAME_NOT_FOUND_MESSAGE = 'Game not found.';
 export const GAME_HOST_ONLY_MESSAGE = 'Only the host can change this game.';
 export const GAME_CLUB_MEMBERS_ONLY_MESSAGE =
@@ -415,6 +446,65 @@ export class GamesService {
     }
 
     return this.get(viewerId, gameId);
+  }
+
+  /** Comments under a game, newest first. Anyone who can see the game can read them. */
+  async listComments(
+    viewerId: string,
+    gameId: string,
+    cursor?: string,
+    limit = GAME_COMMENT_PAGE_SIZE,
+  ): Promise<GameCommentPage> {
+    await this.findVisible(viewerId, gameId);
+    const rows = await this.prisma.gameComment.findMany({
+      where: { gameId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      select: GAME_COMMENT_SELECT,
+    });
+    return {
+      comments: rows.slice(0, limit).map(toGameComment),
+      nextCursor: rows.length > limit ? rows[limit - 1].id : null,
+      total: await this.prisma.gameComment.count({ where: { gameId } }),
+    };
+  }
+
+  async addComment(
+    viewerId: string,
+    gameId: string,
+    content: string,
+  ): Promise<{ comment: GameCommentView; total: number }> {
+    await this.findVisible(viewerId, gameId);
+    const row = await this.prisma.gameComment.create({
+      data: { gameId, userId: viewerId, content },
+      select: GAME_COMMENT_SELECT,
+    });
+    return {
+      comment: toGameComment(row),
+      total: await this.prisma.gameComment.count({ where: { gameId } }),
+    };
+  }
+
+  /** The comment's author or the game's host can delete it. */
+  async deleteComment(
+    viewerId: string,
+    gameId: string,
+    commentId: string,
+  ): Promise<{ total: number }> {
+    const game = await this.findVisible(viewerId, gameId);
+    const comment = await this.prisma.gameComment.findFirst({
+      where: { id: commentId, gameId },
+      select: { userId: true },
+    });
+    if (!comment) throw new NotFoundException('Comment not found.');
+    if (comment.userId !== viewerId && game.hostId !== viewerId) {
+      throw new ForbiddenException(
+        'Only the comment author or the game host can delete this comment.',
+      );
+    }
+    await this.prisma.gameComment.deleteMany({ where: { id: commentId, gameId } });
+    return { total: await this.prisma.gameComment.count({ where: { gameId } }) };
   }
 
   private async findVisible(

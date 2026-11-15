@@ -70,6 +70,7 @@ model User {
   postPreferences         PostPreference[]
   reels                   Reel[]
   reelComments            ReelComment[]
+  gameComments            GameComment[]
   customViewerReels       ReelCustomViewer[]
   reelLikes               ReelLike[]
   reelShares              ReelShare[]
@@ -172,6 +173,7 @@ model Game {
   host            User              @relation("GameHost", fields: [hostId], references: [id])
   sport           Sport             @relation(fields: [sportId], references: [id])
   participants    GameParticipant[]
+  comments        GameComment[]
   leaveRequests   GameLeaveRequest[]
   joinRequests    JoinRequest[]
   liveStreams     LiveStream[]
@@ -547,6 +549,21 @@ model PostComment {
   reports   Report[]
 
   @@index([postId, createdAt])
+  @@index([userId])
+}
+
+/// Discussion under a posted game ("What should I bring?", "Running 5 min late").
+model GameComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  gameId    String   @db.Uuid
+  userId    String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([gameId, createdAt])
   @@index([userId])
 }
 

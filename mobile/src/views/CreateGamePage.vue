@@ -139,23 +139,25 @@
           <div class="create-game__grid">
             <div class="create-game__field" @focusout="touch('startTime')">
               <label class="create-game__label" for="game-start">Start *</label>
-              <input id="game-start" v-model="form.startTime" type="time" class="create-game__input" />
+              <GameDateField id="game-start" v-model="form.startTime" presentation="time" label="Choose start time" />
               <p v-if="shown('startTime')" class="create-game__error">{{ errors.startTime }}</p>
             </div>
             <div class="create-game__field" @focusout="touch('endTime')">
               <label class="create-game__label" for="game-end">End *</label>
-              <input id="game-end" v-model="form.endTime" type="time" class="create-game__input" />
+              <GameDateField id="game-end" v-model="form.endTime" presentation="time" label="Choose end time" />
               <p v-if="shown('endTime')" class="create-game__error">{{ errors.endTime }}</p>
             </div>
           </div>
           <p class="create-game__hint">Local time at the venue.</p>
           <div class="create-game__field" @focusout="touch('registrationClosesAt')">
             <label class="create-game__label" for="game-registration-close">Registration closes (optional)</label>
-            <input
+            <GameDateField
               id="game-registration-close"
               v-model="form.registrationClosesAt"
-              type="datetime-local"
-              class="create-game__input"
+              presentation="date-time"
+              label="Choose registration deadline"
+              allow-clear
+              :min="today"
               :max="form.gameDate && form.startTime ? `${form.gameDate}T${form.startTime}` : undefined"
             />
             <p v-if="shown('registrationClosesAt')" class="create-game__error">{{ errors.registrationClosesAt }}</p>
@@ -714,7 +716,7 @@ onMounted(() => {
   color: var(--ion-text-color);
   font: inherit;
   font-size: 0.92rem;
-  color-scheme: dark;
+  color-scheme: inherit;
 }
 
 .create-game__input--narrow {

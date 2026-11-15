@@ -3,7 +3,7 @@
     <input
       :id="id"
       :value="modelValue"
-      type="date"
+      :type="inputType"
       :min="min"
       :max="max"
       class="game-date-field__input"
@@ -14,19 +14,23 @@
       @keydown.enter.prevent="open = true"
       @keydown.space.prevent="open = true"
     />
-    <button type="button" class="game-date-field__open" aria-label="Choose game date" aria-haspopup="dialog" @click="open = true">
-      <ion-icon :icon="calendarOutline" aria-hidden="true" />
+    <button type="button" class="game-date-field__open" :aria-label="pickerLabel" aria-haspopup="dialog" @click="open = true">
+      <ion-icon :icon="presentation === 'time' ? timeOutline : calendarOutline" aria-hidden="true" />
     </button>
-    <ion-modal :is-open="open" class="game-date-modal" @did-dismiss="open = false">
+    <ion-modal :is-open="open" class="game-date-modal" :class="{ 'game-date-modal--time': presentation === 'time' }" @did-dismiss="open = false">
       <div class="game-date-field__calendar">
-        <h2>Choose game date</h2>
+        <h2>{{ pickerLabel }}</h2>
         <ion-datetime
-          presentation="date"
-          :value="modelValue || min"
+          v-if="open"
+          :presentation="presentation"
+          :value="pickerValue"
           :min="min"
           :max="max"
           :show-default-buttons="true"
-          done-text="Use date"
+          :show-clear-button="allowClear"
+          :prefer-wheel="presentation === 'time'"
+          hour-cycle="h12"
+          :done-text="presentation === 'time' ? 'Use time' : 'Use date'"
           cancel-text="Cancel"
           @ion-change="chooseDate"
           @ion-cancel="open = false"
@@ -37,18 +41,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { IonDatetime, IonIcon, IonModal } from '@ionic/vue';
-import { calendarOutline } from 'ionicons/icons';
+import { calendarOutline, timeOutline } from 'ionicons/icons';
 
-defineProps<{ id: string; modelValue: string; min: string; max: string }>();
+const props = withDefaults(defineProps<{
+  id: string;
+  modelValue: string;
+  min?: string;
+  max?: string;
+  presentation?: 'date' | 'time' | 'date-time';
+  label?: string;
+  allowClear?: boolean;
+}>(), { presentation: 'date', allowClear: false });
 const emit = defineEmits<{ 'update:modelValue': [date: string] }>();
 const open = ref(false);
+const inputType = computed(() => props.presentation === 'date-time' ? 'datetime-local' : props.presentation);
+const pickerLabel = computed(() => props.label || (props.presentation === 'time' ? 'Choose game time' : 'Choose game date'));
+const pickerValue = computed(() => props.presentation === 'time'
+  ? `2000-01-01T${props.modelValue || '09:00'}`
+  : props.modelValue || props.min);
 
 function chooseDate(event: CustomEvent<{ value?: string | string[] | null }>): void {
   const value = event.detail.value;
+  if (value == null && props.allowClear) {
+    emit('update:modelValue', '');
+    open.value = false;
+    return;
+  }
   if (typeof value !== 'string') return;
-  emit('update:modelValue', value.slice(0, 10));
+  // Preserve the selected venue wall-clock time; do not convert through UTC.
+  const selected = props.presentation === 'time'
+    ? (value.includes('T') ? value.split('T')[1] : value).slice(0, 5)
+    : value.slice(0, props.presentation === 'date' ? 10 : 16);
+  const valid = props.presentation === 'time'
+    ? /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(selected)
+    : (props.presentation === 'date' ? /^\d{4}-\d{2}-\d{2}$/ : /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/).test(selected);
+  if (!valid || (props.min && selected < props.min) || (props.max && selected > props.max)) return;
+  emit('update:modelValue', selected);
   open.value = false;
 }
 </script>
@@ -69,7 +99,7 @@ function chooseDate(event: CustomEvent<{ value?: string | string[] | null }>): v
   background: var(--gora-surface);
   color: var(--ion-text-color);
   font: inherit;
-  color-scheme: dark;
+  color-scheme: inherit;
   cursor: pointer;
 }
 .game-date-field__input::-webkit-calendar-picker-indicator { display: none; }
@@ -87,16 +117,19 @@ function chooseDate(event: CustomEvent<{ value?: string | string[] | null }>): v
   cursor: pointer;
 }
 .game-date-field__calendar {
+  height: 100%;
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
   padding: 16px;
+  background: var(--gora-surface);
+  color: var(--ion-text-color);
 }
 .game-date-field__calendar h2 { margin: 0 0 12px; font-size: 1.1rem; }
 .game-date-field__calendar ion-datetime {
   --background: var(--gora-surface);
-  --background-rgb: 28, 29, 33;
+  --background-rgb: var(--ion-background-color-rgb);
   --wheel-highlight-background: var(--gora-surface-raised);
-  --wheel-fade-background-rgb: 28, 29, 33;
+  --wheel-fade-background-rgb: var(--ion-background-color-rgb);
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
@@ -104,7 +137,8 @@ function chooseDate(event: CustomEvent<{ value?: string | string[] | null }>): v
 }
 .game-date-modal {
   --width: min(390px, calc(100% - 24px));
-  --height: auto;
+  --height: min(600px, calc(100dvh - 24px));
   --max-height: calc(100% - 24px);
 }
+.game-date-modal--time { --height: min(360px, calc(100dvh - 24px)); }
 </style>

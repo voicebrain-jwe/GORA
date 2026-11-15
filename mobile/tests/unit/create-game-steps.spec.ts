@@ -118,9 +118,12 @@ async function details(page: VueWrapper) {
   await next(page);
 }
 async function chooseDate(page: VueWrapper, date: string) {
-  const field = page.getComponent(GameDateField);
+  await chooseScheduleField(page, 'game-date', date);
+}
+async function chooseScheduleField(page: VueWrapper, id: string, value: string) {
+  const field = page.findAllComponents(GameDateField).find((component) => component.props('id') === id)!;
   await field.get('button').trigger('click');
-  field.getComponent({ name: 'IonDatetime' }).vm.$emit('ionChange', { detail: { value: date } });
+  field.getComponent({ name: 'IonDatetime' }).vm.$emit('ionChange', { detail: { value } });
   await flushPromises();
 }
 async function toLocation(page: VueWrapper) {
@@ -128,8 +131,8 @@ async function toLocation(page: VueWrapper) {
   await page.get('#game-players').setValue(8);
   await next(page);
   await chooseDate(page, '2026-11-02');
-  await page.get('#game-start').setValue('18:00');
-  await page.get('#game-end').setValue('20:00');
+  await chooseScheduleField(page, 'game-start', '18:00');
+  await chooseScheduleField(page, 'game-end', '20:00');
   await next(page);
 }
 async function toReview(page: VueWrapper) {
@@ -166,8 +169,8 @@ describe('Create Game steps', () => {
     await page.get('#game-acceptance').setValue('true');
     await next(page);
     await chooseDate(page, '2026-11-02');
-    await page.get('#game-start').setValue('18:00');
-    await page.get('#game-end').setValue('20:00');
+    await chooseScheduleField(page, 'game-start', '18:00');
+    await chooseScheduleField(page, 'game-end', '20:00');
     await next(page);
     await page.get('#game-location').setValue('BGC Court');
     await page.get('#game-lat').setValue('14.5');
@@ -208,12 +211,12 @@ describe('Create Game steps', () => {
     await page.get('#game-players').setValue(8);
     await next(page);
     await chooseDate(page, '2026-11-02');
-    await page.get('#game-start').setValue('18:00');
-    await page.get('#game-end').setValue('17:00');
+    await chooseScheduleField(page, 'game-start', '18:00');
+    await chooseScheduleField(page, 'game-end', '17:00');
     await next(page);
     expect(page.get('.create-game__step-title').text()).toBe('Schedule');
     expect(page.text()).toContain('End time must be after the start time.');
-    await page.get('#game-end').setValue('20:00');
+    await chooseScheduleField(page, 'game-end', '20:00');
     await next(page);
     expect(page.get('.create-game__step-title').text()).toBe('Location');
   });

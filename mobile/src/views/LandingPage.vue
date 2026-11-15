@@ -7,11 +7,48 @@
       :scroll-events="true"
       @ion-scroll="onScroll"
     >
-      <div v-if="isNativeApp" class="lp lp-welcome" data-bs-theme="dark">
+      <div v-if="isNativeApp" class="lp lp-welcome" data-bs-theme="dark" @pointerdown="ping">
         <picture class="lp-welcome__bg" aria-hidden="true">
           <img src="/images/gora-hoop-small.webp" alt="" />
         </picture>
         <div class="lp-welcome__shade" aria-hidden="true" />
+        <div class="lp-arena lp-welcome__arena" aria-hidden="true">
+          <div class="lp-arena__grid">
+            <span class="lp-arena__line" />
+            <span class="lp-arena__circle" />
+          </div>
+        </div>
+        <div class="lp-shots lp-welcome__shots" aria-hidden="true">
+          <svg viewBox="0 0 300 220" width="300" height="220">
+            <path
+              v-for="(shot, index) in welcomeShots"
+              :key="`w-trail-${index}`"
+              class="lp-shots__trail"
+              :d="shot"
+              pathLength="1"
+              :style="{ animationDelay: `${index * 2.4}s` }"
+            />
+          </svg>
+          <span
+            v-for="(shot, index) in welcomeShots"
+            :key="`w-ball-${index}`"
+            class="lp-shots__ball"
+            :style="{ offsetPath: `path('${shot}')`, animationDelay: `${index * 2.4}s` }"
+          />
+          <span
+            v-for="index in welcomeShots.length"
+            :key="`w-swish-${index}`"
+            class="lp-shots__swish lp-welcome__swish"
+            :style="{ animationDelay: `${(index - 1) * 2.4}s` }"
+          ><span /></span>
+        </div>
+        <span
+          v-for="item in pings"
+          :key="item.id"
+          class="lp-ping"
+          :style="{ left: `${item.x}px`, top: `${item.y}px` }"
+          aria-hidden="true"
+        />
         <span class="lp-blob lp-blob--one" aria-hidden="true" />
         <span class="lp-blob lp-blob--two" aria-hidden="true" />
         <div class="lp-welcome__body">
@@ -678,6 +715,8 @@ const heroChips = [
 
 /* ───────── Hero motion ───────── */
 /** Decorative shot arcs into the hoop (SVG path coordinates inside the 620×420 shots box). */
+/** The app welcome screen's smaller shot box (300×220). */
+const welcomeShots = ['M 0 210 Q 70 -70 196 34', 'M 290 214 Q 270 -40 196 34'];
 const shots = ['M 0 400 Q 110 -140 330 40', 'M 150 420 Q 210 -70 330 40', 'M 610 410 Q 520 -130 330 40'];
 /** The hero radar is a labelled preview, not live data. */
 const radarBlips = [
@@ -1785,6 +1824,41 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   ion-icon {
     color: $accent;
   }
+}
+
+/* App welcome: court grid behind the copy, shots into the hoop up top. */
+.lp-welcome .lp-welcome__arena {
+  top: 24%;
+  bottom: auto;
+  height: 40%;
+  mask-image: linear-gradient(to top, transparent 0%, #000 30%, #000 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, #000 30%, #000 60%, transparent 100%);
+
+  .lp-arena__grid {
+    background-size: 44px 44px;
+    animation: lp-grid-run-sm 3.5s linear infinite;
+  }
+
+  .lp-arena__circle {
+    width: 160px;
+    height: 160px;
+  }
+}
+
+.lp-welcome .lp-welcome__shots {
+  top: calc(6% + env(safe-area-inset-top, 0px));
+  right: 2%;
+  width: 300px;
+  height: 220px;
+}
+
+.lp-welcome .lp-shots__swish.lp-welcome__swish {
+  top: 34px;
+  left: 196px;
+}
+
+.lp-welcome__actions .btn:active {
+  transform: scale(0.97);
 }
 
 .lp-welcome .lp-blob--one {
@@ -3252,6 +3326,12 @@ a.lp-chip {
   .lp-arena__circle {
     width: 180px;
     height: 180px;
+  }
+}
+
+@keyframes lp-grid-run-sm {
+  to {
+    background-position: 0 44px, 0 0;
   }
 }
 

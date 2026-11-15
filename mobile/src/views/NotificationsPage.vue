@@ -414,118 +414,156 @@ onMounted(() => {
 
 <style scoped>
 .notifications {
-  margin: 0;
-  padding: 8px 0 32px;
+  display: flex;
+  max-width: 680px;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 auto;
+  padding: 12px 12px 32px;
   list-style: none;
 }
 
-.notifications__item { border-bottom: 1px solid var(--gora-line); }
+.notifications__item {
+  overflow: hidden;
+  border: 1px solid var(--gora-line);
+  border-radius: 18px;
+  background: var(--gora-surface);
+  animation: notification-in 0.3s ease-out both;
+}
+
+.notifications__item:nth-child(2) { animation-delay: 30ms; }
+.notifications__item:nth-child(3) { animation-delay: 60ms; }
+.notifications__item:nth-child(4) { animation-delay: 90ms; }
+.notifications__item:nth-child(5) { animation-delay: 120ms; }
+.notifications__item:nth-child(n + 6) { animation-delay: 150ms; }
 
 .notifications__empty,
 .notifications__feedback {
-  margin: 48px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 64px 24px;
   color: var(--gora-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
   text-align: center;
 }
-.notifications__feedback {
-  color: var(--ion-color-danger);
+
+p.notifications__empty::before {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  border-radius: 24px;
+  background: var(--gora-accent-soft);
+  content: '🔔';
+  font-size: 32px;
 }
-.notification:disabled {
-  cursor: progress;
-  opacity: 0.7;
+
+.notifications__feedback {
+  margin: 16px 12px 0;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(239, 91, 91, 0.1);
+  color: #ef5b5b;
+}
+
+.notifications__feedback p {
+  margin: 0;
 }
 
 .notification {
+  position: relative;
   display: flex;
   width: 100%;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 14px 14px 16px;
   border: 0;
   background: transparent;
   color: var(--ion-text-color);
   cursor: pointer;
   font: inherit;
   text-align: left;
+  transition: background 0.2s;
 }
 
-.notification__actions {
-  display: flex;
-  gap: 8px;
-  padding: 0 16px 12px 72px;
+.notification:hover {
+  background: var(--gora-surface-raised);
 }
 
-.notification__action {
-  min-height: 36px;
-  padding: 8px 14px;
-  border: 1px solid var(--gora-line-strong);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ion-text-color);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
+.notification:active {
+  background: var(--gora-surface-raised);
 }
 
-.notification__action--primary {
-  border-color: var(--ion-color-primary);
-  background: var(--ion-color-primary);
-  color: var(--ion-color-primary-contrast);
-}
-
-.notification__action:disabled { cursor: progress; opacity: 0.6; }
-.notification__action-status {
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  padding: 8px 14px;
-  border-color: #52565b;
-  background: #3d4146;
-  color: #c1c5ca;
-  border: 1px solid #52565b;
-  border-radius: 999px;
-  font-size: .78rem;
-  font-weight: 700;
+.notification:disabled {
+  cursor: progress;
+  opacity: 0.7;
 }
 
 .notification--unread {
-  background: rgba(214, 242, 92, 0.06);
+  background: linear-gradient(90deg, rgba(255, 96, 40, 0.12), rgba(255, 96, 40, 0.03) 70%);
+}
+
+.notification--unread::before {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ion-color-primary);
+  content: '';
 }
 
 .notification__icon {
   position: relative;
   display: flex;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--gora-surface);
+  background: var(--gora-accent-soft);
   color: var(--ion-color-primary);
   font-size: 22px;
 }
 
-.notification__icon--badge_unlocked {
-  background: var(--ion-color-primary);
-  color: var(--ion-color-primary-contrast);
-}
-
 .notification__type-dot {
   position: absolute;
-  right: -4px;
-  bottom: -4px;
+  right: -3px;
+  bottom: -3px;
   display: flex;
   width: 22px;
   height: 22px;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--ion-background-color);
+  border: 2px solid var(--gora-surface);
   border-radius: 50%;
   background: var(--ion-color-primary);
-  color: var(--ion-color-primary-contrast);
+  color: #fff;
   font-size: 12px;
+}
+
+/* Colour by kind: likes red, comments blue, people green, badges gold. */
+:is(.notification__icon--post_like, .notification__icon--reel_like) .notification__type-dot { background: #ef4b5b; }
+:is(.notification__icon--post_comment, .notification__icon--reel_comment, .notification__icon--story_reply, .notification__icon--new_message, .notification__icon--message_request) .notification__type-dot { background: #3b82f6; }
+:is(.notification__icon--friend_request, .notification__icon--friend_accepted, .notification__icon--new_follower, .notification__icon--club_join_request, .notification__icon--club_join_accepted, .notification__icon--club_leave_request, .notification__icon--club_leave_accepted) .notification__type-dot { background: #2fbf71; }
+:is(.notification__icon--live_started) .notification__type-dot { background: #e11d48; }
+:is(.notification__icon--game_join_rejected, .notification__icon--game_cancelled, .notification__icon--game_leave_rejected, .notification__icon--game_no_show_reported, .notification__icon--club_join_rejected, .notification__icon--club_leave_rejected) .notification__type-dot { background: #6b7280; }
+
+.notification__icon--badge_unlocked {
+  background: linear-gradient(135deg, #f5c84b, #ff9f1c);
+  color: #3a2500;
+}
+
+.notification__icon--game_cancelled,
+.notification__icon--game_join_rejected,
+.notification__icon--game_leave_rejected {
+  background: rgba(239, 91, 91, 0.12);
+  color: #ef5b5b;
 }
 
 .notification__text {
@@ -533,25 +571,115 @@ onMounted(() => {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
-  font-size: 0.85rem;
+  gap: 3px;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.notification__text strong {
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 .notification__text span {
+  display: -webkit-box;
+  overflow: hidden;
   color: var(--gora-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .notification__text time {
-  color: #7d8a93;
+  margin-top: 1px;
+  color: var(--gora-muted);
   font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.notification--unread .notification__text time {
+  color: var(--ion-color-primary);
 }
 
 .notification__unread {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   flex-shrink: 0;
-  margin-top: 6px;
   border-radius: 50%;
   background: var(--ion-color-primary);
+  box-shadow: 0 0 0 4px rgba(255, 96, 40, 0.18);
+}
+
+.notification__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 14px 78px;
+}
+
+.notification__action {
+  min-height: 38px;
+  padding: 8px 16px;
+  border: 1px solid var(--gora-line-strong);
+  border-radius: 999px;
+  background: var(--gora-surface-raised);
+  color: var(--ion-text-color);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  transition: transform 0.15s, filter 0.2s;
+}
+
+.notification__action:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.notification__action--primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--ion-color-primary), #ff8a3d);
+  color: var(--ion-color-primary-contrast);
+}
+
+.notification__action:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.notification__action-status {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--gora-surface-raised);
+  color: var(--gora-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.notification__action-status::before {
+  color: #2fbf71;
+  content: '✓';
+  font-weight: 900;
+}
+
+@keyframes notification-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notifications__item {
+    animation: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .notification__actions {
+    padding-left: 14px;
+  }
 }
 </style>

@@ -50,6 +50,8 @@ export interface ProfileRelationship {
   state: Exclude<RelationshipState, 'BLOCKED_BY_THEM' | 'SELF'>;
   messageAccess: MessageAccess;
   canSendFriendRequest: boolean;
+  /** Whether the viewer follows this person. */
+  viewerFollows?: boolean;
 }
 
 /**

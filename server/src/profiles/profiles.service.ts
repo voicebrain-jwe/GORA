@@ -310,10 +310,13 @@ export class ProfilesService {
       throw new NotFoundException(PROFILE_NOT_FOUND_MESSAGE);
     }
 
+    const viewerFollows =
+      (await this.prisma.userFollow.count({ where: { followerId: viewerId, followingId: user.id } })) > 0;
     const relationship = {
       state,
       messageAccess: messageAccessFor(state),
       canSendFriendRequest: canSendFriendRequest(state),
+      viewerFollows,
     };
 
     if (state === 'BLOCKED') {

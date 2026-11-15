@@ -648,4 +648,101 @@ onBeforeUnmount(() => {
   color: #7d8a93;
   cursor: default;
 }
+
+/* ───────── Polished layout ───────── */
+.create-post {
+  width: 100%;
+  max-width: 640px;
+  box-sizing: border-box;
+  gap: 10px;
+  margin: 16px auto 40px;
+  padding: 18px 16px 22px;
+  border: 1px solid var(--gora-line);
+  border-radius: 20px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+  animation: create-post-enter 0.35s ease-out both;
+}
+@media (max-width: 680px) {
+  .create-post {
+    width: auto;
+    margin: 12px 12px 32px;
+  }
+}
+.create-post__author {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--gora-line);
+}
+.create-post__label {
+  margin-top: 10px;
+  font-weight: 800;
+}
+.create-post__caption,
+.create-post__select {
+  border: 1px solid var(--gora-line);
+  border-radius: 14px;
+  background: var(--gora-surface-raised);
+  transition: border-color var(--gora-motion), box-shadow var(--gora-motion), background var(--gora-motion);
+}
+.create-post__caption:focus,
+.create-post__select:focus {
+  border-color: var(--ion-color-primary);
+  background: var(--gora-surface);
+  box-shadow: 0 0 0 3px var(--gora-accent-soft);
+  outline: none;
+}
+.create-post__add {
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 0%, var(--gora-accent-soft), transparent 70%),
+    var(--gora-surface-raised);
+  transition: border-color var(--gora-motion), transform var(--gora-motion);
+}
+.create-post__add:hover {
+  border-color: var(--ion-color-primary);
+  transform: translateY(-1px);
+}
+.create-post__photo {
+  animation: create-post-pop 0.25s ease-out;
+}
+.create-post__extra {
+  border: 1px solid var(--gora-line);
+  border-radius: 999px;
+  background: var(--gora-surface-raised);
+  transition: border-color var(--gora-motion), color var(--gora-motion);
+}
+.create-post__extra:hover {
+  border-color: var(--gora-accent-line);
+  color: var(--ion-color-primary);
+}
+.create-post__submit {
+  min-height: 52px;
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-tint));
+  box-shadow: 0 10px 24px -12px rgba(255, 96, 40, 0.8);
+  font-size: 1rem;
+  font-weight: 800;
+}
+.create-post__submit:disabled {
+  background: var(--gora-surface-raised);
+  box-shadow: none;
+  color: var(--gora-muted);
+}
+@keyframes create-post-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes create-post-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .create-post,
+  .create-post__photo {
+    animation: none;
+  }
+}
 </style>

@@ -125,6 +125,8 @@ export interface ProfileRelationship {
   state: Exclude<RelationshipState, 'SELF'>;
   messageAccess: MessageAccess;
   canSendFriendRequest: boolean;
+  /** Whether you follow this person (older servers omit it). */
+  viewerFollows?: boolean;
 }
 
 /** GET /profiles/:username for someone else. Stats and sections are null when the viewer blocked them. */

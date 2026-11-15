@@ -3,59 +3,77 @@
     <SubPageHeader title="Settings" />
 
     <ion-content :fullscreen="true">
-      <p v-if="auth.currentUser" class="settings-account">
-        Signed in as <strong>@{{ auth.currentUser.username }}</strong>
-        <span>{{ auth.currentUser.email }}</span>
-      </p>
+      <div class="settings">
+        <router-link v-if="auth.currentUser" to="/profile" class="settings-account">
+          <span class="settings-account__avatar" aria-hidden="true">
+            {{ (auth.currentUser.firstName?.[0] ?? '') + (auth.currentUser.lastName?.[0] ?? '') || auth.currentUser.username[0] }}
+          </span>
+          <span class="settings-account__text">
+            <strong>{{ [auth.currentUser.firstName, auth.currentUser.lastName].filter(Boolean).join(' ') || auth.currentUser.username }}</strong>
+            <span>@{{ auth.currentUser.username }}</span>
+            <small>{{ auth.currentUser.email }}</small>
+          </span>
+          <ion-icon :icon="chevronForwardOutline" class="settings-account__chevron" aria-hidden="true" />
+        </router-link>
 
-      <ion-list inset>
-        <ion-item v-if="auth.currentUser?.role === 'SUPER_ADMIN'" router-link="/admin" :detail="true">
-          <ion-icon slot="start" :icon="shieldCheckmarkOutline" aria-hidden="true" />
-          <ion-label
-            >Super Admin Dashboard
-            <p>Manage GORA, accounts, and reports</p></ion-label
-          >
-        </ion-item>
-        <ion-item router-link="/profile/saved" :detail="true">
-          <ion-icon slot="start" :icon="bookmarkOutline" aria-hidden="true" />
-          <ion-label>Saved Posts</ion-label>
-        </ion-item>
-        <ion-item router-link="/profile/edit" :detail="true">
-          <ion-icon slot="start" :icon="personOutline" aria-hidden="true" />
-          <ion-label>Edit Profile</ion-label>
-        </ion-item>
-        <ion-item router-link="/profile/clubs/new" :detail="true">
-          <ion-icon slot="start" :icon="addCircleOutline" aria-hidden="true" />
-          <ion-label>
-            Create Club
-            <p>Start a community for your sport and city</p>
-          </ion-label>
-        </ion-item>
-        <ion-item button :detail="true" @click="openHelp">
-          <ion-icon slot="start" :icon="helpCircleOutline" aria-hidden="true" />
-          <ion-label>
-            Help
-            <p>Send a message to the GORA admin team</p>
-          </ion-label>
-        </ion-item>
-        <ion-item
-          v-for="item in SETTINGS_ITEMS"
-          :key="item.label"
-          button
-          :detail="true"
-          @click="openSetting(item.id)"
-        >
-          <ion-icon slot="start" :icon="item.icon" aria-hidden="true" />
-          <ion-label>
-            {{ item.label }}
-            <p>{{ item.summary }}</p>
-          </ion-label>
-        </ion-item>
-        <ion-item button :detail="false" :disabled="isLoggingOut" class="settings-logout" @click="logOut">
-          <ion-icon slot="start" :icon="logOutOutline" aria-hidden="true" />
-          <ion-label>{{ isLoggingOut ? 'Logging out...' : 'Log Out' }}</ion-label>
-        </ion-item>
-      </ion-list>
+        <section v-if="auth.currentUser?.role === 'SUPER_ADMIN'" class="settings-group">
+          <h2 class="settings-group__title">Administration</h2>
+          <ion-list class="settings-list" lines="inset">
+            <ion-item router-link="/admin" :detail="true">
+              <span slot="start" class="settings-icon settings-icon--admin"><ion-icon :icon="shieldCheckmarkOutline" aria-hidden="true" /></span>
+              <ion-label>Super Admin Dashboard<p>Manage GORA, accounts, and reports</p></ion-label>
+            </ion-item>
+          </ion-list>
+        </section>
+
+        <section class="settings-group">
+          <h2 class="settings-group__title">Account</h2>
+          <ion-list class="settings-list" lines="inset">
+            <ion-item router-link="/profile/edit" :detail="true">
+              <span slot="start" class="settings-icon"><ion-icon :icon="personOutline" aria-hidden="true" /></span>
+              <ion-label>Edit Profile<p>Name, photo, bio, and city</p></ion-label>
+            </ion-item>
+            <ion-item router-link="/profile/saved" :detail="true">
+              <span slot="start" class="settings-icon settings-icon--blue"><ion-icon :icon="bookmarkOutline" aria-hidden="true" /></span>
+              <ion-label>Saved Posts<p>Posts you bookmarked</p></ion-label>
+            </ion-item>
+            <ion-item router-link="/profile/clubs/new" :detail="true">
+              <span slot="start" class="settings-icon settings-icon--green"><ion-icon :icon="addCircleOutline" aria-hidden="true" /></span>
+              <ion-label>Create Club<p>Start a community for your sport and city</p></ion-label>
+            </ion-item>
+          </ion-list>
+        </section>
+
+        <section class="settings-group">
+          <h2 class="settings-group__title">Preferences</h2>
+          <ion-list class="settings-list" lines="inset">
+            <ion-item v-for="item in SETTINGS_ITEMS" :key="item.label" button :detail="true" @click="openSetting(item.id)">
+              <span slot="start" class="settings-icon" :class="`settings-icon--${item.id}`"><ion-icon :icon="item.icon" aria-hidden="true" /></span>
+              <ion-label>
+                {{ item.label }}
+                <p>{{ item.summary }}</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </section>
+
+        <section class="settings-group">
+          <h2 class="settings-group__title">Support</h2>
+          <ion-list class="settings-list" lines="inset">
+            <ion-item button :detail="true" @click="openHelp">
+              <span slot="start" class="settings-icon settings-icon--purple"><ion-icon :icon="helpCircleOutline" aria-hidden="true" /></span>
+              <ion-label>Help<p>Send a message to the GORA admin team</p></ion-label>
+            </ion-item>
+          </ion-list>
+        </section>
+
+        <ion-list class="settings-list settings-list--logout" lines="none">
+          <ion-item button :detail="false" :disabled="isLoggingOut" class="settings-logout" @click="logOut">
+            <span slot="start" class="settings-icon settings-icon--danger"><ion-icon :icon="logOutOutline" aria-hidden="true" /></span>
+            <ion-label>{{ isLoggingOut ? 'Logging out…' : 'Log Out' }}</ion-label>
+          </ion-item>
+        </ion-list>
+      </div>
     </ion-content>
 
     <ion-modal class="profile-settings-modal" :is-open="activeSetting !== null" @did-dismiss="activeSetting = null">
@@ -262,6 +280,7 @@ import { alertController } from '@ionic/vue';
 import {
   addCircleOutline,
   bookmarkOutline,
+  chevronForwardOutline,
   cameraReverseOutline,
   colorPaletteOutline,
   helpCircleOutline,
@@ -527,29 +546,170 @@ async function logOut(): Promise<void> {
 </script>
 
 <style scoped>
-.settings-account {
+.settings {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin: 16px 20px 0;
+  gap: 18px;
+  width: 100%;
+  max-width: 640px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 16px 16px 32px;
+}
+
+/* Account card */
+.settings-account {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 16px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+  color: var(--ion-text-color);
+  text-decoration: none;
+}
+
+.settings-account__avatar {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-tint));
+  color: var(--ion-color-primary-contrast);
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.settings-account__text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings-account__text strong {
+  font-size: 1.02rem;
+}
+
+.settings-account__text span,
+.settings-account__text small {
+  overflow: hidden;
   color: var(--gora-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-account__text span {
   font-size: 0.85rem;
 }
 
-.settings-account strong {
-  color: var(--ion-text-color);
+.settings-account__text small {
+  font-size: 0.76rem;
 }
 
-.settings-account span {
-  font-size: 0.78rem;
+.settings-account__chevron {
+  color: var(--gora-muted);
+  font-size: 18px;
+}
+
+/* Groups */
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-group__title {
+  margin: 0 4px;
+  color: var(--gora-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.settings-list {
+  overflow: hidden;
+  margin: 0;
+  padding: 4px 0;
+  border: 1px solid var(--gora-line);
+  border-radius: 16px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+}
+
+.settings-list ion-item {
+  --background: transparent;
+  --background-hover: var(--gora-surface-hover);
+  --background-hover-opacity: 1;
+  --border-color: var(--gora-line);
+  --min-height: 60px;
+  --padding-start: 14px;
+  --inner-padding-end: 12px;
+  font-weight: 650;
+}
+
+.settings-list ion-label p {
+  margin-top: 2px;
+  color: var(--gora-muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+/* Colored icon tiles */
+.settings-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  margin-inline-end: 14px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-color-primary);
+  font-size: 19px;
+}
+
+.settings-icon--blue,
+.settings-icon--privacy {
+  background: rgba(59, 130, 246, 0.14);
+  color: #3b82f6;
+}
+
+.settings-icon--green,
+.settings-icon--location {
+  background: rgba(34, 197, 94, 0.14);
+  color: #22c55e;
+}
+
+.settings-icon--purple,
+.settings-icon--more {
+  background: rgba(168, 85, 247, 0.14);
+  color: #a855f7;
+}
+
+.settings-icon--notifications {
+  background: rgba(245, 158, 11, 0.16);
+  color: #f59e0b;
+}
+
+.settings-icon--admin {
+  background: rgba(14, 165, 233, 0.14);
+  color: #0ea5e9;
+}
+
+.settings-icon--danger {
+  background: rgba(239, 91, 91, 0.14);
+  color: #ef5b5b;
 }
 
 .settings-logout {
   --color: #ef5b5b;
-}
-
-.settings-logout ion-icon {
-  color: #ef5b5b;
 }
 
 .account-form,

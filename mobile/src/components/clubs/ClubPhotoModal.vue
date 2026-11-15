@@ -10,11 +10,21 @@
     </ion-header>
     <ion-content>
       <div class="club-photo-editor" :aria-busy="busy">
-        <div class="club-photo-editor__preview" :class="`club-photo-editor__preview--${kind}`">
-          <img v-if="shownUrl" :src="shownUrl" :alt="`${title} preview`" />
-          <p v-else>{{ kind === 'cover' ? 'Choose a photo for the top of your club page.' : 'Choose a logo for your club.' }}</p>
-        </div>
-        <p class="club-photo-editor__hint">JPEG, PNG or WebP, up to 20 MB. Your photo is resized and centered to fit.</p>
+        <ImageCropper
+          v-if="sourceUrl"
+          ref="cropper"
+          :src="sourceUrl"
+          :aspect="kind === 'cover' ? 3 : 1"
+          :output-width="kind === 'cover' ? 1800 : 800"
+          :round="kind === 'profile'"
+        />
+        <template v-else>
+          <div class="club-photo-editor__preview" :class="`club-photo-editor__preview--${kind}`">
+            <img v-if="currentUrl" :src="currentUrl" :alt="`${title} preview`" />
+            <p v-else>{{ kind === 'cover' ? 'Choose a photo for the top of your club page.' : 'Choose a logo for your club.' }}</p>
+          </div>
+          <p class="club-photo-editor__hint">JPEG, PNG or WebP, up to 20 MB. After choosing, drag and zoom to frame it.</p>
+        </template>
         <input
           ref="inputRef"
           class="club-photo-editor__file"
@@ -27,12 +37,12 @@
         <p v-if="error" role="alert" class="club-photo-editor__error">{{ error }}</p>
         <div class="club-photo-editor__actions">
           <ion-button fill="outline" :disabled="busy" @click="inputRef?.click()">
-            {{ prepared ? 'Choose another photo' : 'Choose photo' }}
+            {{ sourceUrl ? 'Choose another photo' : 'Choose photo' }}
           </ion-button>
-          <ion-button v-if="currentUrl && !prepared" fill="clear" color="danger" :disabled="busy" @click="save(true)">
+          <ion-button v-if="currentUrl && !sourceUrl" fill="clear" color="danger" :disabled="busy" @click="save(true)">
             Remove {{ kind === 'cover' ? 'cover' : 'logo' }}
           </ion-button>
-          <ion-button :disabled="!prepared || busy" @click="save(false)">
+          <ion-button :disabled="!sourceUrl || busy" @click="save(false)">
             <ion-spinner v-if="busy" slot="start" name="crescent" />
             {{ preparing ? 'Preparing…' : saving ? 'Saving…' : `Save ${kind === 'cover' ? 'cover' : 'logo'}` }}
           </ion-button>
@@ -45,6 +55,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { IonButton, IonButtons, IonContent, IonHeader, IonModal, IonSpinner, IonTitle, IonToolbar } from '@ionic/vue';
+import ImageCropper from '@/components/common/ImageCropper.vue';
 import { useClubsStore } from '@/stores/clubs';
 import type { ClubUpdateInput } from '@/types/club';
 import { showNotice } from '@/utils/notice';
@@ -55,18 +66,23 @@ const emit = defineEmits<{ close: [] }>();
 const clubsStore = useClubsStore();
 
 const inputRef = ref<HTMLInputElement | null>(null);
-/** The resized photo as a data URL, sent as profilePhoto / coverPhoto. */
-const prepared = ref<string | null>(null);
+const cropper = ref<InstanceType<typeof ImageCropper> | null>(null);
+/** The chosen photo, shown in the cropper until it is saved. */
+const sourceUrl = ref<string | null>(null);
+const sourceName = ref('photo.jpg');
 const preparing = ref(false);
 const saving = ref(false);
 const error = ref<string | null>(null);
 const busy = computed(() => preparing.value || saving.value);
 const title = computed(() => (props.kind === 'cover' ? 'Club cover photo' : 'Club logo'));
-const shownUrl = computed(() => prepared.value ?? props.currentUrl);
+function clearSource(): void {
+  if (sourceUrl.value) URL.revokeObjectURL(sourceUrl.value);
+  sourceUrl.value = null;
+}
 
 function close(): void {
   if (busy.value) return;
-  prepared.value = null;
+  clearSource();
   error.value = null;
   emit('close');
 }
@@ -81,23 +97,36 @@ async function select(event: Event): Promise<void> {
     error.value = 'Choose a JPEG, PNG or WebP photo.';
     return;
   }
-  preparing.value = true;
-  try {
-    prepared.value = await preparePostPhoto(file);
-  } catch (caught) {
-    error.value = caught instanceof Error ? caught.message : 'Could not prepare this photo. Please try again.';
-  } finally {
-    preparing.value = false;
+  if (file.size > 20 * 1024 * 1024) {
+    error.value = 'Choose a photo up to 20 MB.';
+    return;
   }
+  clearSource();
+  sourceUrl.value = URL.createObjectURL(file);
+  sourceName.value = file.name;
 }
 
 async function save(remove: boolean): Promise<void> {
-  if (busy.value || (!remove && !prepared.value)) return;
+  if (busy.value || (!remove && !sourceUrl.value)) return;
   const photoKey = props.kind === 'cover' ? 'coverPhoto' : 'profilePhoto';
   const urlKey = props.kind === 'cover' ? 'coverImageUrl' : 'profileImageUrl';
-  const input: ClubUpdateInput = remove ? { [photoKey]: null, [urlKey]: null } : { [photoKey]: prepared.value };
-  saving.value = true;
   error.value = null;
+  let input: ClubUpdateInput;
+  if (remove) {
+    input = { [photoKey]: null, [urlKey]: null };
+  } else {
+    preparing.value = true;
+    try {
+      const framed = await cropper.value!.toFile(sourceName.value);
+      input = { [photoKey]: await preparePostPhoto(framed) };
+    } catch (caught) {
+      error.value = caught instanceof Error ? caught.message : 'Could not prepare this photo. Please try again.';
+      return;
+    } finally {
+      preparing.value = false;
+    }
+  }
+  saving.value = true;
   try {
     const result = await clubsStore.update(props.clubId, input);
     if (!result.ok) {

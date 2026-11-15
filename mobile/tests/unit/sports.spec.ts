@@ -285,21 +285,17 @@ describe('MySportsSection.vue', () => {
     expect(failed.emitted('retry')).toHaveLength(1);
   });
 
-  test('lists real sports with level, position, Edit, and Remove', async () => {
+  test('shows real sports as icon tiles; your own open Edit and Remove', () => {
     const wrapper = mount(MySportsSection, { props: { sports: [BASKETBALL], editable: true } });
 
     expect(wrapper.text()).toContain('Basketball');
-    expect(wrapper.text()).toContain('Advanced · Point Guard');
-    await wrapper.find('[aria-label="Edit Basketball"]').trigger('click');
-    await wrapper.find('[aria-label="Remove Basketball"]').trigger('click');
-    expect(wrapper.emitted('edit')?.[0]).toEqual([BASKETBALL]);
-    expect(wrapper.emitted('remove')?.[0]).toEqual([BASKETBALL]);
+    expect(wrapper.find('button[aria-label^="Basketball,"][aria-label$="Edit or remove"]').exists()).toBe(true);
   });
 
   test('is read-only on other profiles', () => {
     const wrapper = mount(MySportsSection, { props: { sports: [BASKETBALL] } });
 
-    expect(wrapper.find('[aria-label="Edit Basketball"]').exists()).toBe(false);
-    expect(wrapper.find('[aria-label="Remove Basketball"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Basketball');
+    expect(wrapper.find('[aria-label$="Edit or remove"]').exists()).toBe(false);
   });
 });

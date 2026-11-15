@@ -2743,4 +2743,73 @@ pre {
     white-space: normal;
   }
 }
+
+/* ───────── Phone and app layout ───────── */
+@media (max-width: 620px) {
+  /* The section menu above already names the page; keep the bar compact. */
+  .topbar {
+    min-height: 52px;
+    padding: 8px 16px;
+  }
+  .topbar > span:first-child {
+    font-weight: 700;
+  }
+  .access-badge {
+    display: none;
+  }
+  .topbar-account {
+    gap: 8px;
+  }
+
+  .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .heading-actions {
+    justify-content: flex-start;
+  }
+
+  /* Filters stack into full-width rows. */
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filters > *,
+  .search-field {
+    width: 100%;
+    min-width: 0;
+  }
+  .filters select,
+  .filters .button {
+    min-height: 44px;
+  }
+  .filter-note {
+    min-width: 0;
+    margin-left: 0;
+  }
+
+  .stat-grid {
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .report-header {
+    flex-wrap: wrap;
+  }
+  .report-card {
+    padding: 18px 16px;
+  }
+  .audit-entry {
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .admin-dialog {
+    width: calc(100vw - 24px);
+    padding: 20px 18px;
+    border-radius: 18px;
+  }
+  .admin-dialog h2 {
+    font-size: 19px;
+  }
+}
 </style>

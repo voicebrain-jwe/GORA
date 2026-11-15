@@ -6,6 +6,12 @@ import type {
   ClubChatSummary,
 } from '@/types/chat';
 import type { ClubMemberRole, ClubMembership } from '@/types/club';
+import { getApiBaseUrl } from '@/services/api-config';
+
+/** Club photos are API paths; the phone app loads them from the API origin (same as the club page). */
+function absolutePhoto(url: string | null): string | null {
+  return url?.startsWith('/') ? new URL(url, getApiBaseUrl() || window.location.origin).href : url;
+}
 
 /** Same limit as the server's SendClubChatMessageDto. */
 export const CLUB_CHAT_MESSAGE_MAX_LENGTH = 2000;
@@ -66,7 +72,7 @@ export function toClubChatMessage(message: ClubChatApiMessage): ClubChatMessage 
 export function toClubChatSummary(view: ClubChatApiView): ClubChatSummary {
   return {
     id: view.id,
-    club: view.club,
+    club: { ...view.club, profileImageUrl: absolutePhoto(view.club.profileImageUrl) },
     memberCount: view.memberCount,
     role: view.viewer.role,
     permissions: view.viewer.permissions,

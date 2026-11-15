@@ -12,14 +12,31 @@
           <img src="/images/gora-hoop-small.webp" alt="" />
         </picture>
         <div class="lp-welcome__shade" aria-hidden="true" />
+        <span class="lp-blob lp-blob--one" aria-hidden="true" />
+        <span class="lp-blob lp-blob--two" aria-hidden="true" />
         <div class="lp-welcome__body">
           <div class="lp-welcome__brand lp-enter">{{ GORA_NAME }}<span class="text-primary">/</span></div>
           <h1 class="lp-display lp-welcome__title lp-enter" style="--enter-delay: 120ms">
             Find your game.<br />Find your <span class="lp-gradient-text">people.</span>
           </h1>
           <p class="lp-welcome__copy lp-enter" style="--enter-delay: 240ms">
-            Pickup games, clubs, and highlights from players near you.
+            Pickup
+            <span class="lp-welcome__sport" aria-live="off">
+              <Transition name="lp-word" mode="out-in">
+                <strong :key="welcomeSport.name">{{ welcomeSport.name.toLowerCase() }}</strong>
+              </Transition>
+            </span>
+            games, clubs, and highlights from players near you.
           </p>
+          <div class="lp-welcome__ticker lp-enter" style="--enter-delay: 300ms" aria-hidden="true">
+            <div class="lp-welcome__track">
+              <template v-for="copy in 2" :key="copy">
+                <span v-for="sport in sports" :key="`${copy}-${sport.name}`" class="lp-welcome__chip">
+                  <ion-icon :icon="sport.icon" /> {{ sport.name }}
+                </span>
+              </template>
+            </div>
+          </div>
           <div class="lp-welcome__actions lp-enter" style="--enter-delay: 360ms">
             <router-link to="/register" class="btn btn-primary btn-lg rounded-pill lp-btn-glow">Create account</router-link>
             <router-link to="/login" class="btn btn-outline-light btn-lg rounded-pill">Sign in</router-link>
@@ -58,6 +75,15 @@
                 </li>
               </ul>
               <div class="d-flex flex-column flex-lg-row gap-2 pb-3 pb-lg-0">
+                <a
+                  v-if="APP_DOWNLOAD_URL"
+                  :href="APP_DOWNLOAD_URL"
+                  class="btn btn-link text-decoration-none text-body-secondary px-2 lp-nav-download"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <ion-icon :icon="logoAndroid" class="me-1 align-middle" aria-hidden="true" />Download app
+                </a>
                 <router-link to="/login" class="btn btn-outline-light rounded-pill px-4">Sign in</router-link>
                 <router-link to="/register" class="btn btn-primary rounded-pill px-4 lp-btn-glow">
                   Join GORA <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
@@ -102,6 +128,18 @@
                       Explore games
                     </router-link>
                   </div>
+                  <a
+                    v-if="APP_DOWNLOAD_URL"
+                    :href="APP_DOWNLOAD_URL"
+                    class="lp-hero__download lp-enter"
+                    style="--enter-delay: 540ms"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    <ion-icon :icon="logoAndroid" aria-hidden="true" />
+                    Download for Android
+                    <ion-icon :icon="downloadOutline" aria-hidden="true" />
+                  </a>
                   <ul class="list-unstyled d-flex flex-wrap gap-2 mt-4 mb-0 lp-enter" style="--enter-delay: 600ms">
                     <li v-for="chip in heroChips" :key="chip.label" class="lp-chip">
                       <ion-icon :icon="chip.icon" aria-hidden="true" /> {{ chip.label }}
@@ -378,6 +416,36 @@
             </div>
           </section>
 
+          <!-- ───────────── Download the app ───────────── -->
+          <section id="download" class="lp-section pt-0" aria-labelledby="download-heading">
+            <div class="container">
+              <div v-reveal class="lp-download">
+                <div class="lp-download__icon" aria-hidden="true">
+                  <ion-icon :icon="logoAndroid" />
+                </div>
+                <div class="lp-download__copy">
+                  <p class="lp-eyebrow mb-2">GORA for Android</p>
+                  <h2 id="download-heading" class="lp-heading mb-2">Take GORA everywhere.</h2>
+                  <p class="text-body-secondary mb-0">
+                    Get game alerts, chat with your crew, and go live from the court with the GORA app.
+                  </p>
+                </div>
+                <a
+                  v-if="APP_DOWNLOAD_URL"
+                  :href="APP_DOWNLOAD_URL"
+                  class="btn btn-primary btn-lg rounded-pill px-4 lp-btn-glow lp-download__button"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <ion-icon :icon="downloadOutline" class="me-2 align-middle" aria-hidden="true" />Download now
+                </a>
+                <span v-else class="btn btn-outline-light btn-lg rounded-pill px-4 disabled lp-download__button" aria-disabled="true">
+                  Coming soon
+                </span>
+              </div>
+            </div>
+          </section>
+
           <!-- ───────────── Final CTA ───────────── -->
           <section class="lp-section pt-0" aria-labelledby="cta-heading">
             <div class="container">
@@ -434,9 +502,11 @@ import {
   chatbubblesOutline,
   checkmarkCircle,
   closeOutline,
+  downloadOutline,
   footballOutline,
   gameControllerOutline,
   locationOutline,
+  logoAndroid,
   menuOutline,
   navigateOutline,
   peopleOutline,
@@ -450,7 +520,7 @@ import {
   waterOutline,
 } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
-import { GORA_NAME, GORA_TAGLINE } from '@/constants/brand';
+import { APP_DOWNLOAD_URL, GORA_NAME, GORA_TAGLINE } from '@/constants/brand';
 import '@/theme/landing-bootstrap.scss';
 
 const year = new Date().getFullYear();
@@ -484,6 +554,11 @@ const sports = [
   { name: 'Esports', icon: gameControllerOutline, image: '/images/esports-action.png', title: 'Weekend squad matches', place: 'Online or your local gaming cafe', time: 'Saturday · 7:00 PM', spots: '2 teammates needed' },
 ];
 const selectedSport = ref('Basketball');
+
+/* App welcome: the sport in the copy changes every few seconds. */
+const welcomeSportIndex = ref(0);
+const welcomeSport = computed(() => sports[welcomeSportIndex.value % sports.length]!);
+let welcomeTimer: ReturnType<typeof setInterval> | undefined;
 const activeGame = computed(() => sports.find((sport) => sport.name === selectedSport.value) ?? sports[0]!);
 
 const features = [
@@ -574,9 +649,15 @@ const vReveal: Directive<HTMLElement, number | undefined> = {
 
 onMounted(() => {
   motionReady.value = !!getObserver();
+  if (isNativeApp && !prefersReducedMotion()) {
+    welcomeTimer = setInterval(() => {
+      welcomeSportIndex.value += 1;
+    }, 2200);
+  }
 });
 
 onBeforeUnmount(() => {
+  if (welcomeTimer) clearInterval(welcomeTimer);
   observer?.disconnect();
   observer = null;
 });
@@ -663,6 +744,76 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   max-width: 640px;
 }
 
+/* ───────── Download ───────── */
+.lp-hero__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--bs-body-color);
+  font-size: 0.88rem;
+  font-weight: 650;
+  transition: border-color 0.2s, background 0.2s;
+
+  ion-icon:first-child {
+    color: #3ddc84;
+    font-size: 1.15rem;
+  }
+
+  &:hover {
+    border-color: rgba($accent, 0.6);
+    background: rgba($accent, 0.12);
+    color: var(--bs-body-color);
+  }
+}
+
+.lp-download {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(61, 220, 132, 0.14), transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba($accent, 0.18), transparent 55%),
+    #1c1d21;
+}
+
+.lp-download__icon {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 20px;
+  background: rgba(61, 220, 132, 0.14);
+  color: #3ddc84;
+  font-size: 2.4rem;
+}
+
+.lp-download__copy {
+  min-width: 220px;
+  flex: 1;
+}
+
+.lp-download__button {
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 575.98px) {
+  .lp-download__button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ───────── Native app welcome ───────── */
 .lp-welcome {
   position: relative;
@@ -716,6 +867,76 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   margin-bottom: 28px;
   color: var(--bs-secondary-color);
   font-size: 1.02rem;
+}
+
+.lp-welcome__sport {
+  display: inline-block;
+  min-width: 5.5em;
+  color: $accent;
+}
+
+.lp-word-enter-active,
+.lp-word-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.lp-word-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.lp-word-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.lp-welcome__ticker {
+  overflow: hidden;
+  margin: 0 -24px 26px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+.lp-welcome__track {
+  display: flex;
+  width: max-content;
+  gap: 8px;
+  animation: lp-marquee 26s linear infinite;
+}
+
+.lp-welcome__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+  white-space: nowrap;
+
+  ion-icon {
+    color: $accent;
+  }
+}
+
+.lp-welcome .lp-blob--one {
+  top: 18%;
+}
+
+.lp-welcome__actions .btn-primary {
+  animation: lp-pulse-glow 2.8s ease-in-out 1.2s infinite;
+}
+
+@keyframes lp-pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 10px 30px -10px rgba($accent, 0.7);
+  }
+  50% {
+    box-shadow: 0 10px 40px -4px rgba($accent, 0.95);
+  }
 }
 
 .lp-welcome__actions {

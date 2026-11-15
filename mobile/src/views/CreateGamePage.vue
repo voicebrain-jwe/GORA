@@ -836,4 +836,101 @@ textarea.create-game__input {
   font: inherit;
   font-weight: 700;
 }
+
+/* ───────── Polished layout ───────── */
+.create-game {
+  width: 100%;
+  max-width: 640px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 16px 12px 32px;
+}
+.create-game__step-header {
+  padding: 2px 4px 0;
+}
+.create-game__progress {
+  height: 6px;
+  background: var(--gora-surface-raised);
+}
+.create-game__progress span {
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ion-color-primary), var(--ion-color-primary-tint));
+  transition: width 0.4s ease;
+}
+.create-game__step-title {
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+}
+.create-game__step {
+  gap: 16px;
+  padding: 18px 16px 20px;
+  border: 1px solid var(--gora-line);
+  border-radius: 20px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+  animation: create-game-step 0.3s ease-out both;
+}
+.create-game__label {
+  font-weight: 800;
+}
+.create-game__input {
+  border: 1px solid var(--gora-line);
+  border-radius: 14px;
+  background: var(--gora-surface-raised);
+  transition: border-color var(--gora-motion), box-shadow var(--gora-motion), background var(--gora-motion);
+}
+.create-game__input:focus {
+  border-color: var(--ion-color-primary);
+  background: var(--gora-surface);
+  box-shadow: 0 0 0 3px var(--gora-accent-soft);
+  outline: none;
+}
+.create-game__hint {
+  color: var(--gora-muted);
+}
+.create-game__review-card {
+  border-radius: 14px;
+  background: var(--gora-surface-raised);
+}
+.create-game__submit {
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-tint));
+  box-shadow: 0 10px 24px -12px rgba(255, 96, 40, 0.8);
+  font-weight: 800;
+}
+.create-game__submit:disabled {
+  background: var(--gora-surface-raised);
+  box-shadow: none;
+  color: var(--gora-muted);
+}
+.create-game__back {
+  border-color: var(--gora-line);
+  background: var(--gora-surface);
+}
+.game-created {
+  max-width: 560px;
+  margin: 0 auto;
+  animation: create-game-step 0.35s ease-out both;
+}
+.game-created__badge {
+  animation: create-game-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+@keyframes create-game-step {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+@keyframes create-game-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .create-game__step,
+  .game-created,
+  .game-created__badge {
+    animation: none;
+  }
+}
 </style>

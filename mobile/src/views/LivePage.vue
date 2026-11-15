@@ -2,7 +2,7 @@
   <ion-page>
     <SubPageHeader :title="isCreate ? 'Go Live' : 'Watch Live'" back-href="/home" />
     <ion-content>
-      <main class="live-page" :class="{ 'live-page--with-chat': live?.status === 'LIVE' }">
+      <main class="live-page">
         <div class="live-page__main">
           <div class="live-page__stage">
             <video
@@ -36,7 +36,34 @@
               </div>
             </div>
 
-            <!-- Bottom overlay: controls -->
+            <!-- Live chat over the video -->
+            <section v-if="live?.status === 'LIVE'" class="live-chat" aria-label="Live comments">
+              <div ref="commentList" class="live-chat__list" aria-live="polite">
+                <p v-if="!comments.length" class="live-chat__empty">Be the first to say something.</p>
+                <article v-for="comment in comments.slice(-40)" :key="comment.id" class="live-chat__item">
+                  <UserAvatar :user="comment.author" :size="28" />
+                  <div class="live-chat__bubble">
+                    <strong>{{ comment.author.displayName }}</strong>
+                    <p>{{ comment.content }}</p>
+                  </div>
+                </article>
+              </div>
+              <p v-if="commentError" class="live-chat__error" role="alert">{{ commentError }}</p>
+              <form class="live-chat__form" @submit.prevent="sendComment">
+                <input
+                  v-model="commentDraft"
+                  maxlength="500"
+                  aria-label="Write a live comment"
+                  placeholder="Write a comment…"
+                  :disabled="commentSending"
+                />
+                <button type="submit" :disabled="commentSending || !commentDraft.trim()" aria-label="Send comment">
+                  <ion-icon :icon="sendOutline" aria-hidden="true" />
+                </button>
+              </form>
+            </section>
+
+            <!-- Side overlay: controls -->
             <div v-if="localStream" class="live-page__controls" role="group" aria-label="Broadcast controls">
               <button
                 type="button"
@@ -129,43 +156,6 @@
           </div>
         </div>
 
-        <section v-if="live?.status === 'LIVE'" class="live-comments" aria-label="Live comments">
-          <header class="live-comments__header">
-            <h2>Live chat</h2>
-            <span>{{ comments.length }}</span>
-          </header>
-          <p v-if="!comments.length" class="live-comments__empty">Be the first to say something.</p>
-          <div v-else ref="commentList" class="live-comments__list" aria-live="polite">
-            <article v-for="comment in comments" :key="comment.id" class="live-comments__item">
-              <UserAvatar :user="comment.author" :size="30" />
-              <div class="live-comments__body">
-                <div class="live-comments__meta">
-                  <strong>{{ comment.author.displayName }}</strong>
-                  <time :datetime="comment.createdAt">{{ formatCommentTime(comment.createdAt) }}</time>
-                </div>
-                <p>{{ comment.content }}</p>
-              </div>
-            </article>
-          </div>
-          <form class="live-comments__form" @submit.prevent="sendComment">
-            <input
-              v-model="commentDraft"
-              maxlength="500"
-              aria-label="Write a live comment"
-              placeholder="Say something…"
-              :disabled="commentSending"
-            />
-            <button
-              class="live-comments__send"
-              type="submit"
-              :disabled="commentSending || !commentDraft.trim()"
-              aria-label="Send comment"
-            >
-              <ion-icon :icon="sendOutline" aria-hidden="true" />
-            </button>
-          </form>
-          <p v-if="commentError" class="live-page__error" role="alert">{{ commentError }}</p>
-        </section>
       </main>
     </ion-content>
   </ion-page>
@@ -211,9 +201,6 @@ const auth = useAuthStore();
 const authorized = createAuthorizedCall(auth);
 let commentsTimer: ReturnType<typeof setInterval> | undefined;
 let commentsRequest = false;
-function formatCommentTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(value));
-}
 const {
   live,
   localStream,
@@ -332,13 +319,6 @@ onBeforeUnmount(() => {
   padding: 16px 16px 40px;
 }
 
-@media (min-width: 960px) {
-  .live-page--with-chat {
-    align-items: start;
-    grid-template-columns: minmax(0, 1fr) 340px;
-  }
-}
-
 .live-page__main {
   display: flex;
   min-width: 0;
@@ -359,7 +339,8 @@ onBeforeUnmount(() => {
 
 @media (max-width: 600px) {
   .live-page__stage {
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 9 / 16;
+    max-height: 78vh;
   }
 }
 
@@ -492,17 +473,26 @@ onBeforeUnmount(() => {
   font-size: 0.7rem;
 }
 
-.live-page__controls {
+.live-page__stage::after {
   position: absolute;
   right: 0;
   bottom: 0;
   left: 0;
+  height: 55%;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.55), transparent);
+  content: '';
+  pointer-events: none;
+}
+
+.live-page__controls {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 28px 12px 14px;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.6), transparent);
+  gap: 10px;
 }
 
 .live-page__control {
@@ -542,6 +532,7 @@ onBeforeUnmount(() => {
 }
 
 .live-page__hint {
+  display: none;
   color: #fff;
   font-size: 0.8rem;
   font-weight: 600;
@@ -660,131 +651,116 @@ onBeforeUnmount(() => {
   color: #fff;
 }
 
-/* Chat */
-.live-comments {
+/* Live chat over the video (Facebook Live style) */
+.live-chat {
+  position: absolute;
+  z-index: 2;
+  right: 72px;
+  bottom: 0;
+  left: 0;
   display: flex;
+  max-width: 460px;
   flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--gora-line);
-  border-radius: 16px;
-  background: var(--gora-surface);
-  box-shadow: var(--gora-shadow);
-}
-
-@media (min-width: 960px) {
-  .live-comments {
-    position: sticky;
-    top: 12px;
-    height: min(72vh, 640px);
-  }
-}
-
-.live-comments__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--gora-line);
-}
-
-.live-comments__header h2 {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.live-comments__header span {
-  min-width: 24px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--gora-surface-raised);
-  color: var(--gora-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-align: center;
-}
-
-.live-comments__empty {
-  flex: 1;
-  margin: 0;
-  padding: 24px 16px;
-  color: var(--gora-muted);
-  font-size: 0.85rem;
-  text-align: center;
-}
-
-.live-comments__list {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 360px;
-  overflow-y: auto;
-  padding: 14px 16px;
-}
-
-@media (min-width: 960px) {
-  .live-comments__list {
-    max-height: none;
-  }
-}
-
-.live-comments__item {
-  display: flex;
-  gap: 10px;
-}
-
-.live-comments__body {
-  min-width: 0;
-}
-
-.live-comments__meta {
-  display: flex;
-  align-items: baseline;
   gap: 8px;
+  padding: 0 12px 12px;
 }
 
-.live-comments__meta strong {
-  font-size: 0.8rem;
+.live-chat__list {
+  display: flex;
+  max-height: min(42vh, 300px);
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-top: 24px;
+  scrollbar-width: none;
+  /* Older comments fade out toward the top, like Facebook Live. */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 40px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 40px);
 }
 
-.live-comments__meta time {
-  color: var(--gora-muted);
-  font-size: 0.68rem;
+.live-chat__list::-webkit-scrollbar {
+  display: none;
 }
 
-.live-comments__body p {
-  margin: 2px 0 0;
+.live-chat__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  animation: live-chat-in 0.25s ease-out;
+}
+
+.live-chat__bubble {
+  min-width: 0;
+  padding: 6px 12px 7px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.live-chat__bubble strong {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.live-chat__bubble p {
+  margin: 1px 0 0;
   font-size: 0.86rem;
-  line-height: 1.4;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
-.live-comments__form {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  border-top: 1px solid var(--gora-line);
+.live-chat__empty {
+  align-self: flex-start;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
 }
 
-.live-comments__form input {
+.live-chat__error {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(225, 29, 72, 0.85);
+  color: #fff;
+  font-size: 0.78rem;
+}
+
+.live-chat__form {
+  display: flex;
+  gap: 8px;
+}
+
+.live-chat__form input {
   min-width: 0;
   flex: 1;
   min-height: 42px;
-  padding: 0 14px;
-  border: 1px solid var(--gora-line);
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 999px;
-  background: var(--gora-surface-raised);
-  color: var(--ion-text-color);
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-.live-comments__form input:focus {
-  border-color: var(--ion-color-primary);
+.live-chat__form input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.live-chat__form input:focus {
+  border-color: #fff;
   outline: none;
 }
 
-.live-comments__send {
+.live-chat__form button {
   display: grid;
   width: 42px;
   height: 42px;
@@ -799,13 +775,16 @@ onBeforeUnmount(() => {
   font-size: 18px;
 }
 
-.live-comments__send:disabled {
+.live-chat__form button:disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-.live-comments .live-page__error {
-  margin: 0 12px 12px;
+@keyframes live-chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 @keyframes live-pulse {

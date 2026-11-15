@@ -15,7 +15,7 @@
       ref="video"
       class="feed-reel__video"
       :src="reel.videoUrl"
-      :poster="reel.thumbnailUrl ?? undefined"
+      :poster="reel.thumbnailUrl || 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='"
       muted
       loop
       playsinline

@@ -19,7 +19,8 @@
         <router-link to="/search" class="user-profile__link">Search for players</router-link>
       </div>
 
-      <template v-else>
+      <div v-else class="user-profile">
+        <section class="user-profile__card user-profile__card--hero" aria-label="Profile">
         <ProfileHeader :profile="header">
           <template #cover-actions>
             <div v-if="relationship !== 'SELF'" class="user-profile__menu-wrap">
@@ -34,6 +35,16 @@
                 <ion-icon :icon="ellipsisHorizontalOutline" aria-hidden="true" />
               </button>
               <div v-if="profileMenuOpen" class="user-profile__menu" role="menu" aria-label="Profile options">
+                <button
+                  v-if="apiProfile && !isBlocked"
+                  type="button"
+                  role="menuitem"
+                  :disabled="followBusy"
+                  @click="toggleFollow"
+                >
+                  <ion-icon :icon="isFollowing ? personRemoveOutline : personAddOutline" aria-hidden="true" />
+                  {{ isFollowing ? 'Unfollow' : 'Follow' }}
+                </button>
                 <button type="button" role="menuitem" @click="shareProfile">
                   <ion-icon :icon="shareSocialOutline" aria-hidden="true" />
                   Share Profile
@@ -70,21 +81,21 @@
             </button>
           </template>
         </ProfileHeader>
-
-        <p v-if="isBlocked" class="user-profile__blocked">
-          You blocked @{{ header.username }}. They can't see your posts or message you, and you won't see theirs.
-          Unblock to see their profile again.
-        </p>
-
-        <template v-else>
-          <nav class="user-profile__stats" aria-label="Profile summary">
+          <nav v-if="!isBlocked" class="user-profile__stats" aria-label="Profile summary">
             <span v-for="stat in stats" :key="stat.label" class="user-profile__stat">
               <strong>{{ formatCompactNumber(stat.value) }}</strong>
               <span>{{ stat.label }}</span>
             </span>
           </nav>
+        </section>
 
-          <section class="user-profile__section">
+        <p v-if="isBlocked" class="user-profile__card user-profile__blocked">
+          You blocked @{{ header.username }}. They can't see your posts or message you, and you won't see theirs.
+          Unblock to see their profile again.
+        </p>
+
+        <template v-else>
+          <section class="user-profile__card">
             <MySportsSection v-if="apiProfile" :sports="apiProfile.sports" />
             <template v-else-if="demoProfile">
               <SectionHeader title="Sports" />
@@ -92,11 +103,7 @@
             </template>
           </section>
 
-          <section
-            v-if="apiProfile?.sections"
-            class="user-profile__section user-profile__section--last"
-            aria-labelledby="user-profile-counts"
-          >
+          <section v-if="apiProfile?.sections" class="user-profile__card" aria-labelledby="user-profile-counts">
             <h2 id="user-profile-counts" class="user-profile__title">On GORA</h2>
             <ul class="user-profile__counts">
               <li v-for="item in sectionCounts" :key="item.label">
@@ -105,6 +112,9 @@
               </li>
             </ul>
             <p class="user-profile__note">Only what you're allowed to see is counted.</p>
+          </section>
+
+          <section v-if="apiProfile?.sections" class="user-profile__posts" aria-label="Posts">
             <SectionHeader title="Posts" />
             <p v-if="profilePostsError" class="user-profile__empty" role="alert">{{ profilePostsError }}</p>
             <div class="user-profile__list">
@@ -130,7 +140,7 @@
             </div>
           </section>
 
-          <section v-else-if="demoProfile" class="user-profile__section user-profile__section--last">
+          <section v-else-if="demoProfile" class="user-profile__posts">
             <SegmentTabs v-model="tab" :options="tabs" aria-label="Profile content" />
 
             <div v-if="tab === 'POSTS'" class="user-profile__list">
@@ -170,7 +180,7 @@
             </ul>
           </section>
         </template>
-      </template>
+      </div>
     </ion-content>
     <ReportUserModal :user="reportTarget" @close="reportTarget = null" />
   </ion-page>
@@ -189,6 +199,7 @@ import {
   flagOutline,
   lockOpenOutline,
   personAddOutline,
+  personRemoveOutline,
   peopleOutline,
   shareSocialOutline,
   timeOutline,
@@ -206,7 +217,7 @@ import SportList from '@/components/profile/SportList.vue';
 import ReelThumb from '@/components/reels/ReelThumb.vue';
 import { useNow } from '@/composables/useNow';
 import { usePostActions } from '@/composables/usePostActions';
-import { fetchPublicProfile } from '@/services/profile.service';
+import { fetchPublicProfile, setFollowing } from '@/services/profile.service';
 import { listUserPosts } from '@/services/posts-api.service';
 import { useAuthStore } from '@/stores/auth';
 import { captureSession, createAuthorizedCall } from '@/stores/authorized';
@@ -485,6 +496,33 @@ async function message(identity: ProfileIdentity): Promise<void> {
 function openReport(): void {
   if (header.value) reportTarget.value = header.value;
   profileMenuOpen.value = false;
+}
+
+const followBusy = ref(false);
+const isFollowing = computed(() => apiProfile.value?.relationship.viewerFollows === true);
+
+/** Follow or unfollow from the "..." menu; the Followers count updates right away. */
+async function toggleFollow(): Promise<void> {
+  const profile = apiProfile.value;
+  if (!profile || followBusy.value) return;
+  profileMenuOpen.value = false;
+  const next = !isFollowing.value;
+  const previous = profile;
+  apiProfile.value = {
+    ...profile,
+    relationship: { ...profile.relationship, viewerFollows: next },
+    stats: profile.stats && { ...profile.stats, followers: Math.max(0, profile.stats.followers + (next ? 1 : -1)) },
+  };
+  followBusy.value = true;
+  try {
+    await setFollowing(profile.id, next, auth.accessToken);
+    void showNotice(next ? `You're now following ${profile.displayName}.` : `You unfollowed ${profile.displayName}.`);
+  } catch (caught) {
+    apiProfile.value = previous;
+    void showNotice(describeApiError(caught));
+  } finally {
+    followBusy.value = false;
+  }
 }
 
 async function shareProfile(): Promise<void> {
@@ -968,5 +1006,140 @@ onMounted(() => {
 .user-profile__link {
   color: var(--ion-color-primary);
   font-weight: 700;
+}
+
+/* ───────── Card layout (matches your own profile) ───────── */
+.user-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding-bottom: 32px;
+}
+
+.user-profile__card {
+  margin: 0 12px;
+  padding: 18px 16px;
+  border: 1px solid var(--gora-line);
+  border-radius: 16px;
+  background: var(--gora-surface);
+  box-shadow: var(--gora-shadow);
+}
+
+.user-profile__card--hero {
+  overflow: hidden;
+  margin: 0;
+  padding: 0 0 4px;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  border-radius: 0 0 18px 18px;
+}
+
+@media (min-width: 768px) {
+  .user-profile {
+    padding-top: 16px;
+  }
+  .user-profile__card {
+    margin: 0;
+  }
+  .user-profile__card--hero {
+    border: 1px solid var(--gora-line);
+    border-radius: 18px;
+  }
+}
+
+.user-profile__card :deep(.my-sports__card),
+.user-profile__card :deep(.my-sports__empty) {
+  background: var(--gora-surface-raised);
+}
+
+.user-profile__action {
+  min-height: 42px;
+  border: 1px solid var(--gora-line);
+  border-radius: 10px;
+  background: var(--gora-surface-raised);
+}
+
+.user-profile__action--primary {
+  border-color: transparent;
+}
+
+/* Friends / Followers / Following as one strip inside the header card. */
+.user-profile__stats {
+  display: grid;
+  gap: 0;
+  margin: 16px 16px 0;
+  border-top: 1px solid var(--gora-line);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.user-profile__stat {
+  padding: 14px 4px 12px;
+  border-radius: 0;
+  background: none;
+}
+
+.user-profile__stat + .user-profile__stat {
+  border-left: 1px solid var(--gora-line);
+}
+
+.user-profile__blocked {
+  margin-top: 0;
+}
+
+/* "On GORA" counts: one row with dividers, scrollable on small phones. */
+.user-profile__counts {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border: 1px solid var(--gora-line);
+  border-radius: 12px;
+  background: var(--gora-surface-raised);
+  scrollbar-width: none;
+}
+
+.user-profile__counts::-webkit-scrollbar {
+  display: none;
+}
+
+.user-profile__counts li {
+  min-width: 68px;
+  flex: 1;
+  padding: 12px 4px;
+  border-radius: 0;
+  background: none;
+}
+
+.user-profile__counts li + li {
+  border-left: 1px solid var(--gora-line);
+}
+
+.user-profile__note {
+  font-size: 0.74rem;
+}
+
+.user-profile__posts {
+  margin: 4px 12px 0;
+}
+
+@media (min-width: 768px) {
+  .user-profile__posts {
+    margin: 4px 0 0;
+  }
+}
+
+.user-profile__posts > :deep(.section-header) {
+  padding: 0 4px;
+}
+
+.user-profile__posts .user-profile__empty {
+  padding: 24px 16px;
+  border: 1px dashed var(--gora-line-strong);
+  border-radius: 14px;
+  text-align: center;
 }
 </style>

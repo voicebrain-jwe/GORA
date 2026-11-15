@@ -123,19 +123,19 @@
             You haven't joined any clubs yet. <router-link to="/search">Find a club</router-link> for your sport.
           </p>
           <ul v-else class="profile-clubs">
-            <li v-for="club in myClubs.slice(0, 6)" :key="club.id">
-              <router-link :to="`/clubs/${club.id}`" class="profile-clubs__item">
-                <ClubAvatar :club="club" :image-url="club.profileImageUrl" :size="40" />
-                <span class="profile-clubs__text">
-                  <strong>{{ club.name }}</strong>
-                  <span>
-                    {{ club.memberCount }}/{{ club.maxMembers }} members
-                    <template v-if="club.viewerMembership && club.viewerMembership.role !== 'MEMBER'">
-                      · <em>{{ CLUB_ROLE_LABELS[club.viewerMembership.role] }}</em>
-                    </template>
-                  </span>
+            <li v-for="club in myClubs" :key="club.id">
+              <router-link
+                :to="`/clubs/${club.id}`"
+                class="profile-clubs__item"
+                :aria-label="`${club.name}${club.viewerMembership && club.viewerMembership.role !== 'MEMBER' ? `, ${CLUB_ROLE_LABELS[club.viewerMembership.role]}` : ''}`"
+              >
+                <span class="profile-clubs__logo">
+                  <ClubAvatar :club="club" :image-url="club.profileImageUrl" :size="60" />
+                  <em v-if="club.viewerMembership && club.viewerMembership.role !== 'MEMBER'" class="profile-clubs__role">
+                    {{ CLUB_ROLE_LABELS[club.viewerMembership.role] }}
+                  </em>
                 </span>
-                <ion-icon :icon="chevronForward" class="profile-clubs__chevron" aria-hidden="true" />
+                <strong>{{ club.name }}</strong>
               </router-link>
             </li>
           </ul>
@@ -211,7 +211,6 @@ import {
   archiveOutline,
   bookmarkOutline,
   chevronDown,
-  chevronForward,
   createOutline,
   ellipsisHorizontal,
   imageOutline,
@@ -504,7 +503,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 14px 4px 16px;
+  padding: 16px 4px 18px;
   color: var(--ion-text-color);
   text-decoration: none;
   transition: color var(--gora-motion);
@@ -519,7 +518,8 @@ onMounted(() => {
 }
 
 .profile-stats__item strong {
-  font-size: 1.15rem;
+  font-size: 1.3rem;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   transition: color var(--gora-motion);
 }
@@ -640,66 +640,74 @@ onMounted(() => {
   margin-bottom: 14px;
 }
 
+/* Clubs: logos in a horizontal rail. */
 .profile-clubs {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
+  display: flex;
+  gap: 14px;
+  margin: 0 -16px;
+  padding: 2px 16px 6px;
+  overflow-x: auto;
   list-style: none;
+  scroll-padding-inline: 16px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
 }
 
-@media (min-width: 560px) {
-  .profile-clubs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.profile-clubs::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-clubs > li {
+  flex-shrink: 0;
+  scroll-snap-align: start;
 }
 
 .profile-clubs__item {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--gora-surface-raised);
-  color: var(--ion-text-color);
-  text-decoration: none;
-  transition: background var(--gora-motion);
-}
-
-.profile-clubs__item:hover {
-  background: var(--gora-surface-hover);
-}
-
-.profile-clubs__text {
-  display: flex;
-  min-width: 0;
-  flex: 1;
+  width: 80px;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
+  color: var(--ion-text-color);
+  text-align: center;
+  text-decoration: none;
 }
 
-.profile-clubs__text strong {
-  overflow: hidden;
-  font-size: 0.9rem;
-  text-overflow: ellipsis;
+.profile-clubs__logo {
+  position: relative;
+  display: grid;
+  transition: transform var(--gora-motion);
+}
+
+.profile-clubs__item:hover .profile-clubs__logo,
+.profile-clubs__item:focus-visible .profile-clubs__logo {
+  transform: translateY(-2px);
+}
+
+.profile-clubs__role {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  padding: 1px 7px;
+  border: 2px solid var(--gora-surface);
+  border-radius: 999px;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+  transform: translateX(-50%);
   white-space: nowrap;
 }
 
-.profile-clubs__text span {
-  color: var(--gora-muted);
-  font-size: 0.75rem;
-}
-
-.profile-clubs__text em {
-  color: var(--ion-color-primary);
-  font-style: normal;
+.profile-clubs__item strong {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.76rem;
   font-weight: 700;
-}
-
-.profile-clubs__chevron {
-  flex-shrink: 0;
-  color: var(--gora-muted);
-  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Feed */

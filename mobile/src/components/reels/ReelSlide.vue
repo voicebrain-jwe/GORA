@@ -5,6 +5,7 @@
       ref="video"
       class="reel-slide__video"
       :src="reel.videoUrl"
+      :poster="reel.thumbnailUrl || BLANK_POSTER"
       loop
       :muted="muted"
       playsinline
@@ -14,7 +15,21 @@
       @ended="isPlaying = false"
       @play="isPlaying = true"
       @pause="isPlaying = false"
+      @waiting="buffering = true"
+      @loadstart="buffering = true"
+      @playing="onPlaying"
+      @canplay="buffering = false"
+      @error="onVideoError"
     />
+    <div v-if="reel.videoUrl && buffering && !videoError" class="reel-slide__buffering" aria-hidden="true">
+      <span />
+    </div>
+    <div v-if="videoError" class="reel-slide__error" role="alert" @click.stop>
+      <ion-icon :icon="alertCircleOutline" aria-hidden="true" />
+      <strong>Video couldn't load</strong>
+      <span>Check your connection, then try again.</span>
+      <button type="button" @click="retryVideo">Try again</button>
+    </div>
     <ion-icon v-else :icon="visual.icon" class="reel-slide__placeholder" aria-hidden="true" />
 
     <ion-icon v-if="showHeart" :icon="heart" class="reel-slide__heart" aria-hidden="true" />
@@ -94,6 +109,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { IonIcon } from '@ionic/vue';
 import {
+  alertCircleOutline,
   chatbubbleOutline,
   eyeOutline,
   heart,
@@ -126,6 +142,32 @@ const emit = defineEmits<{
   follow: [reel: Reel];
   viewed: [reel: Reel];
 }>();
+
+/**
+ * A transparent poster hides the Android WebView's grey play placeholder
+ * while the first frame loads.
+ */
+const BLANK_POSTER = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const buffering = ref(false);
+const videoError = ref(false);
+
+function onPlaying(): void {
+  buffering.value = false;
+  videoError.value = false;
+}
+
+function onVideoError(): void {
+  buffering.value = false;
+  videoError.value = true;
+  isPlaying.value = false;
+}
+
+function retryVideo(): void {
+  videoError.value = false;
+  buffering.value = true;
+  video.value?.load();
+  void playVideo();
+}
 
 /** Seconds of playback that count as a view (or the whole clip if it is shorter). */
 const VIEW_AFTER_SECONDS = 3;
@@ -292,6 +334,71 @@ watch(() => props.reel.videoUrl, () => {
   object-fit: contain;
   background: #000;
   touch-action: pan-y;
+}
+
+.reel-slide__buffering {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.reel-slide__buffering span {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: reel-spin 0.8s linear infinite;
+}
+
+@keyframes reel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.reel-slide__error {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  width: min(260px, 80%);
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 16px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.reel-slide__error ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 34px;
+}
+
+.reel-slide__error span {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.82rem;
+}
+
+.reel-slide__error button {
+  margin-top: 8px;
+  padding: 9px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
 }
 
 .reel-slide__heart {

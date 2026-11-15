@@ -89,6 +89,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* A popup over the current page, not a full screen. */
 .offline-screen {
   position: fixed;
   z-index: 100000;
@@ -97,23 +98,44 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
-  background: var(--ion-background-color, #101113);
+  background: rgba(0, 0, 0, 0.55);
   color: var(--ion-text-color, #f5f6f8);
   text-align: center;
+  animation: offline-fade 0.2s ease-out;
 }
 
 .offline-screen__body {
   display: flex;
   width: 100%;
-  max-width: 340px;
+  max-width: 320px;
+  box-sizing: border-box;
   flex-direction: column;
   align-items: center;
+  padding: 26px 22px 20px;
+  border: 1px solid var(--gora-line, rgba(245, 246, 248, 0.12));
+  border-radius: 22px;
+  background: var(--gora-surface, #1c1d21);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+  animation: offline-pop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes offline-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes offline-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }
 
 .offline-screen__icon {
   display: grid;
-  width: 88px;
-  height: 88px;
+  width: 64px;
+  height: 64px;
   place-items: center;
   border-radius: 50%;
   background: var(--gora-accent-soft, rgba(255, 96, 40, 0.1));
@@ -122,8 +144,8 @@ onBeforeUnmount(() => {
 }
 
 .offline-screen h1 {
-  margin: 22px 0 8px;
-  font-size: 1.35rem;
+  margin: 16px 0 6px;
+  font-size: 1.15rem;
   font-weight: 800;
 }
 
@@ -141,17 +163,16 @@ onBeforeUnmount(() => {
 }
 
 .offline-screen__actions {
-  display: flex;
+  display: grid;
   width: 100%;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 28px;
+  gap: 8px;
+  margin-top: 20px;
 }
 
 .offline-screen__primary,
 .offline-screen__secondary {
   display: inline-flex;
-  min-height: 50px;
+  min-height: 46px;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -183,7 +204,7 @@ onBeforeUnmount(() => {
 }
 
 .offline-screen__icon ion-icon {
-  font-size: 44px;
+  font-size: 32px;
 }
 
 .offline-screen__spin {

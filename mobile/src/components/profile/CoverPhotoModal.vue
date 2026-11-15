@@ -10,11 +10,20 @@
     >
     <ion-content>
       <div class="cover-editor" :aria-busy="busy">
-        <div class="cover-editor__preview">
-          <img v-if="preview || currentUrl" :src="preview || currentUrl || undefined" alt="Cover photo preview" />
-          <p v-else>Choose a photo for the top of your profile.</p>
-        </div>
-        <p class="cover-editor__hint">Your photo will be centered to fit your cover.</p>
+        <ImageCropper
+          v-if="preview && !coverSaved"
+          ref="cropper"
+          :src="preview"
+          :aspect="COVER_ASPECT"
+          :output-width="1800"
+        />
+        <template v-else>
+          <div class="cover-editor__preview">
+            <img v-if="preview || currentUrl" :src="preview || currentUrl || undefined" alt="Cover photo preview" />
+            <p v-else>Choose a photo for the top of your profile.</p>
+          </div>
+          <p class="cover-editor__hint">Choose a photo, then drag and zoom to frame your cover.</p>
+        </template>
         <input
           ref="inputRef"
           class="cover-editor__file"
@@ -65,6 +74,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonSpinner } from '@ionic/vue';
+import ImageCropper from '@/components/common/ImageCropper.vue';
 import { useProfileStore } from '@/stores/profile';
 import { usePostsStore } from '@/stores/posts';
 import { useAuthStore } from '@/stores/auth';
@@ -87,6 +97,11 @@ const isPosting = ref(false);
 const coverSaved = ref(false);
 const preparedPhoto = ref<string | null>(null);
 const busy = computed(() => profile.saving || isPosting.value);
+/** Same shape as the profile cover. */
+const COVER_ASPECT = 2.7;
+const cropper = ref<InstanceType<typeof ImageCropper> | null>(null);
+/** The framed cover, made once so a retry posts the same image. */
+const croppedFile = ref<File | null>(null);
 
 function reset(): void {
   if (preview.value) URL.revokeObjectURL(preview.value);
@@ -98,6 +113,7 @@ function reset(): void {
   isPosting.value = false;
   coverSaved.value = false;
   preparedPhoto.value = null;
+  croppedFile.value = null;
 }
 function select(event: Event): void {
   const input = event.target as HTMLInputElement;
@@ -117,12 +133,16 @@ async function save(remove: boolean): Promise<void> {
   const isCurrent = captureSession(auth);
   error.value = null;
   try {
-    if (!remove && shareToFeed.value && file.value && !preparedPhoto.value) {
-      preparedPhoto.value = await preparePostPhoto(file.value);
+    if (!remove && file.value && !croppedFile.value) {
+      croppedFile.value = cropper.value ? await cropper.value.toFile(file.value.name) : file.value;
+    }
+    const cover = remove ? null : croppedFile.value;
+    if (!remove && shareToFeed.value && cover && !preparedPhoto.value) {
+      preparedPhoto.value = await preparePostPhoto(cover);
       if (!isCurrent()) return;
     }
     if (!coverSaved.value) {
-      const result = await profile.updateCover(remove ? null : file.value, preparedPhoto.value ?? undefined);
+      const result = await profile.updateCover(cover, preparedPhoto.value ?? undefined);
       if (!isCurrent()) return;
       if (!result.ok) {
         error.value = result.message;

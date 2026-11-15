@@ -17,7 +17,7 @@
     <div class="profile-header__identity">
       <div class="profile-header__ring" :class="{ 'profile-header__ring--story': hasActiveStory }">
         <span class="profile-header__inner">
-          <UserAvatar :user="summary" :size="112" />
+          <UserAvatar :user="summary" :size="96" />
         </span>
         <button v-if="editable" type="button" class="profile-header__photo-edit" aria-label="Update profile photo" @click="photoOpen = true">
           <ion-icon :icon="cameraOutline" aria-hidden="true" />
@@ -87,8 +87,10 @@ const photoOpen = ref(false);
 }
 
 .profile-header__cover--default {
-  border-bottom: 2px solid var(--ion-color-primary);
-  background: var(--gora-surface-raised);
+  background:
+    radial-gradient(circle at 85% 15%, rgba(255, 96, 40, 0.35), transparent 55%),
+    radial-gradient(circle at 10% 100%, rgba(255, 179, 71, 0.18), transparent 50%),
+    linear-gradient(135deg, var(--gora-surface-raised), var(--gora-surface));
 }
 
 .profile-header__cover-actions {
@@ -136,7 +138,7 @@ const photoOpen = ref(false);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-top: -64px;
+  margin-top: -52px;
   padding: 0 16px;
 }
 

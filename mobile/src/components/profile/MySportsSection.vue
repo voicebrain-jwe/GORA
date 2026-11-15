@@ -2,10 +2,6 @@
   <section class="my-sports" aria-labelledby="my-sports-title">
     <header class="my-sports__header">
       <h2 id="my-sports-title">{{ editable ? 'My Sports' : 'Sports' }}</h2>
-      <button v-if="editable && sports.length > 0" type="button" class="my-sports__add" @click="emit('add')">
-        <ion-icon :icon="addOutline" aria-hidden="true" />
-        Add Sport
-      </button>
     </header>
 
     <div v-if="loading && sports.length === 0" class="my-sports__list" aria-busy="true" aria-label="Loading sports">
@@ -31,49 +27,42 @@
       </button>
     </div>
 
-    <ul v-else class="my-sports__list">
-      <li v-for="sport in sports" :key="sport.sportId" class="my-sports__card">
-        <SportIcon :name="sport.name" :icon-url="sport.iconUrl" />
-        <span class="my-sports__text">
+    <ul v-else class="my-sports__rail">
+      <li v-for="sport in sports" :key="sport.sportId">
+        <component
+          :is="editable ? 'button' : 'div'"
+          :type="editable ? 'button' : undefined"
+          class="my-sports__tile"
+          :disabled="editable && busyId !== null"
+          :aria-label="editable ? `${sport.name}, ${describeUserSport(sport)}. Edit or remove` : `${sport.name}, ${describeUserSport(sport)}`"
+          @click="editable && openActions(sport)"
+        >
+          <span class="my-sports__icon">
+            <SportIcon :name="sport.name" :icon-url="sport.iconUrl" :size="56" />
+            <ion-spinner v-if="busyId === sport.sportId" name="crescent" class="my-sports__tile-spinner" />
+          </span>
           <strong>{{ sport.name }}</strong>
-          <span>{{ describeUserSport(sport) }}</span>
-        </span>
-        <template v-if="editable">
-          <ion-spinner v-if="busyId === sport.sportId" name="crescent" class="my-sports__spinner" />
-          <template v-else>
-            <button
-              type="button"
-              class="my-sports__icon-button"
-              :aria-label="`Edit ${sport.name}`"
-              :disabled="busyId !== null"
-              @click="emit('edit', sport)"
-            >
-              <ion-icon :icon="createOutline" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              class="my-sports__icon-button"
-              :aria-label="`Remove ${sport.name}`"
-              :disabled="busyId !== null"
-              @click="emit('remove', sport)"
-            >
-              <ion-icon :icon="trashOutline" aria-hidden="true" />
-            </button>
-          </template>
-        </template>
+          <small>{{ describeUserSport(sport) }}</small>
+        </component>
+      </li>
+      <li v-if="editable">
+        <button type="button" class="my-sports__tile my-sports__tile--add" :disabled="busyId !== null" @click="emit('add')">
+          <span class="my-sports__icon my-sports__icon--add"><ion-icon :icon="addOutline" aria-hidden="true" /></span>
+          <strong>Add</strong>
+        </button>
       </li>
     </ul>
   </section>
 </template>
 
 <script setup lang="ts">
-import { IonIcon, IonSkeletonText, IonSpinner } from '@ionic/vue';
+import { IonIcon, IonSkeletonText, IonSpinner, actionSheetController } from '@ionic/vue';
 import { addOutline, createOutline, trashOutline } from 'ionicons/icons';
 import SportIcon from '@/components/sports/SportIcon.vue';
 import type { UserSportEntry } from '@/types/profile';
 import { describeUserSport } from '@/utils/sports-profile';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     sports: readonly UserSportEntry[];
     editable?: boolean;
@@ -90,6 +79,21 @@ const emit = defineEmits<{
   remove: [sport: UserSportEntry];
   retry: [];
 }>();
+
+/** Tap a sport on your own profile: edit its level or remove it. */
+async function openActions(sport: UserSportEntry): Promise<void> {
+  if (props.busyId !== null) return;
+  const sheet = await actionSheetController.create({
+    header: sport.name,
+    subHeader: describeUserSport(sport),
+    buttons: [
+      { text: 'Edit level & position', icon: createOutline, handler: () => emit('edit', sport) },
+      { text: 'Remove sport', role: 'destructive', icon: trashOutline, handler: () => emit('remove', sport) },
+      { text: 'Cancel', role: 'cancel' },
+    ],
+  });
+  await sheet.present();
+}
 </script>
 
 <style scoped>
@@ -227,5 +231,98 @@ const emit = defineEmits<{
   width: 20px;
   height: 20px;
   margin: 0 8px;
+}
+
+/* Horizontal rail: icon + name, slide left and right. */
+.my-sports__rail {
+  display: flex;
+  gap: 14px;
+  margin: 0 -16px;
+  padding: 2px 16px 6px;
+  overflow-x: auto;
+  list-style: none;
+  scroll-padding-inline: 16px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.my-sports__rail::-webkit-scrollbar {
+  display: none;
+}
+
+.my-sports__rail > li {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+.my-sports__tile {
+  display: flex;
+  width: 76px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ion-text-color);
+  font: inherit;
+  text-align: center;
+}
+
+button.my-sports__tile {
+  cursor: pointer;
+}
+
+.my-sports__icon {
+  position: relative;
+  display: grid;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--gora-surface), 0 0 0 4px var(--gora-accent-line);
+  transition: transform var(--gora-motion);
+}
+
+.my-sports__icon :deep(.sport-icon) {
+  border-radius: 50%;
+}
+
+button.my-sports__tile:hover .my-sports__icon,
+button.my-sports__tile:focus-visible .my-sports__icon {
+  transform: translateY(-2px);
+}
+
+.my-sports__icon--add {
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 2px dashed var(--gora-line-strong);
+  box-shadow: none;
+  color: var(--ion-color-primary);
+  font-size: 26px;
+}
+
+.my-sports__tile-spinner {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  color: #fff;
+}
+
+.my-sports__tile strong {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-sports__tile small {
+  width: 100%;
+  margin-top: -4px;
+  overflow: hidden;
+  color: var(--gora-muted);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

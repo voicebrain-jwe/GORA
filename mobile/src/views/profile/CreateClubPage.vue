@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader :title="created ? 'Club Created' : 'Create Club'" back-href="/profile/settings" />
 
     <ion-content ref="contentRef">

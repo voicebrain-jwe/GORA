@@ -204,6 +204,31 @@ describe('stories stored in the database', () => {
     vi.unstubAllGlobals();
   });
 
+  test('keeps own stories visible when the community story feed fails', async () => {
+    fakeApi({ 'GET /stories': () => jsonResponse(500, { message: 'Unavailable' }) });
+    const store = useStoriesStore();
+    await store.refresh();
+    expect(store.myStories.map((story) => story.id)).toEqual([MY_STORY]);
+    expect(store.getFeedAt(Date.now()).own?.stories.map((story) => story.id)).toEqual([MY_STORY]);
+    expect(store.serverError).toBeTruthy();
+  });
+
+  test('an older refresh cannot remove a story created while it was loading', async () => {
+    const pending: Array<(response: Response) => void> = [];
+    vi.stubGlobal('fetch', vi.fn((_input: RequestInfo | URL, init: RequestInit = {}) => {
+      if (init.method === 'POST') return Promise.resolve(jsonResponse(201, apiStory()));
+      return new Promise<Response>((resolve) => pending.push(resolve));
+    }));
+    const store = useStoriesStore();
+    const refreshing = store.refresh();
+    await vi.waitFor(() => expect(pending).toHaveLength(2));
+    expect('story' in await store.createStory(storyDraft())).toBe(true);
+    for (const resolve of pending) resolve(jsonResponse(200, []));
+    await refreshing;
+    expect(store.myStories.map((story) => story.id)).toEqual([MY_STORY]);
+    expect(store.getFeedAt(Date.now()).own?.stories.map((story) => story.id)).toEqual([MY_STORY]);
+  });
+
   test('loads real stories into the rail and only your own into My Stories', async () => {
     fakeApi();
     const store = useStoriesStore();

@@ -429,6 +429,7 @@ model Post {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   clubId         String?            @db.Uuid
+  clubOnly       Boolean            @default(false)
   isAnnouncement Boolean            @default(false)
   sportId        String?            @db.Uuid
   sharedPostId   String?            @db.Uuid

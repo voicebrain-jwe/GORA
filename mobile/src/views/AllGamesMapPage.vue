@@ -2,12 +2,18 @@
   <ion-page>
     <SubPageHeader title="Games Map" back-href="/discover" />
     <ion-content :fullscreen="true">
+      <PullToRefresh :reload="load" />
       <main class="all-games-map">
         <header class="all-games-map__heading">
           <div>
             <p class="all-games-map__eyebrow">DISCOVER ACROSS THE PHILIPPINES</p>
             <h1>Games near you and beyond</h1>
-            <p>Tap a marker to see games at that location.</p>
+            <p>Tap a marker to see active and upcoming games at that location.</p>
+            <button type="button" class="all-games-map__refresh" :disabled="discovery.locationStatus === 'locating'" @click="locate">
+              {{ discovery.locationStatus === 'locating' ? 'Finding your location…' : 'Use my location' }}
+            </button>
+            <p v-if="discovery.locationMessage" role="status">{{ discovery.locationMessage }}</p>
+            <p v-if="!settings.values.useDeviceLocation">Enable device location in Settings → Location &amp; Distance to use your position.</p>
           </div>
           <button type="button" class="all-games-map__refresh" :disabled="loading" @click="load">
             {{ loading ? 'Loading…' : 'Refresh' }}
@@ -19,9 +25,9 @@
           No active or upcoming games have map locations yet.
         </p>
         <GameDiscoveryMap
-          v-else
           :games="games"
-          :center="null"
+          :center="discovery.userLocation"
+          :user-location="discovery.userLocation"
           :radius-km="null"
           :fit-markers="true"
           :selected-game-id="selectedGameId"
@@ -62,15 +68,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { IonContent, IonPage } from '@ionic/vue';
+import PullToRefresh from '@/components/common/PullToRefresh.vue';
 import JoinRequestModal from '@/components/games/JoinRequestModal.vue';
 import DiscoveredGameCard from '@/components/map/DiscoveredGameCard.vue';
 import GameDiscoveryMap from '@/components/map/GameDiscoveryMap.vue';
 import SubPageHeader from '@/components/layout/SubPageHeader.vue';
 import { useDiscoveryJoin } from '@/composables/useDiscoveryJoin';
 import { useDiscoveryStore } from '@/stores/discovery';
+import { useSettingsStore } from '@/stores/settings';
 import type { DiscoveredGame } from '@/types/discovery';
 
 const discovery = useDiscoveryStore();
+const settings = useSettingsStore();
 const games = ref<DiscoveredGame[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -100,7 +109,15 @@ async function load(): Promise<void> {
   loading.value = false;
 }
 
-onMounted(() => void load());
+async function locate(): Promise<void> {
+  await discovery.locate();
+  await load();
+}
+
+onMounted(async () => {
+  await discovery.initLocation();
+  await load();
+});
 </script>
 
 <style scoped>

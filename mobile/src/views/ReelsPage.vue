@@ -18,7 +18,7 @@
               {{ tab.label }}
             </button>
           </div>
-          <div class="reels-top__side reels-top__side--end">
+          <div class="reels-top__side reels-top__side--start">
             <button type="button" class="reels-top__live" aria-label="Watch live" @click="router.push('/live')">
               <ion-icon :icon="radioOutline" aria-hidden="true" />
               <span class="reels-top__live-badge">LIVE</span>
@@ -207,7 +207,9 @@ async function shareReel(reel: Reel): Promise<void> {
   align-items: center;
   padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 28px;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent);
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(60px, 1fr) auto minmax(60px, 1fr);
+  min-height: calc(env(safe-area-inset-top, 0px) + 90px);
+  box-sizing: border-box;
   pointer-events: none;
 }
 
@@ -215,9 +217,12 @@ async function shareReel(reel: Reel): Promise<void> {
   pointer-events: auto;
 }
 
-.reels-top__side--end {
+.reels-top__side--start {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: max(12px, env(safe-area-inset-left, 0px));
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .reels-top__tabs {
@@ -257,15 +262,17 @@ async function shareReel(reel: Reel): Promise<void> {
 .reels-top__live {
   position: relative;
   display: flex;
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
   align-items: center;
   justify-content: center;
   padding: 0;
   border: 0;
-  background: none;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.72);
   color: #fff;
   cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
 }
 
 .reels-top__live ion-icon {

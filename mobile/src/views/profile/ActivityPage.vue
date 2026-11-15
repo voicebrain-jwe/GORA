@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="Activity" />
 
     <ion-content :fullscreen="true">

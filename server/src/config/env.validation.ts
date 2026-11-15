@@ -3,6 +3,10 @@ const NODE_ENVS = ['development', 'test', 'production'] as const;
 export type NodeEnv = (typeof NODE_ENVS)[number];
 
 const LOCAL_CORS_ORIGINS = ['http://localhost:5173', 'http://localhost:8100'];
+// Capacitor serves bundled Android and iOS assets from these fixed origins.
+// They must be accepted by the separately hosted API; browser deployments use
+// same-origin /api routes and do not need this exception.
+const NATIVE_CORS_ORIGINS = ['https://localhost', 'capacitor://localhost'];
 
 export const DEFAULT_JWT_EXPIRES_IN = '7d';
 
@@ -54,7 +58,7 @@ export function readDatabaseUrl(value: unknown): string {
     return connection;
   } catch {
     throw new Error(
-      'DATABASE_URL must be a valid PostgreSQL URL. Check the opening and closing quotes in server/.env.',
+      'DATABASE_URL must be a valid PostgreSQL URL. Check the opening and closing quotes in .env.local or server/.env.',
     );
   }
 }
@@ -167,7 +171,7 @@ export function resolveCorsOrigins(
   }
 
   if (nodeEnv === 'production') {
-    return [];
+    return [...NATIVE_CORS_ORIGINS];
   }
 
   return [...LOCAL_CORS_ORIGINS];

@@ -13,6 +13,9 @@
           }}
         </p>
         <GamePreviewCard :game="created" />
+        <router-link to="/profile/games?section=hosted" class="game-created__link">View in My Games</router-link>
+        <router-link to="/profile" class="game-created__link">View my profile feed</router-link>
+        <router-link to="/home" class="game-created__link">View Home feed</router-link>
         <button type="button" class="game-created__again" @click="startOver">Create another game</button>
       </section>
 
@@ -817,7 +820,11 @@ textarea.create-game__input {
   text-align: center;
 }
 
-.game-created__again {
+.game-created__again,
+.game-created__link {
+  min-height: 46px;
+  text-align: center;
+  text-decoration: none;
   padding: 13px;
   border: 1px solid var(--gora-line-strong);
   border-radius: 999px;

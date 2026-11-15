@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { lockAdminAccounts } from '../src/admin/admin.service';
@@ -9,11 +10,17 @@ async function main() {
     throw new Error(
       'Usage: npm run admin:bootstrap -- your-account@example.com',
     );
-  if (existsSync('.env')) process.loadEnvFile('.env');
+  for (const envFile of [
+    resolve(process.cwd(), '..', '.env.local'),
+    resolve(process.cwd(), '.env.local'),
+    resolve(process.cwd(), '.env'),
+  ]) {
+    if (existsSync(envFile)) process.loadEnvFile(envFile);
+  }
   const connectionString =
     process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
   if (!connectionString)
-    throw new Error('Set DATABASE_URL in server/.env first.');
+    throw new Error('Set DATABASE_URL in .env.local or server/.env first.');
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString }),
   });
@@ -63,6 +70,6 @@ async function main() {
   }
 }
 main().catch(() => {
-  console.error('Invalid setup. Check the command and server/.env.');
+  console.error('Invalid setup. Check the command and .env.local or server/.env.');
   process.exitCode = 1;
 });

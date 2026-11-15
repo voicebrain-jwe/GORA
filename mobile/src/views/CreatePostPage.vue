@@ -99,7 +99,14 @@
           </select>
 
           <span class="create-post__label">Privacy</span>
-          <PostAudiencePicker v-model:visibility="visibility" v-model:custom-viewer-ids="customViewerIds" />
+          <template v-if="clubId">
+            <p class="create-post__hint">Posting in {{ postingClub?.name ?? 'club' }}. Only active members can post.</p>
+            <select v-model="clubOnly" class="create-post__select" aria-label="Club post audience">
+              <option :value="true">Club members only</option>
+              <option :value="false">Public</option>
+            </select>
+          </template>
+          <PostAudiencePicker v-else v-model:visibility="visibility" v-model:custom-viewer-ids="customViewerIds" />
           <p v-if="audienceError && visibility === 'CUSTOM'" class="create-post__hint">{{ audienceError }}</p>
           <p v-if="postsStore.publishError" class="create-post__error" role="alert">{{ postsStore.publishError }}</p>
 
@@ -134,6 +141,7 @@ import { useCatalogStore } from '@/stores/catalog';
 import { useFriendsStore } from '@/stores/friends';
 import { useGamesStore } from '@/stores/games';
 import { usePostsStore } from '@/stores/posts';
+import { useClubsStore } from '@/stores/clubs';
 import { useSessionStore } from '@/stores/session';
 import { useSportsStore } from '@/stores/sports';
 import type { FeedPost, PostDraft, PostLocation, PostVisibility } from '@/types/post';
@@ -159,6 +167,11 @@ const sportsStore = useSportsStore();
 const friendsStore = useFriendsStore();
 const gamesStore = useGamesStore();
 const postsStore = usePostsStore();
+const clubsStore = useClubsStore();
+const clubId = computed(() => typeof route.query.clubId === 'string' ? route.query.clubId : '');
+const postingClub = computed(() => clubsStore.byId(clubId.value));
+const clubOnly = ref(true);
+watch(clubId, (id) => { if (id) void clubsStore.loadClub(id); }, { immediate: true });
 /** Posts are written by the signed-in account, so they show on its Profile. */
 const author = computed(() => postsStore.me);
 
@@ -214,10 +227,11 @@ watch(
 );
 
 const draft = computed<PostDraft>(() => ({
+  ...(clubId.value ? { clubId: clubId.value, clubOnly: clubOnly.value } : {}),
   body: caption.value,
   ...(sharedSource.value ? { sharedPostId: sharedSource.value.id } : {}),
   sport: sport.value,
-  visibility: visibility.value,
+  visibility: clubId.value ? 'PUBLIC' : visibility.value,
   // Kept while switching options, but only a CUSTOM post sends them.
   customViewerIds: visibility.value === 'CUSTOM' ? customViewerIds.value : [],
   taggedUserIds: taggedUserIds.value,
@@ -288,11 +302,11 @@ async function loadSharedGame(id: string): Promise<void> {
 
 watch(shareGameId, (id) => void loadSharedGame(id), { immediate: true });
 
-const privacy = computed(() => getPrivacyOption(visibility.value));
+const privacy = computed(() => clubId.value && clubOnly.value ? { ...getPrivacyOption('FRIENDS'), label: 'Club members only' } : getPrivacyOption(clubId.value ? 'PUBLIC' : visibility.value));
 const audienceError = computed(() =>
   validatePostAudience(draft.value.visibility, draft.value.customViewerIds, author.value?.id ?? null),
 );
-const canPublish = computed(() => author.value !== null && canPublishPost(draft.value, author.value.id));
+const canPublish = computed(() => author.value !== null && (!clubId.value || postingClub.value?.viewerMembership?.status === 'ACTIVE') && canPublishPost(draft.value, author.value.id));
 
 function addPhotos(event: Event): void {
   const input = event.target as HTMLInputElement;
@@ -348,6 +362,7 @@ async function publish(): Promise<void> {
       if (sharedSource.value) void postsStore.loadPost(sharedSource.value.id);
       resetForm();
       void showNotice(sharedSource.value || sharedGame.value ? 'Shared as a post on your feed.' : 'Posted to your feed.');
+      if (clubId.value) void router.replace(`/clubs/${encodeURIComponent(clubId.value)}`);
       await router.replace('/home');
     }
   } finally {

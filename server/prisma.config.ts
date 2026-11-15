@@ -1,9 +1,14 @@
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from 'prisma/config';
 
 // The Prisma 7 CLI does not load .env files on its own.
-if (existsSync('.env')) {
-  process.loadEnvFile('.env');
+for (const envFile of [
+  resolve(process.cwd(), '..', '.env.local'),
+  resolve(process.cwd(), '.env.local'),
+  resolve(process.cwd(), '.env'),
+]) {
+  if (existsSync(envFile)) process.loadEnvFile(envFile);
 }
 
 export default defineConfig({

@@ -53,8 +53,8 @@
               : `Posts from your community · ${filters.sport ? `${filters.sport} games` : 'All games'} within ${nearbyRadiusKm} km`
           }}
         </p>
-        <div v-if="postsStore.serverError || friendsStore.error" class="home__error" role="alert">
-          <span>{{ postsStore.serverError || friendsStore.error }}</span
+        <div v-if="postsStore.serverError || reelsStore.serverError || storiesStore.serverError || friendsStore.error" class="home__error" role="alert">
+          <span>{{ postsStore.serverError || reelsStore.serverError || storiesStore.serverError || friendsStore.error }}</span
           ><button type="button" @click="refreshFeed">Try again</button>
         </div>
         <div v-if="feed.length === 0" class="home__empty" :aria-busy="refreshing">
@@ -157,7 +157,7 @@ const feedOptions = [
   { id: 'ALL' as const, label: 'All updates' },
   { id: 'FRIENDS' as const, label: 'Friends' },
 ];
-const refreshing = computed(() => postsStore.serverStatus === 'loading' || friendsStore.loading);
+const refreshing = computed(() => postsStore.serverStatus === 'loading' || reelsStore.serverStatus === 'loading' || friendsStore.loading);
 const hasMore = computed(() => (scope.value === 'ALL' ? !!postsStore.nextCursor : !!postsStore.friendsNextCursor));
 const { joinGame } = useJoinGame();
 const { likePost, commentOnPost, sharePost } = usePostActions();
@@ -185,7 +185,8 @@ const feed = computed(() => {
 const feedSources = computed<HomeFeedSources>(() => ({
   posts: [],
   games: gamesStore.games,
-  serverGames: gamesStore.listedGames,
+  // Keep the user's own games visible even outside the public feed's first page.
+  serverGames: [...new Map([...gamesStore.listedGames, ...gamesStore.hostedGames].map((game) => [game.id, game])).values()],
   clubs: clubsStore.feedClubs,
   reels: reelsStore.feedReels,
   activities: catalog.activities,
@@ -219,6 +220,7 @@ async function refreshFeed(): Promise<void> {
   await Promise.all([
     friendsStore.refresh(),
     postsStore.refresh(),
+    reelsStore.refresh(),
     gamesStore.refreshFeedGames(),
     clubsStore.refreshFeedClubs(),
   ]);
@@ -228,7 +230,7 @@ async function refreshFeed(): Promise<void> {
 async function handlePullRefresh(event: CustomEvent): Promise<void> {
   try {
     await refreshFeed();
-    await Promise.all([reelsStore.refresh(), catalog.refreshSports()]);
+    await catalog.refreshSports();
   } finally {
     (event.target as HTMLIonRefresherElement).complete();
   }
@@ -269,6 +271,7 @@ async function loadHomeData(): Promise<void> {
     storiesStore.load(),
     postsStore.load(),
     gamesStore.load(),
+    gamesStore.fetchMyGames(),
     clubsStore.load(),
     reelsStore.load(),
     catalog.load(),

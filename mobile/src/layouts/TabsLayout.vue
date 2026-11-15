@@ -3,7 +3,7 @@
     <DirectCallOverlay />
     <ion-tabs>
       <DesktopTopNav slot="top" />
-      <ion-router-outlet :swipe-gesture="true" />
+      <ion-router-outlet :swipe-gesture="false" />
       <template v-if="showSidebars">
         <DesktopShortcuts />
         <DesktopContacts />

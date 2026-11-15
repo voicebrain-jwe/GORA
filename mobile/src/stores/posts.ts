@@ -310,6 +310,7 @@ export const usePostsStore = defineStore('posts', () => {
       const created = await authorized((token) =>
         createPostRequest(token, {
           caption: draft.body.trim(),
+          ...(draft.clubId ? { clubId: draft.clubId, clubOnly: draft.clubOnly ?? false } : {}),
           ...(draft.sharedPostId ? { sharedPostId: draft.sharedPostId } : {}),
           ...(photos.length ? { photos } : {}),
           visibility: draft.visibility,
@@ -462,6 +463,7 @@ export const usePostsStore = defineStore('posts', () => {
     postId: string,
     visibility: PostVisibility,
     customViewerIds: string[],
+    clubOnly?: boolean,
   ): Promise<string | null> {
     const post = findPost(postId);
     const viewerId = me.value?.id;
@@ -487,7 +489,7 @@ export const usePostsStore = defineStore('posts', () => {
 
     try {
       const updated = await authorized((token) =>
-        updatePostVisibilityRequest(token, postId, visibility, customViewerIds),
+        updatePostVisibilityRequest(token, postId, visibility, customViewerIds, clubOnly),
       );
       replacePost(toFeedPost(updated));
       return null;

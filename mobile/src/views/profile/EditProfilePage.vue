@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="Edit Profile" back-href="/profile" />
 
     <ion-content :fullscreen="true" class="ion-padding">

@@ -257,6 +257,24 @@ describe('games store (REST API)', () => {
     expect(store.gameById(GAME_ID)?.currentPlayers).toBe(0);
   });
 
+  test('a refresh started before creation cannot remove the new game from Home or My Games', async () => {
+    signIn();
+    const pending: Array<(response: Response) => void> = [];
+    vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit = {}) => {
+      if (init.method === 'POST') return Promise.resolve(jsonResponse(201, apiGame()));
+      return new Promise<Response>((resolve) => pending.push(resolve));
+    }));
+    const store = useGamesStore();
+    const homeRefresh = store.refreshFeedGames();
+    const profileRefresh = store.fetchMyGames();
+    await vi.waitFor(() => expect(pending).toHaveLength(2));
+    expect((await store.createGame(toCreateGameInput(validForm()))).ok).toBe(true);
+    for (const resolve of pending) resolve(jsonResponse(200, []));
+    await Promise.all([homeRefresh, profileRefresh]);
+    expect(store.listedGames.map((game) => game.id)).toEqual([GAME_ID]);
+    expect(store.hostedGames.map((game) => game.id)).toEqual([GAME_ID]);
+  });
+
   test('createGame shows the server message on a validation or club error', async () => {
     signIn();
     mockApi(() => jsonResponse(403, { message: 'Only active members of this club can host club games.' }));

@@ -26,6 +26,7 @@ export interface PostLocation {
 }
 
 export interface FeedPost {
+  clubOnly?: boolean;
   id: string;
   sharedPostId?: string | null;
   /** The source post, included only when this viewer is allowed to see it. */
@@ -81,6 +82,8 @@ export interface ApiPostPerson {
 
 /** GET /posts, GET /posts/:id, and GET /users/:username/posts. */
 export interface ApiPost {
+  clubOnly?: boolean;
+  club?: { id: string; name: string; slug: string } | null;
   id: string;
   sharedPostId?: string | null;
   sharedPost?: ApiPost | null;
@@ -115,6 +118,8 @@ export interface ApiPostPage {
 }
 
 export interface CreatePostInput {
+  clubId?: string;
+  clubOnly?: boolean;
   caption: string;
   sharedPostId?: string;
   photos?: string[];
@@ -145,6 +150,8 @@ export interface UpdatePostInput {
 }
 
 export interface PostDraft {
+  clubId?: string;
+  clubOnly?: boolean;
   body: string;
   sharedPostId?: string;
   sport: string;

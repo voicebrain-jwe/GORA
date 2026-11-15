@@ -8,6 +8,7 @@ import {
   readGameTimezone,
   readJwtExpiresIn,
   readJwtSecret,
+  resolveCorsOrigins,
 } from './env.validation';
 
 describe('DATABASE_URL', () => {
@@ -83,6 +84,22 @@ describe('JWT environment validation', () => {
     expect(readJwtExpiresIn('15m')).toBe('15m');
     expect(readJwtExpiresIn('3600')).toBe('3600');
     expect(() => readJwtExpiresIn('seven days')).toThrow('JWT_EXPIRES_IN');
+  });
+});
+
+describe('CORS origins', () => {
+  it('permits the fixed Capacitor origins when production has no explicit override', () => {
+    expect(resolveCorsOrigins('production', '')).toEqual([
+      'https://localhost',
+      'capacitor://localhost',
+    ]);
+  });
+
+  it('uses an explicit production allowlist when configured', () => {
+    expect(resolveCorsOrigins('production', 'https://gora.example, https://admin.gora.example')).toEqual([
+      'https://gora.example',
+      'https://admin.gora.example',
+    ]);
   });
 });
 

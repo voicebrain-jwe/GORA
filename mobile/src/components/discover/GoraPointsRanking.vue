@@ -328,8 +328,17 @@ button:disabled {
 }
 @media (max-width: 380px) {
   .points-ranking__player {
+    display: grid;
+    grid-template-columns: 32px 40px minmax(0, 1fr);
     gap: 8px;
     padding-inline: 12px;
+  }
+  .points-ranking__player :deep(.gora-points-badge) {
+    grid-column: 3;
+    justify-self: start;
+  }
+  .points-ranking__own {
+    flex-wrap: wrap;
   }
   .points-ranking__rank {
     min-width: 28px;

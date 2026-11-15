@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <AppHeader />
 
     <ion-content :fullscreen="true">
@@ -149,8 +149,11 @@
             <span class="profile-composer__prompt">Share a game moment…</span>
             <ion-icon :icon="imageOutline" class="profile-composer__icon" aria-label="Add photos" />
           </router-link>
-          <p v-if="myFeed.length === 0" class="profile-section__empty">
-            No posts or games yet. <router-link to="/create/post">Create your first post</router-link>
+          <p v-if="postsStore.serverError || reelsStore.serverError" class="profile-section__empty" role="alert">
+            {{ postsStore.serverError || reelsStore.serverError }}
+          </p>
+          <p v-else-if="myFeed.length === 0" class="profile-section__empty">
+            No posts, reels, or games yet. <router-link to="/create/post">Create your first post</router-link>
           </p>
           <div class="profile-feed">
             <FeedEntry
@@ -270,7 +273,7 @@ const highlights = computed(() =>
     ? reelsStore.myReels.slice(0, 3).map(toHighlight)
     : (profileStore.profile?.highlights.slice(0, 3) ?? []),
 );
-/** Own posts and every game you hosted, shown together in newest-first order. */
+/** Own posts, reels, and hosted games, newest first. */
 const myFeed = computed<HomeFeedItem[]>(() => [
   ...postsStore.myPosts.map((post) => ({
     type: 'POST' as const,
@@ -283,6 +286,12 @@ const myFeed = computed<HomeFeedItem[]>(() => [
     id: `game:${game.id}`,
     at: Date.parse(game.createdAt),
     game,
+  })),
+  ...reelsStore.myReels.map((reel) => ({
+    type: 'REEL' as const,
+    id: `reel:${reel.id}`,
+    at: Date.parse(reel.createdAt),
+    reel,
   })),
 ].sort((a, b) => b.at - a.at));
 
@@ -337,6 +346,7 @@ async function confirmRemoveSport(sport: UserSportEntry): Promise<void> {
 }
 
 onIonViewWillEnter(() => {
+  if (postsStore.isLoaded) void postsStore.refresh();
   // Club acceptance can add points while this profile page is cached.
   if (!profileStore.loading) void loadProfile();
   void clubsStore.load();

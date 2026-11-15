@@ -14,7 +14,7 @@
           {{ post.sport }} · {{ formatTimeAgo(Date.parse(post.createdAt), nowMs) }}
           <template v-if="post.editedAt">· Edited</template>
           <ion-icon
-            :icon="PRIVACY_ICONS[post.visibility]"
+            :icon="PRIVACY_ICONS[post.clubOnly ? 'FRIENDS' : post.visibility]"
             role="img"
             :aria-label="`Visible to: ${privacy.label}`"
             :title="privacy.label"
@@ -273,7 +273,7 @@ watch(
 );
 
 /** Only the indicator is shown; the list of custom viewers never appears on the card. */
-const privacy = computed(() => getPrivacyOption(props.post.visibility));
+const privacy = computed(() => props.post.clubOnly ? { ...getPrivacyOption('FRIENDS'), label: 'Club members only' } : getPrivacyOption(props.post.visibility));
 const isOwnPost = computed(() => postsStore.me?.id === props.post.author.id);
 const authorPath = computed(() => profilePath(props.post.author.username));
 
@@ -604,10 +604,10 @@ const hiddenMediaCount = computed(() => availableMedia.value.length - visibleMed
 
 .post-card__shared img {
   display: block;
-  max-height: 260px;
   width: 100%;
+  height: auto;
   border-radius: 8px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .post-card__shared--unavailable {
@@ -678,8 +678,24 @@ const hiddenMediaCount = computed(() => availableMedia.value.length - visibleMed
 }
 
 .post-card__media--1 .post-card__photo {
+  min-height: 0;
+}
+
+.post-card__media--1 .post-card__open-photo {
+  position: relative;
+  display: block;
+  line-height: 0;
+}
+
+.post-card__media--1 .post-card__photo img {
+  position: static;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.post-card__media--1 .post-card__photo:has(video) {
   aspect-ratio: 16 / 10;
-  max-height: 420px;
 }
 
 .post-card__media--2 .post-card__photo,
@@ -693,14 +709,7 @@ const hiddenMediaCount = computed(() => availableMedia.value.length - visibleMed
   inset: 0;
   width: 100%;
   height: 100%;
-}
-
-.post-card__photo img {
   object-fit: contain;
-}
-
-.post-card__photo video {
-  object-fit: cover;
 }
 
 .post-card__more {

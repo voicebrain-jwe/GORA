@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="My Games" />
     <ion-content ref="contentRef" :fullscreen="true">
       <div class="my-games">
@@ -165,8 +165,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
-import { RouterLink } from 'vue-router';
+import { computed, nextTick, ref, watch } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 import { alertController, IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue';
 import SectionHeader from '@/components/common/SectionHeader.vue';
 import GamePreviewCard from '@/components/games/GamePreviewCard.vue';
@@ -190,6 +190,10 @@ const actionMessage = ref('');
 const contentRef = ref<InstanceType<typeof IonContent> | null>(null);
 type GamesSection = 'create' | 'joined' | 'hosted';
 const activeSection = ref<GamesSection>('joined');
+const route = useRoute();
+watch(() => route?.query.section, (section) => {
+  if (section === 'create' || section === 'joined' || section === 'hosted') activeSection.value = section;
+}, { immediate: true });
 const menuSections = computed(() => [
   { id: 'create' as const, label: 'Create Games', count: null },
   { id: 'joined' as const, label: 'Joined Games', count: gamesStore.joinedGames.length },

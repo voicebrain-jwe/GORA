@@ -30,7 +30,7 @@ export class PrismaService
       // Keep the API up so /health can report the outage. Driver errors are
       // not logged because they can echo connection details.
       this.logger.error(
-        'Could not connect to PostgreSQL. Check DATABASE_URL in server/.env.',
+        'Could not connect to PostgreSQL. Check DATABASE_URL in .env.local or server/.env.',
       );
     }
   }

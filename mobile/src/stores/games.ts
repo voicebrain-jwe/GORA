@@ -55,6 +55,8 @@ export const useGamesStore = defineStore('games', () => {
   const joinedError = ref<string | null>(null);
   const isSaving = ref(false);
   const cancellingId = ref<string | null>(null);
+  let listRequest = 0;
+  let hostedRequest = 0;
 
   const listedGames = computed(() => pick(listIds.value));
   const hostedGames = computed(() => pick(hostedIds.value));
@@ -67,6 +69,8 @@ export const useGamesStore = defineStore('games', () => {
   watch(
     [() => auth.sessionVersion, () => auth.accessToken, () => auth.currentUser?.id],
     () => {
+      listRequest++;
+      hostedRequest++;
       gamesById.value = {};
       detailStatus.value = {};
       detailError.value = {};
@@ -176,17 +180,22 @@ export const useGamesStore = defineStore('games', () => {
 
   async function fetchGames(query: GameListQuery = {}): Promise<ActionResult> {
     const isCurrent = captureSession(auth);
+    const request = ++listRequest;
+    const before = new Set(listIds.value);
     listStatus.value = 'loading';
     listError.value = null;
 
     try {
       const list = await authorized((token) => listGames(token, query));
+      if (!isCurrent() || request !== listRequest) return { ok: true };
+      const addedDuringRefresh = listIds.value.filter((id) => !before.has(id));
       list.forEach(remember);
-      listIds.value = list.map((game) => game.id);
+      listIds.value = [...new Set([...addedDuringRefresh, ...list.map((game) => game.id)])];
       listStatus.value = 'ready';
       return { ok: true };
     } catch (caught) {
       if (!isCurrent()) return { ok: false, message: 'The account changed. Try again.' };
+      if (request !== listRequest) return { ok: true };
       listStatus.value = 'error';
       listError.value = describeGameError(caught);
       return { ok: false, message: listError.value };
@@ -196,17 +205,22 @@ export const useGamesStore = defineStore('games', () => {
   /** Games the signed-in user hosts (GET /games/mine), whatever their status. */
   async function fetchMyGames(): Promise<ActionResult> {
     const isCurrent = captureSession(auth);
+    const request = ++hostedRequest;
+    const before = new Set(hostedIds.value);
     hostedStatus.value = 'loading';
     hostedError.value = null;
 
     try {
       const list = await authorized(listHostedGames);
+      if (!isCurrent() || request !== hostedRequest) return { ok: true };
+      const addedDuringRefresh = hostedIds.value.filter((id) => !before.has(id));
       list.forEach(remember);
-      hostedIds.value = list.map((game) => game.id);
+      hostedIds.value = [...new Set([...addedDuringRefresh, ...list.map((game) => game.id)])];
       hostedStatus.value = 'ready';
       return { ok: true };
     } catch (caught) {
       if (!isCurrent()) return { ok: false, message: 'The account changed. Try again.' };
+      if (request !== hostedRequest) return { ok: true };
       hostedStatus.value = 'error';
       hostedError.value = describeGameError(caught);
       return { ok: false, message: hostedError.value };

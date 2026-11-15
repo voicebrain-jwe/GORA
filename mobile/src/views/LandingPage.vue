@@ -482,11 +482,26 @@ function scrollTo(id: string): void {
 
 <style scoped>
 .landing-content {
-  --background: var(--ion-background-color);
+  --background: #101113;
   --padding-start: 0;
   --padding-end: 0;
 }
 .landing {
+  /* The photographic landing page always uses dark surfaces, including when
+     the signed-in app's saved display preference is light. */
+  color-scheme: dark;
+  --ion-background-color: #101113;
+  --ion-background-color-rgb: 16, 17, 19;
+  --ion-text-color: #f5f6f8;
+  --ion-text-color-rgb: 245, 246, 248;
+  --ion-toolbar-background: #101113;
+  --ion-toolbar-color: #f5f6f8;
+  --gora-surface: #1c1d21;
+  --gora-surface-raised: #242529;
+  --gora-surface-hover: #2c2d32;
+  --gora-muted: #aab3bf;
+  --gora-line: rgba(245, 246, 248, 0.12);
+  --gora-line-strong: rgba(245, 246, 248, 0.26);
   --accent: var(--ion-color-primary);
   --ink: var(--ion-background-color);
   --white: var(--ion-text-color);
@@ -2011,6 +2026,18 @@ h2 {
   }
 }
 @media (max-width: 600px) {
+  /* Keep the mobile header below the status bar and center its actions vertically. */
+  .site-header {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .header-inner {
+    height: 68px;
+  }
+  .login-link {
+    display: inline-flex;
+    min-height: 43px;
+    align-items: center;
+  }
   .hero-inner {
     min-height: 720px;
     padding-top: 62px;

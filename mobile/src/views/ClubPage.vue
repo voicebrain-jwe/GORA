@@ -45,6 +45,9 @@
           <p v-if="club.description" class="club__description">{{ club.description }}</p>
 
           <div class="club__actions">
+            <button v-if="club.viewerCanManageClub" type="button" class="club__secondary" @click="openManage">Edit club logo &amp; cover</button>
+            <button v-if="isActiveMember" type="button" class="club__primary" @click="router.push({ path: '/create/post', query: { clubId } })">Create Post</button>
+            <button v-if="isActiveMember && !canManage" type="button" class="club__secondary" @click="openManage">Join requests</button>
             <button
               type="button"
               class="club__primary"
@@ -82,7 +85,7 @@
               Share
             </button>
           </div>
-          <p v-if="joinState === 'REQUESTED'" class="club__note">An admin will review your request. Tap again to cancel it.</p>
+          <p v-if="joinState === 'REQUESTED'" class="club__note">A club member will review your request. Tap again to cancel it.</p>
           <p v-else-if="joinState === 'FULL'" class="club__note">This club has reached its member limit.</p>
           <p v-else-if="joinState === 'INVITE_ONLY'" class="club__note">Only invited people can join this club.</p>
           <p v-else-if="club.viewerHasInvite && joinState === 'JOIN'" class="club__note">You're invited to this club.</p>
@@ -125,13 +128,14 @@
         </div>
 
         <section class="club__content">
-          <div v-if="!canSeeContent" class="club__locked">
+          <div v-if="!canSeeContent && tab !== 'POSTS'" class="club__locked">
             <ion-icon :icon="lockClosedOutline" aria-hidden="true" />
             <strong>This club is private</strong>
             <span>Request to join to see its posts, games, reels, and members.</span>
           </div>
 
           <template v-else-if="tab === 'POSTS'">
+            <p v-if="postsError" class="club__empty" role="alert">{{ postsError }}</p>
             <p v-if="posts.length === 0" class="club__empty">No club posts yet.</p>
             <div class="club__stack">
               <PostCard
@@ -198,6 +202,11 @@ import { useClubsStore } from '@/stores/clubs';
 import { useChatStore } from '@/stores/chat';
 import { useGamesStore } from '@/stores/games';
 import { usePostsStore } from '@/stores/posts';
+import { useAuthStore } from '@/stores/auth';
+import { createAuthorizedCall } from '@/stores/authorized';
+import { listClubPosts } from '@/services/posts-api.service';
+import { toFeedPost } from '@/utils/post-api';
+import type { FeedPost } from '@/types/post';
 import { useReelsStore } from '@/stores/reels';
 import { useSessionStore } from '@/stores/session';
 import type { ClubMemberRole } from '@/types/club';
@@ -242,6 +251,14 @@ const tab = ref<ClubTab>('POSTS');
 const lookup = ref<'loading' | 'found' | 'missing' | 'error'>('loading');
 const lookupError = ref<string | null>(null);
 const membersError = ref<string | null>(null);
+const clubPosts = ref<FeedPost[]>([]);
+const postsError = ref<string | null>(null);
+const auth = useAuthStore();
+const authorized = createAuthorizedCall(auth);
+watch(() => [auth.sessionVersion, auth.currentUser?.id, auth.accessToken], () => {
+  clubPosts.value = [];
+  postsError.value = null;
+}, { flush: 'sync' });
 const busy = ref(false);
 
 const club = computed(() => clubsStore.byId(clubId));
@@ -253,6 +270,7 @@ const primaryLabel = computed(() =>
   joinState.value === 'JOIN' && club.value?.viewerHasInvite ? 'Accept Invite' : JOIN_LABELS[joinState.value],
 );
 const canManage = computed(() => !!club.value && (club.value.viewerCanManageClub || club.value.viewerCanManageMembers));
+const isActiveMember = computed(() => club.value?.viewerMembership?.status === 'ACTIVE');
 const canSeeContent = computed(() => !!club.value && club.value.contentVisible);
 const canOpenChat = computed(() => getClubChatAccess(club.value?.viewerMembership) === 'OPEN');
 
@@ -305,7 +323,7 @@ const hasDetails = computed(
 const inClub = (item: { club?: { id: string } | null }): boolean => item.club?.id === clubId;
 
 const posts = computed(() =>
-  postsStore.visiblePosts.filter(inClub).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+  [...new Map([...clubPosts.value, ...postsStore.visiblePosts.filter(inClub)].map((post) => [post.id, post])).values()].filter((post) => !post.clubOnly || isActiveMember.value).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
 );
 const games = computed(() =>
   gamesStore.games
@@ -339,6 +357,15 @@ async function refresh(): Promise<void> {
   const result = await clubsStore.loadClub(clubId);
   lookup.value = result.status;
   lookupError.value = result.status === 'error' ? result.message : null;
+  if (result.status === 'found' && isServerClubId(clubId)) {
+    try {
+      postsError.value = null;
+      const page = await authorized((token) => listClubPosts(token, clubId));
+      clubPosts.value = page.posts.map(toFeedPost);
+    } catch {
+      postsError.value = 'Could not load club posts. Please try again.';
+    }
+  } else clubPosts.value = [];
 
   if (tab.value === 'MEMBERS') {
     await loadMembers(true);
@@ -365,7 +392,7 @@ async function onPrimary(): Promise<void> {
       void showNotice(result.message);
     } else {
       void showNotice(
-        result.status === 'JOINED' ? `You joined ${club.value.name}.` : 'Request sent. An admin will review it.',
+        result.status === 'JOINED' ? `You joined ${club.value.name}.` : 'Request sent. A club member will review it.',
       );
     }
   } finally {
@@ -619,6 +646,7 @@ onMounted(() => {
 
 .club__actions {
   display: flex;
+  flex-wrap: wrap;
   width: 100%;
   gap: 8px;
   margin-top: 16px;
@@ -627,6 +655,8 @@ onMounted(() => {
 .club__primary,
 .club__secondary {
   flex: 1;
+  flex-basis: 140px;
+  min-height: 44px;
   padding: 11px 14px;
   border-radius: 999px;
   cursor: pointer;

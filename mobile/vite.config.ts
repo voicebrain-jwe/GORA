@@ -15,6 +15,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // Vercel Blob's browser shim otherwise captures Capacitor's patched fetch.
+      // Keep binary storage requests in the WebView; JSON API calls stay native.
+      'undici': fileURLToPath(new URL('./src/services/blob-fetch.ts', import.meta.url)),
     },
   },
   test: {

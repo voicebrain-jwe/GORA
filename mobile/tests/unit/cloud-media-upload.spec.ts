@@ -98,3 +98,32 @@ test("cancellation removes the pending ticket and never completes a story", asyn
     false,
   );
 });
+
+test('storage rejection is distinct from offline errors and never exposes SDK details', async () => {
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json({ provider: 'blob' }))
+    .mockResolvedValueOnce(json(ticket))
+    .mockResolvedValue(json({}));
+  vi.stubGlobal('fetch', fetcher);
+  vi.mocked(put).mockRejectedValueOnce(new Error('private-path restricted-token'));
+  await expect(uploadMedia('/reels/upload', 'jwt', 'video',
+    new File(['bytes'], 'reel.mp4', { type: 'video/mp4' }), {},
+  )).rejects.toMatchObject({ status: 422, message: expect.stringContaining("couldn't store") });
+  expect(fetcher.mock.calls.at(-1)?.[1].method).toBe('DELETE');
+  expect(fetcher.mock.calls.some((call) => call[0].endsWith('/complete'))).toBe(false);
+});
+
+test('native uploads do not fall back to patched XHR on older WebViews', async () => {
+  vi.stubGlobal('CapacitorWebFetch', vi.fn());
+  vi.stubGlobal('fetch', vi.fn()
+    .mockResolvedValueOnce(json({ provider: 'blob' }))
+    .mockResolvedValueOnce(json(ticket))
+    .mockResolvedValueOnce(json({ id: 'reel' })));
+  const progress = vi.fn();
+  await uploadMedia('/reels/upload', 'jwt', 'video',
+    new File([new Uint8Array(5 * 1024 * 1024)], 'reel.mp4', { type: 'video/mp4' }),
+    {}, { onProgress: progress });
+  expect(put).toHaveBeenCalledWith(ticket.pathname, expect.any(File),
+    expect.objectContaining({ multipart: true, onUploadProgress: undefined }));
+  expect(progress).toHaveBeenLastCalledWith(100);
+});

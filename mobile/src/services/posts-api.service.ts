@@ -59,6 +59,11 @@ export function createPost(token: string, input: CreatePostInput): Promise<ApiPo
   return apiRequest<ApiPost>('/posts', { method: 'POST', body: input, token });
 }
 
+export function listClubPosts(token: string, clubId: string): Promise<ApiPostPage> {
+  const query = new URLSearchParams({ clubId, limit: '50' });
+  return apiRequest(`/posts?${query}`, { token });
+}
+
 export function updatePost(token: string, postId: string, input: UpdatePostInput): Promise<ApiPost> {
   return apiRequest<ApiPost>(post(postId), { method: 'PATCH', body: input, token });
 }
@@ -68,9 +73,10 @@ export function updatePostVisibility(
   postId: string,
   visibility: PostVisibility,
   customViewerIds: string[],
+  clubOnly?: boolean,
 ): Promise<ApiPost> {
   const body = visibility === 'CUSTOM' ? { visibility, customViewerIds } : { visibility };
-  return apiRequest<ApiPost>(`${post(postId)}/visibility`, { method: 'PATCH', body, token });
+  return apiRequest<ApiPost>(`${post(postId)}/visibility`, { method: 'PATCH', body: { ...body, ...(clubOnly !== undefined ? { clubOnly } : {}) }, token });
 }
 
 export function updatePostTags(token: string, postId: string, userIds: string[]): Promise<ApiPost> {

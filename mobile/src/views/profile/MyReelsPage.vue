@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="My Reels" />
 
     <ion-content :fullscreen="true">
@@ -9,6 +9,7 @@
           <router-link to="/create/reel" class="my-reels__add">+ Upload Reel</router-link>
         </div>
         <p v-if="reelsStore.serverError" class="my-reels__empty" role="alert">{{ reelsStore.serverError }}</p>
+        <p v-else-if="reelsStore.serverStatus === 'loading' && highlights.length === 0" class="my-reels__empty" role="status">Loading your reels…</p>
         <p v-else-if="highlights.length === 0" class="my-reels__empty">
           No reels yet. Upload one and it shows here and in your Highlights.
         </p>
@@ -21,7 +22,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
-import { IonContent, IonPage } from '@ionic/vue';
+import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue';
 import SubPageHeader from '@/components/layout/SubPageHeader.vue';
 import HighlightGrid from '@/components/profile/HighlightGrid.vue';
 import { useProfileStore } from '@/stores/profile';
@@ -40,6 +41,8 @@ onMounted(() => {
   void profileStore.load();
   void reelsStore.load();
 });
+
+onIonViewWillEnter(() => void reelsStore.refresh());
 </script>
 
 <style scoped>

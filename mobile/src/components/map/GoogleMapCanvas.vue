@@ -25,7 +25,7 @@ let active = true;
 
 function markerContent(item: MapCanvasProps['markers'][number], selected: boolean): HTMLElement {
   const root = document.createElement('div');
-  if (props.fitMarkers) {
+  if (props.fitMarkers && !selected) {
     root.setAttribute('role', 'button');
     root.setAttribute('tabindex', '0');
     const pin = document.createElement('span');
@@ -85,6 +85,7 @@ function renderMarkers(): void {
       title: `${item.label}: ${item.gameCount} ${item.gameCount === 1 ? 'game' : 'games'}`,
       content: markerContent(item, item.key === props.selectedKey),
       gmpClickable: true,
+      zIndex: item.key === props.selectedKey ? 2000 : 0,
     });
     marker.addEventListener('gmp-click', () => emit('select', item.key));
     marker.addEventListener('keydown', (event) => {
@@ -137,6 +138,14 @@ function updateMap(): void {
     userMarker = null;
   }
   renderMarkers();
+  focusSelected();
+}
+
+function focusSelected(): void {
+  const selected = props.markers.find((item) => item.key === props.selectedKey);
+  if (!map || !selected) return;
+  map.setCenter(googlePoint(selected));
+  map.setZoom(14);
 }
 
 onMounted(async () => {
@@ -165,6 +174,7 @@ onMounted(async () => {
 
 watch(() => [props.center.latitude, props.center.longitude, props.radiusKm, props.showRadius, props.userLocation?.latitude, props.userLocation?.longitude, props.fitMarkers, props.markers], updateMap, { deep: true });
 watch(() => [props.markers, props.selectedKey], renderMarkers, { deep: true });
+watch(() => props.selectedKey, focusSelected);
 
 onBeforeUnmount(() => {
   active = false;

@@ -111,16 +111,26 @@ export const useStoriesStore = defineStore('stories', () => {
     const userId = auth.currentUser?.id ?? null;
     const isCurrent = captureSession(auth);
     const version = generation;
+    const initialIds = new Set([...serverStories.value, ...myServerStories.value].map((story) => story.id));
     serverStatus.value = 'loading';
     serverError.value = null;
 
     try {
-      const [active, mine] = await authorized((token) => Promise.all([listActiveStories(token), listMyStories(token)]));
+      const [active, mine] = await Promise.allSettled([
+        authorized(listActiveStories),
+        authorized(listMyStories),
+      ]);
       if (version !== generation) return;
-      serverStories.value = active.map(toStory);
-      myServerStories.value = mine.map(toStory);
+      if (active.status === 'rejected' && mine.status === 'rejected') throw active.reason;
+      const justCreated = [...serverStories.value, ...myServerStories.value].filter((story) => !initialIds.has(story.id));
+      const activeStories = active.status === 'fulfilled' ? active.value.map(toStory) : [];
+      const ownStories = mine.status === 'fulfilled' ? mine.value.map(toStory) : activeStories.filter((story) => story.user.id === userId);
+      myServerStories.value = [...new Map([...ownStories, ...justCreated.filter((story) => story.user.id === userId)].map((story) => [story.id, story])).values()];
+      serverStories.value = [...new Map([...activeStories, ...myServerStories.value, ...justCreated].map((story) => [story.id, story])).values()];
       serverStatus.value = 'ready';
-      loadedForUserId.value = userId;
+      loadedForUserId.value = active.status === 'fulfilled' && mine.status === 'fulfilled' ? userId : null;
+      if (active.status === 'rejected') serverError.value = describeContentError(active.reason, STORY_UNAVAILABLE_MESSAGE);
+      else if (mine.status === 'rejected') serverError.value = describeContentError(mine.reason, STORY_UNAVAILABLE_MESSAGE);
     } catch (caught) {
       if (!isCurrent() || version !== generation) return;
       serverStatus.value = 'error';

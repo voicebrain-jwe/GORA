@@ -59,7 +59,12 @@ export function visiblePostsWhere(viewerId: string): Prisma.PostWhereInput {
             },
           },
           {
-            OR: [{ clubId: null }, { club: visibleClubContentWhere(viewerId) }],
+            OR: [
+              { clubId: null },
+              { clubOnly: false, visibility: 'PUBLIC', club: { isActive: true } },
+              { clubOnly: false, club: visibleClubContentWhere(viewerId) },
+              { clubOnly: true, club: { isActive: true, members: { some: { userId: viewerId, status: 'ACTIVE' } } } },
+            ],
           },
           {
             OR: [

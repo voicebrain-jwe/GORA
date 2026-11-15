@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="Archive" back-href="/profile" />
     <ion-content>
       <div class="archive-page">

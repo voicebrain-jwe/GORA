@@ -19,6 +19,7 @@ import '@ionic/vue/css/display.css';
 
 import './theme/variables.css';
 import './theme/responsive.css';
+import './theme/profile-mobile.css';
 import './theme/keyboard.css';
 
 initializeAppPreferences();

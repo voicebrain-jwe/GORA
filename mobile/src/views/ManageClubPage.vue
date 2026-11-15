@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="Manage Club" :back-href="`/clubs/${clubId}`" />
 
     <ion-content>
@@ -7,7 +7,7 @@
         <p v-if="lookup === 'missing'" class="manage__empty">This club does not exist or was disabled.</p>
         <p v-else-if="lookupError" class="manage__empty" role="alert">{{ lookupError }}</p>
         <p v-else-if="club && !isServer" class="manage__empty">Demo clubs can't be managed. Create your own club to try it.</p>
-        <p v-else-if="club && !canManageMembers" class="manage__empty">Only the club owner and admins can manage this club.</p>
+        <p v-else-if="club && !canReviewRequests" class="manage__empty">Only active club members can review join requests.</p>
 
         <template v-else-if="club">
           <div class="manage__summary">
@@ -23,7 +23,7 @@
 
           <SegmentTabs v-model="tab" :options="tabOptions" aria-label="Manage club" />
 
-          <form v-if="tab === 'SETTINGS'" class="manage__settings" novalidate @submit.prevent="save">
+          <form v-if="tab === 'SETTINGS' && canManageClub" class="manage__settings" novalidate @submit.prevent="save">
             <ClubFormFields
               v-model="form"
               :errors="errors"
@@ -57,13 +57,13 @@
               >
                 Approve
               </button>
-              <button type="button" class="manage__small" :disabled="busyId === request.user.id" @click="reject(request.user.id)">
+              <button v-if="canManageMembers" type="button" class="manage__small" :disabled="busyId === request.user.id" @click="reject(request.user.id)">
                 Reject
               </button>
             </article>
           </section>
 
-          <section v-else-if="tab === 'INVITES'" class="manage__list" aria-label="Invitations">
+          <section v-else-if="tab === 'INVITES' && canManageMembers" class="manage__list" aria-label="Invitations">
             <form class="manage__invite" @submit.prevent="invite">
               <input v-model="inviteName" class="manage__input" placeholder="@username" aria-label="Username to invite" />
               <button type="submit" class="manage__small manage__small--primary" :disabled="!inviteName.trim() || inviting">
@@ -162,6 +162,7 @@ let openedOnce = false;
 const club = computed(() => clubsStore.byId(clubId));
 const canManageClub = computed(() => !!club.value?.viewerCanManageClub);
 const canManageMembers = computed(() => !!club.value?.viewerCanManageMembers);
+const canReviewRequests = computed(() => club.value?.viewerMembership?.status === 'ACTIVE');
 const viewerRole = computed(() => club.value?.viewerMembership?.role ?? null);
 const members = computed(() => clubsStore.members[clubId] ?? []);
 const errors = computed(() => validateClubForm(form.value, { currentMembers: club.value?.memberCount ?? 0 }));
@@ -171,7 +172,7 @@ const dirty = computed(() => JSON.stringify(form.value) !== JSON.stringify(origi
 const tabOptions = computed(() => [
   ...(canManageClub.value ? [{ id: 'SETTINGS' as const, label: 'Settings' }] : []),
   { id: 'REQUESTS' as const, label: 'Requests' },
-  { id: 'INVITES' as const, label: 'Invites' },
+  ...(canManageMembers.value ? [{ id: 'INVITES' as const, label: 'Invites' }] : []),
   { id: 'MEMBERS' as const, label: 'Members' },
 ]);
 

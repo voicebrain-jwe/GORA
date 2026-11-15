@@ -1,9 +1,14 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="My Stories" />
 
     <ion-content ref="contentRef" :fullscreen="true">
       <div class="my-stories">
+        <div v-if="storiesStore.serverError" class="my-stories__empty" role="alert">
+          <p>{{ storiesStore.serverError }}</p>
+          <button type="button" @click="storiesStore.refresh()">Try again</button>
+        </div>
+        <p v-else-if="storiesStore.serverStatus === 'loading'" class="my-stories__empty" role="status">Loading your stories…</p>
         <div class="my-stories__menu" role="tablist" aria-label="My Stories sections">
           <button
             v-for="(section, index) in sections"
@@ -34,7 +39,7 @@
           <SectionHeader title="Active">
             <router-link to="/create/story" class="my-stories__add">+ Add Story</router-link>
           </SectionHeader>
-          <p v-if="ownStories.active.length === 0" class="my-stories__empty">No active stories.</p>
+          <p v-if="ownStories.active.length === 0 && storiesStore.serverStatus === 'ready' && !storiesStore.serverError" class="my-stories__empty">No active stories.</p>
           <ul v-else class="my-stories__list">
             <li v-for="story in ownStories.active" :key="story.id" class="my-stories__item">
               <span class="my-stories__thumb" :style="thumbStyle(story)" />
@@ -56,7 +61,7 @@
         >
           <SectionHeader title="Archive" />
           <p class="my-stories__note">Expired stories are hidden from others but kept for your history.</p>
-          <p v-if="ownStories.expired.length === 0" class="my-stories__empty">Nothing archived yet.</p>
+          <p v-if="ownStories.expired.length === 0 && storiesStore.serverStatus === 'ready' && !storiesStore.serverError" class="my-stories__empty">Nothing archived yet.</p>
           <ul v-else class="my-stories__list">
             <li v-for="story in ownStories.expired" :key="story.id" class="my-stories__item my-stories__item--expired">
               <span class="my-stories__thumb" :style="thumbStyle(story)" />

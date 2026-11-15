@@ -1,0 +1,196 @@
+/* Profile screens share the same phone layout in the browser and bundled app. */
+@media (max-width: 767px) {
+  :root .profile-app-page ion-content {
+    --padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+
+  :root .profile-app-page ion-toolbar {
+    --min-height: 56px;
+    --border-color: var(--gora-line);
+    --border-width: 0 0 1px;
+  }
+
+  :root .profile-app-page ion-title {
+    font-size: 1.05rem;
+    font-weight: 750;
+  }
+
+  :root .profile-app-page :is(.my-games, .my-clubs, .my-stories, .my-reels, .friends, .activity, .archive-page, .saved-posts, .help-requests) {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 16px 16px 28px;
+  }
+
+  :root .profile-app-page :is(.profile-header__name-row, .profile-header__actions, .my-reels__top, .my-games__host-actions, .my-games__participation) {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  :root .profile-app-page .profile-header__cover {
+    height: clamp(150px, 44vw, 210px);
+  }
+
+  :root .profile-app-page .profile-header__name {
+    font-size: clamp(1.3rem, 5.8vw, 1.7rem);
+    line-height: 1.2;
+  }
+
+  :root .profile-app-page :is(.profile-header__username, .profile-header__bio, .request__name, .help-request, .archive-page__story-text) {
+    overflow-wrap: anywhere;
+  }
+
+  :root .profile-app-page .profile-stats {
+    gap: 8px;
+  }
+
+  :root .profile-app-page .profile-stats__item {
+    min-height: 66px;
+    justify-content: center;
+    border: 1px solid var(--gora-line);
+    border-radius: 14px;
+  }
+
+  :root .profile-app-page :is(.profile-links, .my-games__menu, .my-clubs__menu, .my-stories__menu, .segment-tabs) {
+    display: flex;
+    gap: 6px;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 5px;
+    border: 1px solid var(--gora-line);
+    border-radius: 14px;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  :root .profile-app-page :is(.profile-links__item, .my-games__menu-item, .my-clubs__menu-item, .my-stories__menu-item, .segment-tabs__tab) {
+    flex: 1 0 auto;
+    min-height: 44px;
+    padding: 10px 12px;
+    white-space: nowrap;
+    font-size: 0.82rem;
+  }
+
+  :root .profile-app-page :is(.my-games__menu-count, .my-clubs__menu-count, .my-stories__menu-count, .segment-tabs__count) {
+    flex-shrink: 0;
+  }
+
+  :root .profile-app-page .profile-links__more {
+    margin-left: 0;
+  }
+
+  :root .profile-app-page :is(.friends__list, .my-stories__list, .archive-page__stories) {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  :root .profile-app-page :is(.request, .my-stories__item, .archive-page__story) {
+    padding: 14px;
+    border: 1px solid var(--gora-line);
+    border-radius: 16px;
+    background: var(--gora-surface);
+  }
+
+  :root .profile-app-page .request {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+  }
+
+  :root .profile-app-page .request__actions {
+    grid-column: 1 / -1;
+    display: flex;
+  }
+
+  :root .profile-app-page .request__btn {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  :root .profile-app-page :is(.my-reels__add, .my-stories__add, .my-games__edit, .my-games__cancel, .my-games__host-cancel, .profile-action) {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  :root .profile-app-page .edit-profile__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  :root .profile-app-page .edit-profile__actions ion-button {
+    min-width: 0;
+    min-height: 46px;
+    margin: 0;
+    --border-radius: 12px;
+  }
+
+  :root .profile-app-page :is(.edit-profile__photo-body, .my-stories__text, .archive-page__story-text) {
+    min-width: 0;
+  }
+
+  :root .profile-app-page :is(ion-input, ion-textarea, ion-select) {
+    font-size: 16px;
+  }
+
+  :root .profile-app-page ion-list[inset], :root .profile-settings-modal ion-list[inset] {
+    margin: 16px;
+    border: 1px solid var(--gora-line);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  :root .profile-app-page ion-item, :root .profile-settings-modal ion-item {
+    --min-height: 64px;
+    --padding-start: 14px;
+    --inner-padding-end: 14px;
+  }
+
+  :root .profile-app-page ion-label, :root .profile-settings-modal ion-label {
+    white-space: normal;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  :root .profile-settings-modal ion-item ion-label p {
+    margin-top: 5px;
+    line-height: 1.45;
+  }
+
+  :root .profile-settings-modal ion-content {
+    --padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+
+  :root .profile-settings-modal ion-item:has(ion-select) {
+    --min-height: 96px;
+  }
+
+  :root .profile-settings-modal ion-select {
+    max-width: 55%;
+    min-width: 0;
+    font-size: 0.9rem;
+  }
+
+  :root .profile-app-page .activity-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  :root .profile-app-page .activity-stats__item {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--gora-line);
+  }
+
+  :root .profile-app-page .activity-stats__item:last-child:nth-child(3n + 1) {
+    grid-column: auto;
+  }
+
+  :root .profile-app-page .activity-stats__value {
+    overflow-wrap: anywhere;
+  }
+}

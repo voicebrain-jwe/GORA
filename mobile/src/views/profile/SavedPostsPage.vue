@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="Saved Posts" back-href="/profile/settings" />
     <ion-content>
       <div class="saved-posts">

@@ -24,6 +24,8 @@ function toFeedPostInternal(post: ApiPost, includeSharedPost: boolean): FeedPost
     sharedPostId: post.sharedPostId ?? null,
     sharedPost: includeSharedPost && post.sharedPost ? toFeedPostInternal(post.sharedPost, false) : null,
     author: toUserSummary(post.author),
+    club: post.club ? { ...post.club, sport: post.sport?.name ?? null } : null,
+    clubOnly: post.clubOnly ?? false,
     isAnnouncement: post.isAnnouncement,
     body: post.caption ?? '',
     sport: post.sport?.name ?? NO_SPORT_LABEL,

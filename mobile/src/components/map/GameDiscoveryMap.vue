@@ -41,7 +41,7 @@
       <div v-else-if="loading" class="discovery-map__loading" aria-busy="true" aria-label="Loading games">
         <ion-skeleton-text :animated="true" class="discovery-map__skeleton" />
       </div>
-      <p v-else class="discovery-map__blank">No game on this list has a map position yet.</p>
+      <p v-else-if="!mapCenter" class="discovery-map__blank">No game on this list has a map position yet.</p>
       <div class="discovery-map__legend" aria-label="Game status legend">
         <span><i class="discovery-map__legend-dot discovery-map__legend-dot--active" /> Active</span>
         <span><i class="discovery-map__legend-dot discovery-map__legend-dot--upcoming" /> Upcoming</span>
@@ -146,7 +146,7 @@ const canvas = CANVASES[provider.id] ?? PlaceholderMapCanvas;
 
 const places = computed(() => groupGamesByPlace(props.games));
 const unlocatedCount = computed(() => props.games.filter((game) => gamePoint(game) === null).length);
-const activeGameCount = computed(() => props.games.filter((game) => gamePoint(game) !== null).length);
+const activeGameCount = computed(() => props.games.filter((game) => game.status === 'ACTIVE' && gamePoint(game) !== null).length);
 const mapCenter = computed<MapPoint | null>(() => {
   if (props.center) {
     return props.center;
@@ -164,7 +164,9 @@ const markers = computed<MapMarker[]>(() =>
     label: place.name,
     latitude: place.latitude,
     longitude: place.longitude,
-    symbols: placeMarkers(place),
+    symbols: place.games.some((game) => game.id === props.selectedGameId)
+      ? [getSportMarker(place.games.find((game) => game.id === props.selectedGameId)!.sport.name)]
+      : placeMarkers(place),
     gameCount: place.games.length,
     activeCount: place.games.filter((game) => game.status === 'ACTIVE').length,
     upcomingCount: place.games.filter((game) => game.status === 'OPEN' || game.status === 'FULL').length,

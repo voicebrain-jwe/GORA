@@ -16,6 +16,7 @@ export type ClubPermission =
   | 'MANAGE_POSTS'
   | 'MANAGE_GAMES'
   | 'MANAGE_MEMBERS'
+  | 'APPROVE_MEMBERS'
   | 'MANAGE_CONTENT'
   | 'POST_ANNOUNCEMENTS'
   | 'MANAGE_CLUB_CHAT'
@@ -35,6 +36,7 @@ export type ClubPermission =
   | 'SEND_CLUB_CHAT';
 
 const MEMBER: readonly ClubPermission[] = [
+  'APPROVE_MEMBERS',
   'VIEW_CLUB',
   'PARTICIPATE',
   'JOIN_CLUB_GAMES',

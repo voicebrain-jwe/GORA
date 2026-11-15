@@ -9,7 +9,11 @@
     <ion-content class="edit-privacy-content">
       <form class="edit-privacy" @submit.prevent="save">
         <h2 class="edit-privacy__title">Who can see this post?</h2>
-        <PostAudiencePicker v-model:visibility="visibility" v-model:custom-viewer-ids="customViewerIds" />
+        <select v-if="post?.club" v-model="clubOnly" aria-label="Club post audience" class="edit-privacy__audience">
+          <option :value="false">Public</option>
+          <option :value="true">Club members only</option>
+        </select>
+        <PostAudiencePicker v-else v-model:visibility="visibility" v-model:custom-viewer-ids="customViewerIds" />
         <p v-if="error" class="edit-privacy__error" role="alert">{{ error }}</p>
         <button type="submit" class="edit-privacy__save" :disabled="isSaving">Save</button>
       </form>
@@ -31,6 +35,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const postsStore = usePostsStore();
 const visibility = ref<PostVisibility>('PUBLIC');
+const clubOnly = ref(false);
 const customViewerIds = ref<string[]>([]);
 const error = ref<string | null>(null);
 const isSaving = ref(false);
@@ -39,6 +44,7 @@ watch(
   () => props.post,
   (post) => {
     if (post) {
+      clubOnly.value = post.clubOnly ?? false;
       visibility.value = post.visibility;
       customViewerIds.value = [...(post.customViewerIds ?? [])];
       error.value = null;
@@ -56,10 +62,10 @@ async function save(): Promise<void> {
 
   try {
     const ids = visibility.value === 'CUSTOM' ? customViewerIds.value : [];
-    error.value = await postsStore.updateVisibility(props.post.id, visibility.value, ids);
+    error.value = await postsStore.updateVisibility(props.post.id, props.post.club ? 'PUBLIC' : visibility.value, props.post.club ? [] : ids, props.post.club ? clubOnly.value : undefined);
 
     if (!error.value) {
-      void showNotice(`Now visible to: ${getPrivacyOption(visibility.value).label}.`);
+      void showNotice(`Now visible to: ${props.post.club && clubOnly.value ? 'Club members only' : getPrivacyOption(props.post.club ? 'PUBLIC' : visibility.value).label}.`);
       emit('close');
     }
   } finally {
@@ -89,6 +95,16 @@ async function save(): Promise<void> {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+.edit-privacy__audience {
+  min-height: 48px;
+  padding: 12px;
+  border: 1px solid var(--gora-line);
+  border-radius: 12px;
+  background: var(--gora-surface);
+  color: var(--ion-text-color);
+  font: inherit;
 }
 
 .edit-privacy__error {

@@ -121,6 +121,12 @@ function draft(overrides: Partial<PostDraft> = {}): PostDraft {
 }
 
 describe('post edit helpers', () => {
+  test('club posts keep their club label and membership-only audience', () => {
+    const club = { id: OTHER, name: 'GORA Basketball', slug: 'gora-basketball' };
+    const card = toFeedPost(apiPost({ clubId: club.id, club, clubOnly: true }));
+    expect(card.club).toEqual({ ...club, sport: 'Basketball' });
+    expect(card.clubOnly).toBe(true);
+  });
   test('maps an API post to a feed card', () => {
     const card = toFeedPost(apiPost({ sport: null, sportId: null, editedAt: '2026-09-30T12:00:00.000Z' }));
 

@@ -55,6 +55,18 @@ but cannot compile or sign an iOS app.
 
 ## Camera, microphone, and verification
 
+Story and Reel uploads use a separate browser fetch shim for the Vercel Blob SDK
+(`mobile/src/services/blob-fetch.ts`, aliased from `undici` in Vite). The SDK's
+progress streams and multipart binary parts must bypass CapacitorHttp's text/JSON
+conversion. Storage supports CORS from the WebView origin. The shim uses the
+original `CapacitorWebFetch`, buffers each stream part as a Blob, and preserves
+the SDK's abort signal. JSON API requests continue through native HTTP.
+Native uploads report completion after saving; SDK byte-progress callbacks are
+disabled to avoid its patched-XHR fallback on older WebViews.
+Keep the alias when updating the SDK and verify photo, large multipart video, and cancel
+uploads on a physical device. Storage rejections use a safe upload-specific
+message rather than incorrectly reporting an offline phone.
+
 Location actions use `@capacitor/geolocation` in the bundled app and browser
 geolocation on the web. Android declares coarse and fine location permissions;
 iOS includes the required location usage descriptions. Location permission is

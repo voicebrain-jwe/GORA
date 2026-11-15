@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="My Clubs" />
 
     <ion-content ref="contentRef" :fullscreen="true">

@@ -5,7 +5,7 @@
       <path d="M12.1 10c-2.2 2.8-3.5 4.8-2.8 7 .3 1.1 1 1.8 2 2.3-.1-1.8.7-2.8 1.8-3.8.3 1.7 1.5 2.6 1.9 3.8 1-1 1.4-2.3 1.1-3.7-.4-2.2-2.1-3.8-4-5.6Z" fill="#ffd05a" />
       <path d="M7 22h10l-1 2H8l-1-2Zm2 3h6l.6 2H8.4l.6-2Z" fill="#bd5a12" />
     </svg>
-    <span class="gora-points-badge__value">{{ points }}</span>
+    <span class="gora-points-badge__value">{{ points.toLocaleString() }}</span>
   </span>
 </template>
 
@@ -18,13 +18,13 @@ defineProps<{ points: number }>();
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 2px;
-  padding: 2px 6px 2px 4px;
+  gap: 4px;
+  padding: 4px 8px;
   border: 1px solid rgba(255, 138, 40, .48);
   border-radius: 999px;
   background: linear-gradient(120deg, #fff4e8, #fffaf4);
   color: #a84700;
-  font-size: .66rem;
+  font-size: .78rem;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -33,7 +33,7 @@ defineProps<{ points: number }>();
 
 .gora-points-badge__torch {
   display: block;
-  width: 13px;
-  height: 16px;
+  width: 16px;
+  height: 20px;
 }
 </style>

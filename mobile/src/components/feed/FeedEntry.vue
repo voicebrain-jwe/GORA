@@ -48,7 +48,7 @@
       <span class="feed-entry__reel-info">
         <strong>{{ item.reel.caption }}</strong>
         <span>{{ item.reel.sport }} · {{ item.reel.locationName }}</span>
-        <span>
+        <span class="feed-entry__reel-views" :aria-label="`${formatCompactNumber(item.reel.views)} views`">
           <ion-icon :icon="eyeOutline" aria-hidden="true" />
           {{ formatCompactNumber(item.reel.views) }} views
         </span>
@@ -199,6 +199,22 @@ const emit = defineEmits<{
   gap: 4px;
   color: var(--gora-muted);
   font-size: 0.72rem;
+}
+
+.feed-entry__reel-info .feed-entry__reel-views {
+  width: fit-content;
+  padding: 4px 8px;
+  border: 1px solid var(--gora-line-strong);
+  border-radius: 999px;
+  background: var(--gora-surface-raised, rgba(255, 255, 255, 0.08));
+  color: var(--ion-text-color);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.feed-entry__reel-views ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 1rem;
 }
 
 .feed-entry--activity {

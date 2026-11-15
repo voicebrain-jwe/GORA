@@ -31,6 +31,8 @@ function postSelect(viewerId: string) {
     visibility: true,
     sportId: true,
     clubId: true,
+    clubOnly: true,
+    club: { select: { id: true, name: true, slug: true } },
     isAnnouncement: true,
     locationName: true,
     latitude: true,
@@ -106,9 +108,22 @@ export class PostsService {
     }
 
     const post = await this.prisma.$transaction(async (tx) => {
+      if (dto.clubOnly && !dto.clubId) throw new BadRequestException('Choose a club for club-only posts.');
+      if (dto.clubId) {
+        const membership = await tx.clubMember.findUnique({
+          where: { clubId_userId: { clubId: dto.clubId, userId: authorId } },
+          select: { status: true, club: { select: { isActive: true } } },
+        });
+        if (membership?.status !== 'ACTIVE' || !membership.club.isActive) {
+          throw new ForbiddenException('Only active club members can create club posts.');
+        }
+        if (dto.visibility !== 'PUBLIC') throw new BadRequestException('Choose Public or Club members for club posts.');
+      }
       const created = await tx.post.create({
         data: {
         userId: authorId,
+        clubId: dto.clubId,
+        clubOnly: dto.clubOnly ?? false,
         sharedPostId: dto.sharedPostId,
         caption: dto.caption?.trim() || null,
         media: media.length ? { create: media } : undefined,
@@ -337,7 +352,7 @@ export class PostsService {
         : {};
     return this.page(
       viewerId,
-      { AND: [where, { preferences: { none: { userId: viewerId, feedback: 'NOT_INTERESTED' } } }] },
+      { AND: [where, ...(query.clubId ? [{ clubId: query.clubId }] : []), { preferences: { none: { userId: viewerId, feedback: 'NOT_INTERESTED' } } }] },
       query,
     );
   }
@@ -423,6 +438,15 @@ export class PostsService {
   /** The new visibility applies to the very next read, because every read uses visiblePostsWhere. */
   async updateVisibility(viewerId: string, postId: string, dto: UpdatePostVisibilityDto): Promise<PostView> {
     const post = await this.findAuthoredPost(viewerId, postId, 'Only the author can change who can see this post.');
+    if (dto.clubOnly !== undefined) {
+      if (!post.clubId) throw new BadRequestException('This post does not belong to a club.');
+      if (dto.visibility !== 'PUBLIC') throw new BadRequestException('Choose Public or Club members for club posts.');
+      const membership = await this.prisma.clubMember.findUnique({
+        where: { clubId_userId: { clubId: post.clubId, userId: viewerId } },
+        select: { status: true, club: { select: { isActive: true } } },
+      });
+      if (membership?.status !== 'ACTIVE' || !membership.club.isActive) throw new ForbiddenException('Only active members can change the club audience.');
+    }
 
     const keepsSavedAudience =
       dto.visibility === 'CUSTOM' && dto.customViewerIds === undefined && post._count.customViewers > 0;
@@ -440,7 +464,7 @@ export class PostsService {
 
       return tx.post.update({
         where: { id: postId },
-        data: { visibility: dto.visibility },
+        data: { visibility: dto.visibility, ...(dto.clubOnly !== undefined ? { clubOnly: dto.clubOnly } : {}) },
         select: postSelect(viewerId),
       });
     });
@@ -496,6 +520,7 @@ export class PostsService {
       where: { AND: [{ id: postId }, visiblePostsWhere(viewerId)] },
       select: {
         userId: true,
+        clubId: true,
         caption: true,
         sportId: true,
         locationName: true,

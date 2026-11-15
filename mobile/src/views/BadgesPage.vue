@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <ion-header class="ion-no-border">
       <ion-toolbar>
         <ion-buttons slot="start">

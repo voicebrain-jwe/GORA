@@ -40,9 +40,9 @@ function escapeHtml(value: string): string {
 
 function placeIcon(item: MapMarker) {
   const symbols = item.symbols.slice(0, 3).map(escapeHtml).join('');
-  if (props.fitMarkers) {
+  if (props.fitMarkers && item.key !== props.selectedKey) {
     const state = item.activeCount && item.upcomingCount ? 'mixed' : item.activeCount ? 'active' : 'upcoming';
-    const label = item.gameCount > 1 ? item.gameCount : symbols.slice(0, 2);
+    const label = item.gameCount > 1 ? item.gameCount : escapeHtml(item.symbols[0] ?? '●');
     return divIcon({
       className: 'osm-map-marker osm-map-marker--country',
       html: `<span class="osm-map-marker__country-pin osm-map-marker__country-pin--${state}">${label}</span>`,
@@ -77,6 +77,7 @@ function renderMarkers(): void {
       icon: placeIcon(item),
       title: `${item.label}: ${item.gameCount} ${item.gameCount === 1 ? 'game' : 'games'}; ${item.activeCount} active, ${item.upcomingCount} upcoming`,
       keyboard: true,
+      zIndexOffset: item.key === props.selectedKey ? 1000 : 0,
     }).addTo(map!);
     pin.on('click keypress', () => emit('select', item.key));
     pin.bindTooltip(`${item.label} · ${item.gameCount} ${item.gameCount === 1 ? 'game' : 'games'}`);
@@ -121,6 +122,13 @@ function updateMap(): void {
     userLocation = null;
   }
   renderMarkers();
+  focusSelected();
+}
+
+function focusSelected(): void {
+  const selected = props.markers.find((item) => item.key === props.selectedKey);
+  if (!map || !selected) return;
+  map.setView([selected.latitude, selected.longitude], Math.max(map.getZoom(), 14), { animate: false });
 }
 
 onMounted(() => {
@@ -152,6 +160,7 @@ onMounted(() => {
 
 watch(() => [props.center.latitude, props.center.longitude, props.radiusKm, props.showRadius, props.userLocation?.latitude, props.userLocation?.longitude, props.fitMarkers, props.markers], updateMap, { deep: true });
 watch(() => [props.markers, props.selectedKey], renderMarkers, { deep: true });
+watch(() => props.selectedKey, focusSelected);
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect();

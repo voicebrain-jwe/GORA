@@ -45,3 +45,10 @@ server/src/generated/
 mobile/tmp/
 cypress/videos/
 cypress/screenshots/
+.neon
+
+# Local build caches and agent/editor configuration
+.gradle-cache/
+.agents/
+.codex/
+.vscode/

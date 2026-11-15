@@ -465,7 +465,7 @@ async function confirmCancelRequest(): Promise<void> {
 
 <style scoped>
 .server-game {
-  padding-bottom: 32px;
+  padding: 12px 0 36px;
 }
 
 .server-game__section--host,
@@ -485,7 +485,11 @@ async function confirmCancelRequest(): Promise<void> {
 }
 
 .server-game__hero {
+  margin: 0 12px;
   padding: 20px clamp(16px, 4vw, 38px) 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: var(--gora-shadow);
 }
 
 .server-game__chips {
@@ -563,8 +567,12 @@ async function confirmCancelRequest(): Promise<void> {
 .server-game__facts {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px 0;
+  gap: 9px;
+  margin: 14px 12px 0;
+  padding: 14px;
+  border: 1px solid var(--gora-line);
+  border-radius: 16px;
+  background: var(--gora-surface);
   font-size: 0.9rem;
 }
 
@@ -572,11 +580,35 @@ async function confirmCancelRequest(): Promise<void> {
   margin: 0;
 }
 
+.server-game__facts p:first-child {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--gora-accent-soft);
+  color: var(--ion-text-color);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.server-game__facts p:nth-child(2) {
+  color: var(--gora-muted);
+  font-size: 0.78rem;
+}
+
+.server-game__facts p:nth-child(3),
+.server-game__facts p:nth-child(4) {
+  padding: 3px 0;
+  font-weight: 650;
+}
+
 .server-game__location {
   display: inline-flex;
-  width: fit-content;
+  width: 100%;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  margin-top: 3px;
+  padding-top: 10px;
+  border-top: 1px solid var(--gora-line);
   color: var(--ion-text-color);
   text-decoration: none;
 }
@@ -590,8 +622,9 @@ async function confirmCancelRequest(): Promise<void> {
   width: fit-content;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
-  padding: 7px 14px;
+  margin-top: 2px;
+  padding: 8px 14px;
+  background: var(--gora-accent-soft);
   border: 1px solid var(--ion-color-primary);
   border-radius: 999px;
   color: var(--ion-color-primary);
@@ -616,7 +649,7 @@ async function confirmCancelRequest(): Promise<void> {
 }
 
 .server-game__capacity {
-  margin: 16px;
+  margin: 14px 12px 16px;
   padding: 14px 16px;
   border: 1px solid var(--gora-line);
   border-radius: var(--gora-radius-card);
@@ -903,6 +936,7 @@ async function confirmCancelRequest(): Promise<void> {
   }
 
   .server-game__hero {
+    margin: 0;
     grid-column: 1 / -1;
     grid-row: 1;
     min-height: clamp(220px, 28vw, 340px);
@@ -943,6 +977,7 @@ async function confirmCancelRequest(): Promise<void> {
   }
 
   .server-game__facts {
+    margin: 0;
     gap: 12px;
     padding: 22px 24px;
     font-size: 0.95rem;

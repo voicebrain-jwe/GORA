@@ -1,5 +1,6 @@
 import { apiRequest, ApiError, NETWORK_ERROR_MESSAGE } from "./api-client";
 import type { MediaUploadOptions } from "./media-upload.service";
+import { hasNativeBlobTransport } from "./blob-fetch";
 
 export async function mediaUploadProvider(
   token: string,
@@ -41,7 +42,9 @@ export async function uploadCloudMedia<T>(
       contentType: file.type,
       multipart: file.size > 4 * 1024 * 1024,
       abortSignal: options.signal,
-      onUploadProgress: (event) =>
+      // Older WebViews fall back to patched XHR for SDK progress. Keep all
+      // native uploads on our binary fetch transport, including multipart.
+      onUploadProgress: hasNativeBlobTransport() ? undefined : (event) =>
         options.onProgress?.(Math.min(99, Math.round(event.percentage))),
     });
     canceled();
@@ -60,6 +63,10 @@ export async function uploadCloudMedia<T>(
     }).catch(() => undefined);
     canceled();
     if (error instanceof ApiError) throw error;
-    throw new ApiError(0, NETWORK_ERROR_MESSAGE);
+    if (error instanceof TypeError)
+      throw new ApiError(0, NETWORK_ERROR_MESSAGE);
+    // Storage rejection is not evidence of an offline phone. Do not display raw
+    // SDK messages: they can contain storage paths or upload credentials.
+    throw new ApiError(422, "GORA couldn't store this photo or video. Please retry. If it keeps happening, contact support.");
   }
 }

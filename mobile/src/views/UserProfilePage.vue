@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader :title="header?.displayName ?? 'Profile'" back-href="/home" />
 
     <ion-content :fullscreen="true">

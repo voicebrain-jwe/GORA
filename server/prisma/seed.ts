@@ -1,12 +1,19 @@
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { BADGE_SEEDS, SPORT_SEEDS } from './seed-data';
 
 // Idempotent: upserts by unique name, so it is safe to run more than once.
 async function main(): Promise<void> {
-  if (!process.env.DATABASE_URL && existsSync('.env')) {
-    process.loadEnvFile('.env');
+  if (!process.env.DATABASE_URL) {
+    for (const envFile of [
+      resolve(process.cwd(), '..', '.env.local'),
+      resolve(process.cwd(), '.env.local'),
+      resolve(process.cwd(), '.env'),
+    ]) {
+      if (existsSync(envFile)) process.loadEnvFile(envFile);
+    }
   }
 
   const prisma = new PrismaClient({
@@ -42,7 +49,7 @@ async function main(): Promise<void> {
 main().catch(() => {
   // Driver errors can echo connection details, so only a safe message is shown.
   console.error(
-    'Seeding failed. Check that PostgreSQL is running and DATABASE_URL is set in server/.env.',
+    'Seeding failed. Check that PostgreSQL is running and DATABASE_URL is set in .env.local or server/.env.',
   );
   process.exitCode = 1;
 });

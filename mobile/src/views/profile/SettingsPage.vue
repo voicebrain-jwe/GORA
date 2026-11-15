@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="Settings" />
 
     <ion-content :fullscreen="true">
@@ -58,7 +58,7 @@
       </ion-list>
     </ion-content>
 
-    <ion-modal :is-open="activeSetting !== null" @did-dismiss="activeSetting = null">
+    <ion-modal class="profile-settings-modal" :is-open="activeSetting !== null" @did-dismiss="activeSetting = null">
       <ion-header>
         <ion-toolbar>
           <ion-title>{{ activeSettingTitle }}</ion-title>
@@ -87,6 +87,14 @@
               <ion-label>Posts and activity<p>Likes, comments, story replies, lives, and badges</p></ion-label>
               <ion-toggle slot="end" :checked="settings.values.notifyContent" :disabled="settings.isSaving" @ionChange="saveSetting({ notifyContent: $event.detail.checked })" />
             </ion-item>
+            <ion-item>
+              <ion-label>Device alerts<p>Show friend requests and game updates as device notifications. You can change this later in your device settings.</p></ion-label>
+              <ion-button slot="end" fill="outline" size="small" :disabled="notificationPermission === 'denied' || notificationPermission === 'unsupported'" @click="enableDeviceAlerts">
+                {{ deviceAlertAction }}
+              </ion-button>
+            </ion-item>
+            <p v-if="notificationPermission === 'denied'" class="settings-description">Device alerts are blocked. Enable notifications for GORA in your device or browser settings.</p>
+            <p v-else-if="notificationPermission === 'unsupported'" class="settings-description">Device alerts are not supported on this device. Your in-app notification inbox is still available.</p>
           </template>
           <template v-else-if="activeSetting === 'privacy'">
             <ion-item>
@@ -173,7 +181,7 @@
       </ion-content>
     </ion-modal>
 
-    <ion-modal :is-open="isHelpOpen" :can-dismiss="!isSendingHelp" @did-dismiss="isHelpOpen = false">
+    <ion-modal class="profile-settings-modal" :is-open="isHelpOpen" :can-dismiss="!isSendingHelp" @did-dismiss="isHelpOpen = false">
       <ion-header>
         <ion-toolbar>
           <ion-title>Contact Help</ion-title>
@@ -278,6 +286,11 @@ import { DISTANCE_FILTERS } from '@/utils/search';
 import { useDiscoveryStore } from '@/stores/discovery';
 import { useFiltersStore } from '@/stores/filters';
 import { useAppPreferencesStore, type AppLanguage, type DisplayMode } from '@/stores/app-preferences';
+import {
+  checkDeviceNotificationPermission,
+  requestDeviceNotificationPermission,
+  type DeviceNotificationPermission,
+} from '@/services/device-notifications.service';
 
 const SETTINGS_ITEMS = [
   { id: 'notifications', label: 'Notification Settings', summary: 'Choose what updates you receive', icon: notificationsOutline },
@@ -312,6 +325,10 @@ const phonePassword = ref('');
 const currentPassword = ref('');
 const newPassword = ref('');
 const confirmNewPassword = ref('');
+const notificationPermission = ref<DeviceNotificationPermission>('prompt');
+const deviceAlertAction = computed(() =>
+  notificationPermission.value === 'granted' ? 'Enabled' : 'Enable',
+);
 
 onMounted(() => {
   void settings.load().catch(() => showNotice('Could not load your settings. Please try again.'));
@@ -323,10 +340,20 @@ async function openSetting(id: (typeof SETTINGS_ITEMS)[number]['id']): Promise<v
   activeSetting.value = id;
   isAccountSection.value = false;
   if (id === 'more') return;
+  if (id === 'notifications') notificationPermission.value = await checkDeviceNotificationPermission();
   try {
     await settings.load();
   } catch {
     await showNotice('Could not load your settings. Please try again.');
+  }
+}
+
+async function enableDeviceAlerts(): Promise<void> {
+  notificationPermission.value = await requestDeviceNotificationPermission();
+  if (notificationPermission.value === 'granted') {
+    await showNotice('Device alerts are enabled.');
+  } else if (notificationPermission.value === 'denied') {
+    await showNotice('Device alerts were not allowed. You can enable them later in settings.');
   }
 }
 

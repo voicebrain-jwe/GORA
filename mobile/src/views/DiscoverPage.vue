@@ -3,6 +3,7 @@
     <AppHeader />
 
     <ion-content :fullscreen="true">
+      <PullToRefresh :reload="refreshDiscoverData" />
       <div class="discover">
         <h1 class="discover__title">Discover</h1>
         <p v-if="filters.isActive" class="discover__filters">
@@ -175,6 +176,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { IonContent, IonIcon, IonPage, onIonViewWillEnter } from '@ionic/vue';
+import PullToRefresh from '@/components/common/PullToRefresh.vue';
 import { star } from 'ionicons/icons';
 import ClubAvatar from '@/components/clubs/ClubAvatar.vue';
 import ClubRow from '@/components/clubs/ClubRow.vue';

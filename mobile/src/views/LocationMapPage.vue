@@ -3,6 +3,7 @@
     <SubPageHeader title="Map" back-href="/home" />
 
     <ion-content :fullscreen="true">
+      <PullToRefresh :reload="load" />
       <p v-if="!parsed" class="map__missing">This location could not be opened.</p>
 
       <div v-else class="map">
@@ -66,6 +67,7 @@
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { IonContent, IonPage, IonSkeletonText } from '@ionic/vue';
+import PullToRefresh from '@/components/common/PullToRefresh.vue';
 import JoinRequestModal from '@/components/games/JoinRequestModal.vue';
 import SubPageHeader from '@/components/layout/SubPageHeader.vue';
 import DiscoveredGameCard from '@/components/map/DiscoveredGameCard.vue';

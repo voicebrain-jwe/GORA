@@ -42,6 +42,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .game-location-preview {
+  margin: 0 12px;
   overflow: hidden;
   border: 1px solid var(--gora-line);
   border-radius: 16px;
@@ -49,7 +50,7 @@ onBeforeUnmount(() => {
 }
 .game-location-preview__map {
   width: 100%;
-  height: 210px;
+  height: 168px;
   background: #dce2df;
 }
 .game-location-preview__footer {
@@ -63,6 +64,10 @@ onBeforeUnmount(() => {
 .game-location-preview__footer strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .game-location-preview__footer small { color: var(--gora-muted); font-size: .72rem; }
 .game-location-preview__open { color: var(--ion-color-primary); font-size: .82rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+@media (min-width: 768px) {
+  .game-location-preview { margin: 0; }
+  .game-location-preview__map { height: 220px; }
+}
 .game-location-preview :deep(.game-location-preview__pin) { border: 0; background: transparent; }
 .game-location-preview :deep(.game-location-preview__pin span) {
   display: block;

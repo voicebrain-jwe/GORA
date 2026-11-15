@@ -27,6 +27,8 @@ export interface PostView {
   sportId: string | null;
   sport: { id: string; name: string } | null;
   clubId: string | null;
+  clubOnly?: boolean;
+  club?: { id: string; name: string; slug: string } | null;
   isAnnouncement: boolean;
   media: {
     id: string;

@@ -567,8 +567,8 @@ export class ClubsService {
     await this.requirePermission(
       viewerId,
       clubId,
-      'MANAGE_MEMBERS',
-      CLUB_MANAGE_MEMBERS_MESSAGE,
+      'APPROVE_MEMBERS',
+      'Only active club members can review join requests.',
     );
     const requests = await this.prisma.clubMember.findMany({
       where: { clubId, status: 'PENDING', user: { isActive: true } },
@@ -591,13 +591,18 @@ export class ClubsService {
     await this.requirePermission(
       viewerId,
       clubId,
-      'MANAGE_MEMBERS',
-      CLUB_MANAGE_MEMBERS_MESSAGE,
+      'APPROVE_MEMBERS',
+      'Only active club members can accept join requests.',
     );
 
     return this.withCapacityGuard(clubId, () =>
       this.prisma.$transaction(async (tx) => {
         const maxMembers = await lockClub(tx, clubId);
+        const reviewer = await tx.clubMember.findUnique({
+          where: { clubId_userId: { clubId, userId: viewerId } },
+          select: { status: true },
+        });
+        if (reviewer?.status !== 'ACTIVE') throw new ForbiddenException('Only active club members can accept join requests.');
         const pending = await tx.clubMember.findUnique({
           where: { clubId_userId: { clubId, userId } },
           select: { status: true, user: { select: { isActive: true } } },

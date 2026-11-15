@@ -14,6 +14,18 @@ const active = (role: ClubRole): ClubMembershipLike => ({
 });
 
 describe('club permissions', () => {
+  it('lets all active members approve requests without granting role or removal powers', () => {
+    for (const role of ['OWNER', 'ADMIN', 'MODERATOR', 'MEMBER'] as const) {
+      expect(hasClubPermission(active(role), 'APPROVE_MEMBERS', club)).toBe(true);
+    }
+    expect(hasClubPermission(active('MEMBER'), 'MANAGE_MEMBERS', club)).toBe(false);
+    expect(hasClubPermission(active('MEMBER'), 'MANAGE_CLUB', club)).toBe(false);
+    for (const status of ['PENDING', 'REMOVED', 'BANNED'] as const) {
+      expect(hasClubPermission({ role: 'MEMBER', status }, 'APPROVE_MEMBERS', club)).toBe(false);
+    }
+    expect(hasClubPermission(null, 'APPROVE_MEMBERS', club)).toBe(false);
+    expect(hasClubPermission(active('OWNER'), 'APPROVE_MEMBERS', { ...club, isActive: false })).toBe(false);
+  });
   it('gives each role its own abilities plus those of lower roles', () => {
     expect(hasClubPermission(active('OWNER'), 'DISABLE_CLUB', club)).toBe(true);
     expect(hasClubPermission(active('ADMIN'), 'DISABLE_CLUB', club)).toBe(

@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -82,6 +83,14 @@ class TaggedUsersDto {
 
 export class CreatePostDto extends PostAudienceDto {
   @IsOptional()
+  @IsUUID('all')
+  clubId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  clubOnly?: boolean;
+
+  @IsOptional()
   @IsUUID('all', { message: 'sharedPostId must be a post id.' })
   sharedPostId?: string;
 
@@ -142,12 +151,20 @@ export class UpdatePostDto {
   location?: PostLocationDto | null;
 }
 
-export class UpdatePostVisibilityDto extends PostAudienceDto {}
+export class UpdatePostVisibilityDto extends PostAudienceDto {
+  @IsOptional()
+  @IsBoolean()
+  clubOnly?: boolean;
+}
 
 /** Replaces the whole tag list; an empty list removes every tag. */
 export class UpdatePostTagsDto extends TaggedUsersDto {}
 
 export class ListPostsQueryDto {
+  @IsOptional()
+  @IsUUID('all')
+  clubId?: string;
+
   @IsOptional()
   @IsIn(['ALL', 'FRIENDS'])
   scope?: 'ALL' | 'FRIENDS';

@@ -80,9 +80,9 @@
           <ion-icon :icon="locationOutline" aria-hidden="true" />
           {{ reel.locationName }}
         </span>
-        <span class="reel-slide__chip">
+        <span class="reel-slide__chip reel-slide__views" :aria-label="`${formatCompactNumber(reel.views)} views`">
           <ion-icon :icon="eyeOutline" aria-hidden="true" />
-          {{ formatCompactNumber(reel.views) }}
+          {{ formatCompactNumber(reel.views) }} views
         </span>
       </div>
     </div>
@@ -253,6 +253,9 @@ watch(() => props.reel.videoUrl, () => {
 
 <style scoped>
 .reel-slide {
+  --ion-text-color: #fff;
+  color: #fff;
+  color-scheme: dark;
   position: relative;
   display: flex;
   height: 100%;
@@ -357,7 +360,9 @@ watch(() => props.reel.videoUrl, () => {
   bottom: 0;
   left: 0;
   padding: 48px 72px 20px 16px;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.7), transparent);
+  color: #fff;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.55) 65%, transparent);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .reel-slide__author {
@@ -366,8 +371,12 @@ watch(() => props.reel.videoUrl, () => {
   gap: 8px;
 }
 
+.reel-slide__author strong {
+  color: #fff;
+}
+
 .reel-slide__handle {
-  color: rgba(255, 255, 255, 0.7);
+  color: #e8e8e8;
   font-size: 0.78rem;
 }
 
@@ -390,6 +399,8 @@ watch(() => props.reel.videoUrl, () => {
 }
 
 .reel-slide__caption {
+  color: #fff;
+  overflow-wrap: anywhere;
   margin: 10px 0;
   font-size: 0.9rem;
   line-height: 1.35;
@@ -407,8 +418,23 @@ watch(() => props.reel.videoUrl, () => {
   gap: 4px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
   font-size: 0.72rem;
   font-weight: 600;
+}
+
+.reel-slide__views {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+}
+
+.reel-slide__views ion-icon {
+  color: #ffad4d;
+  font-size: 1rem;
 }
 </style>

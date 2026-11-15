@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page class="profile-app-page">
     <SubPageHeader title="My Help Requests" back-href="/profile/settings" />
     <ion-content :fullscreen="true">
       <div v-if="error" class="help-requests__feedback" role="alert">

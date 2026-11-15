@@ -92,6 +92,7 @@ function privacyLabel(highlight: Highlight): string {
 }
 
 .highlight-grid__item {
+  color: #fff;
   position: relative;
   display: flex;
   aspect-ratio: 9 / 14;
@@ -139,6 +140,7 @@ function privacyLabel(highlight: Highlight): string {
 }
 
 .highlight-grid__info {
+  color: #fff;
   pointer-events: none;
   display: flex;
   width: 100%;

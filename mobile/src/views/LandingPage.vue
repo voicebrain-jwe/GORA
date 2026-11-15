@@ -86,7 +86,7 @@
                   <ion-icon :icon="logoAndroid" aria-hidden="true" />Get the app
                 </a>
                 <router-link to="/login" class="btn btn-outline-light rounded-pill px-4">Sign in</router-link>
-                <router-link to="/register" class="btn btn-primary rounded-pill px-4 lp-btn-glow">
+                <router-link v-magnetic to="/register" class="btn btn-primary rounded-pill px-4 lp-btn-glow">
                   Join GORA <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
                 </router-link>
               </div>
@@ -96,12 +96,49 @@
 
         <main id="main" tabindex="-1">
           <!-- ───────────── Hero ───────────── -->
-          <section class="lp-hero" aria-labelledby="hero-heading">
+          <section class="lp-hero" aria-labelledby="hero-heading" @pointerdown="ping">
             <picture class="lp-hero__bg" aria-hidden="true">
               <source media="(max-width: 760px)" srcset="/images/gora-hoop-small.webp" />
               <img src="/images/gora-hoop.webp" width="1672" height="941" fetchpriority="high" alt="" />
             </picture>
             <div class="lp-hero__shade" aria-hidden="true" />
+            <div class="lp-arena" aria-hidden="true">
+              <div class="lp-arena__grid">
+                <span class="lp-arena__line" />
+                <span class="lp-arena__circle" />
+              </div>
+            </div>
+            <div class="lp-shots d-none d-lg-block" aria-hidden="true">
+              <svg viewBox="0 0 620 420" width="620" height="420">
+                <path
+                  v-for="(shot, index) in shots"
+                  :key="`trail-${index}`"
+                  class="lp-shots__trail"
+                  :d="shot"
+                  pathLength="1"
+                  :style="{ animationDelay: `${index * 1.6}s` }"
+                />
+              </svg>
+              <span
+                v-for="(shot, index) in shots"
+                :key="`ball-${index}`"
+                class="lp-shots__ball"
+                :style="{ offsetPath: `path('${shot}')`, animationDelay: `${index * 1.6}s` }"
+              />
+              <span
+                v-for="index in shots.length"
+                :key="`swish-${index}`"
+                class="lp-shots__swish"
+                :style="{ animationDelay: `${(index - 1) * 1.6}s` }"
+              ><span /></span>
+            </div>
+            <span
+              v-for="item in pings"
+              :key="item.id"
+              class="lp-ping"
+              :style="{ left: `${item.x}px`, top: `${item.y}px` }"
+              aria-hidden="true"
+            />
             <span class="lp-blob lp-blob--one" aria-hidden="true" />
             <span class="lp-blob lp-blob--two" aria-hidden="true" />
 
@@ -122,10 +159,10 @@
                     we'll help you find the rest.
                   </p>
                   <div class="lp-hero__actions lp-enter" style="--enter-delay: 480ms">
-                    <router-link to="/register" class="btn btn-primary rounded-pill px-4 lp-btn-glow">
+                    <router-link v-magnetic to="/register" class="btn btn-primary rounded-pill px-4 lp-btn-glow">
                       Find my crew <ion-icon :icon="arrowForwardOutline" class="ms-1 align-middle" aria-hidden="true" />
                     </router-link>
-                    <router-link to="/register?redirect=/discover" class="btn btn-outline-light rounded-pill px-4">
+                    <router-link v-magnetic to="/register?redirect=/discover" class="btn btn-outline-light rounded-pill px-4">
                       Explore games
                     </router-link>
                   </div>
@@ -154,12 +191,46 @@
                     </span>
                   </div>
                   <ul class="list-unstyled d-flex flex-wrap gap-2 mt-4 mb-0 lp-enter" style="--enter-delay: 600ms">
-                    <li v-for="chip in heroChips" :key="chip.label" class="lp-chip">
-                      <ion-icon :icon="chip.icon" aria-hidden="true" /> {{ chip.label }}
+                    <li v-for="chip in heroChips" :key="chip.label">
+                      <router-link :to="chip.to" class="lp-chip">
+                        <ion-icon :icon="chip.icon" aria-hidden="true" /> {{ chip.label }}
+                      </router-link>
                     </li>
                   </ul>
                 </div>
 
+                <div class="col-lg-4 offset-xl-1 d-none d-lg-block">
+                  <div v-tilt class="lp-radar lp-enter" style="--enter-delay: 700ms">
+                    <div class="lp-radar__head">
+                      <span class="lp-radar__title"><span class="lp-pulse" aria-hidden="true" /> Games near you</span>
+                      <span class="lp-radar__tag">Preview</span>
+                    </div>
+                    <div class="lp-radar__scope" aria-hidden="true">
+                      <span class="lp-radar__ring" style="inset: 16%" />
+                      <span class="lp-radar__ring" style="inset: 33%" />
+                      <span class="lp-radar__sweep" />
+                      <span
+                        v-for="(blip, index) in radarBlips"
+                        :key="blip.sport"
+                        class="lp-radar__blip"
+                        :style="{ left: `${blip.x}%`, top: `${blip.y}%`, animationDelay: `${index * 0.6}s` }"
+                      >
+                        <span class="lp-radar__label"><ion-icon :icon="blip.icon" /> {{ blip.sport }} · {{ blip.km }}</span>
+                      </span>
+                      <span class="lp-radar__you" />
+                    </div>
+                    <ul class="lp-radar__runs list-unstyled mb-0">
+                      <li v-for="(blip, index) in radarBlips" :key="`run-${blip.sport}`">
+                        <span class="lp-radar__run-icon"><ion-icon :icon="blip.icon" aria-hidden="true" /></span>
+                        <span class="lp-radar__run-text">
+                          <strong>{{ blip.sport }} run</strong>
+                          <span class="lp-radar__bar"><span :style="{ width: `${(blip.filled / blip.total) * 100}%`, animationDelay: `${0.9 + index * 0.2}s` }" /></span>
+                        </span>
+                        <span class="lp-radar__slots">{{ blip.filled }}/{{ blip.total }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -227,7 +298,7 @@
                   </div>
                 </div>
                 <div class="col-lg-4">
-                  <div class="card h-100 lp-card" aria-live="polite">
+                  <div v-tilt class="card h-100 lp-card" aria-live="polite">
                     <div class="card-body d-flex flex-column p-4">
                       <span class="lp-eyebrow mb-3">Illustrative game preview</span>
                       <Transition name="lp-slide" mode="out-in">
@@ -260,8 +331,8 @@
                 <p class="text-body-secondary mb-0">You bring the energy. GORA helps you find the rest.</p>
               </div>
               <div class="row g-4">
-                <div v-for="(feature, index) in features" :key="feature.title" class="col-md-6 col-lg-4">
-                  <article v-reveal="index * 90" class="card h-100 lp-card lp-feature">
+                <div v-for="(feature, index) in features" :key="feature.title" v-reveal="index * 90" class="col-md-6 col-lg-4">
+                  <article v-tilt class="card h-100 lp-card lp-feature">
                     <div class="card-body p-4">
                       <span class="lp-feature__icon"><ion-icon :icon="feature.icon" aria-hidden="true" /></span>
                       <h3 class="h5 fw-bold mt-4 mb-2">{{ feature.title }}</h3>
@@ -526,6 +597,21 @@
         </Transition>
       </template>
 
+      <nav v-if="!isNativeApp" slot="fixed" class="lp-dock" aria-label="Quick navigation" :style="{ '--i': activeDock }">
+        <span class="lp-dock__indicator" aria-hidden="true" />
+        <button
+          v-for="(item, index) in dockItems"
+          :key="item.id"
+          type="button"
+          class="lp-dock__item"
+          :class="{ 'is-active': activeDock === index }"
+          :aria-current="activeDock === index ? 'true' : undefined"
+          @click="dockGo(item.id, index)"
+        >
+          <ion-icon :icon="item.icon" aria-hidden="true" />
+          <span>{{ item.label }}</span>
+        </button>
+      </nav>
     </ion-content>
   </ion-page>
 </template>
@@ -544,6 +630,7 @@ import {
   checkmarkOutline,
   closeOutline,
   downloadOutline,
+  flashOutline,
   footballOutline,
   gameControllerOutline,
   locationOutline,
@@ -584,10 +671,125 @@ const navLinks = [
 ];
 
 const heroChips = [
-  { icon: navigateOutline, label: 'Games near you' },
-  { icon: peopleOutline, label: 'Clubs' },
-  { icon: playCircleOutline, label: 'Reels' },
+  { icon: navigateOutline, label: 'Games near you', to: '/register?redirect=/discover' },
+  { icon: peopleOutline, label: 'Clubs', to: '/register' },
+  { icon: playCircleOutline, label: 'Reels', to: '/register?redirect=/reels' },
 ];
+
+/* ───────── Hero motion ───────── */
+/** Decorative shot arcs into the hoop (SVG path coordinates inside the 620×420 shots box). */
+const shots = ['M 0 400 Q 110 -140 330 40', 'M 150 420 Q 210 -70 330 40', 'M 610 410 Q 520 -130 330 40'];
+/** The hero radar is a labelled preview, not live data. */
+const radarBlips = [
+  { sport: 'Basketball', icon: basketballOutline, km: '0.8 km', x: 44, y: 26, filled: 7, total: 10 },
+  { sport: 'Volleyball', icon: basketballOutline, km: '1.4 km', x: 18, y: 58, filled: 9, total: 12 },
+  { sport: 'Badminton', icon: tennisballOutline, km: '2.1 km', x: 40, y: 74, filled: 2, total: 4 },
+];
+
+/** Tap anywhere on the hero: a radar ping ripples out from that spot. */
+const pings = ref<{ id: number; x: number; y: number }[]>([]);
+let pingId = 0;
+
+function ping(event: PointerEvent): void {
+  if (prefersReducedMotion() || (event.target as HTMLElement).closest('a, button')) return;
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  const item = { id: ++pingId, x: event.clientX - rect.left, y: event.clientY - rect.top };
+  pings.value = [...pings.value.slice(-4), item];
+  setTimeout(() => {
+    pings.value = pings.value.filter((entry) => entry.id !== item.id);
+  }, 1400);
+}
+
+const canHover = (): boolean =>
+  typeof window !== 'undefined' && window.matchMedia?.('(hover: hover) and (pointer: fine)').matches === true;
+const pointerHandlers = new WeakMap<HTMLElement, { move: (event: PointerEvent) => void; leave: () => void }>();
+
+function bindPointer(el: HTMLElement, move: (event: PointerEvent) => void, leave: () => void): void {
+  el.addEventListener('pointermove', move);
+  el.addEventListener('pointerleave', leave);
+  pointerHandlers.set(el, { move, leave });
+}
+
+function unbindPointer(el: HTMLElement): void {
+  const handlers = pointerHandlers.get(el);
+  if (!handlers) return;
+  el.removeEventListener('pointermove', handlers.move);
+  el.removeEventListener('pointerleave', handlers.leave);
+  pointerHandlers.delete(el);
+}
+
+/** 3D tilt that follows the pointer, with a soft glare. Mouse/trackpad only. */
+const vTilt: Directive<HTMLElement> = {
+  mounted(el) {
+    if (prefersReducedMotion() || !canHover()) return;
+    el.classList.add('lp-tilt');
+    bindPointer(
+      el,
+      (event) => {
+        const rect = el.getBoundingClientRect();
+        const px = (event.clientX - rect.left) / rect.width;
+        const py = (event.clientY - rect.top) / rect.height;
+        el.style.setProperty('--ry', `${((px - 0.5) * 12).toFixed(2)}deg`);
+        el.style.setProperty('--rx', `${((0.5 - py) * 12).toFixed(2)}deg`);
+        el.style.setProperty('--gx', `${(px * 100).toFixed(1)}%`);
+        el.style.setProperty('--gy', `${(py * 100).toFixed(1)}%`);
+        el.classList.add('is-tilting');
+      },
+      () => {
+        el.style.setProperty('--rx', '0deg');
+        el.style.setProperty('--ry', '0deg');
+        el.classList.remove('is-tilting');
+      },
+    );
+  },
+  unmounted: unbindPointer,
+};
+
+/** Buttons lean toward the pointer a few pixels. */
+const vMagnetic: Directive<HTMLElement> = {
+  mounted(el) {
+    if (prefersReducedMotion() || !canHover()) return;
+    el.classList.add('lp-magnetic');
+    bindPointer(
+      el,
+      (event) => {
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty('--mx', `${((event.clientX - rect.left - rect.width / 2) * 0.18).toFixed(1)}px`);
+        el.style.setProperty('--my', `${((event.clientY - rect.top - rect.height / 2) * 0.3).toFixed(1)}px`);
+      },
+      () => {
+        el.style.setProperty('--mx', '0px');
+        el.style.setProperty('--my', '0px');
+      },
+    );
+  },
+  unmounted: unbindPointer,
+};
+
+/* ───────── Phone dock ───────── */
+const dockItems = [
+  { id: 'main', label: 'Arena', icon: flashOutline },
+  { id: 'find-a-game', label: 'Games', icon: basketballOutline },
+  { id: 'communities', label: 'Crew', icon: peopleOutline },
+  { id: 'download', label: 'Get app', icon: logoAndroid },
+];
+const activeDock = ref(0);
+
+function updateActiveDock(): void {
+  const threshold = window.innerHeight * 0.45;
+  let index = 0;
+  dockItems.forEach((item, position) => {
+    if (position === 0) return;
+    const top = document.getElementById(item.id)?.getBoundingClientRect().top;
+    if (top !== undefined && top <= threshold) index = position;
+  });
+  activeDock.value = index;
+}
+
+function dockGo(id: string, index: number): void {
+  activeDock.value = index;
+  scrollTo(id);
+}
 
 const sports = [
   { name: 'Basketball', icon: basketballOutline, image: '/images/basketball-action.png', title: 'Saturday pickup crew', place: 'Neighborhood court', time: 'Saturday · 4:00 PM', spots: '2 spots to fill' },
@@ -648,6 +850,7 @@ const scrollTop = ref(0);
 function onScroll(event: CustomEvent<{ scrollTop: number }>): void {
   scrollTop.value = event.detail.scrollTop;
   scrolled.value = event.detail.scrollTop > 24;
+  updateActiveDock();
 }
 
 /* ───────── App download ───────── */
@@ -1804,6 +2007,8 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .lp-chip {
+  text-decoration: none;
+  transition: border-color 0.25s, background 0.25s, color 0.25s, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -2116,7 +2321,7 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 
   &:hover {
-    transform: translateY(-6px);
+    --lift: -6px;
     border-color: rgba($accent, 0.5);
     box-shadow: 0 24px 50px -24px rgba($accent, 0.5);
 
@@ -2484,6 +2689,703 @@ $ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 
   .lp-cta {
     border-radius: 1.25rem;
+  }
+}
+
+/* ═════════ Arena motion layer ═════════ */
+$spring: cubic-bezier(0.22, 1, 0.36, 1);
+$bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+$emerald: #25d366;
+
+/* Tilted glowing court grid under the hero. */
+.lp-arena {
+  position: absolute;
+  z-index: -1;
+  right: -20%;
+  bottom: -4%;
+  left: -20%;
+  height: 52%;
+  perspective: 900px;
+  pointer-events: none;
+  mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+}
+
+.lp-arena__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba($accent, 0.32) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($accent, 0.32) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: rotateX(58deg);
+  transform-origin: 50% 100%;
+  animation: lp-grid-run 5s linear infinite;
+}
+
+.lp-arena__line {
+  position: absolute;
+  top: 46%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, $accent, transparent);
+  box-shadow: 0 0 18px $accent;
+}
+
+.lp-arena__circle {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 260px;
+  height: 260px;
+  border: 2px solid rgba($accent, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 24px rgba($accent, 0.6), inset 0 0 24px rgba($accent, 0.35);
+  transform: translate(-50%, -50%);
+  animation: lp-court-glow 3s ease-in-out infinite;
+}
+
+/* Shot arcs + swish burst. */
+.lp-shots {
+  position: absolute;
+  z-index: -1;
+  top: 12%;
+  right: 3%;
+  width: 620px;
+  height: 420px;
+  pointer-events: none;
+
+  svg {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+  }
+}
+
+.lp-shots__trail {
+  fill: none;
+  stroke: rgba($accent-2, 0.75);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  stroke-linecap: round;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px rgba($accent, 0.9));
+  animation: lp-trail 4.8s $spring infinite both;
+}
+
+.lp-shots__ball {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #ffd1a8, transparent 40%),
+    radial-gradient(circle, #ff8a3d, $accent 70%);
+  box-shadow: 0 0 18px rgba($accent, 0.9), 0 0 40px rgba($accent, 0.5);
+  offset-rotate: 0deg;
+  opacity: 0;
+  animation: lp-shot 4.8s $spring infinite both;
+}
+
+.lp-shots__swish {
+  position: absolute;
+  top: 40px;
+  left: 330px;
+  width: 0;
+  height: 0;
+
+  &::before {
+    position: absolute;
+    top: -26px;
+    left: -26px;
+    width: 52px;
+    height: 52px;
+    border: 2px solid $accent-2;
+    border-radius: 50%;
+    content: '';
+    opacity: 0;
+    animation: inherit;
+    animation-name: lp-swish-ring;
+  }
+
+  span {
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    box-shadow:
+      0 -24px $accent-2, 17px -17px $accent, 24px 0 $accent-2, 17px 17px $accent,
+      0 24px $accent-2, -17px 17px $accent, -24px 0 $accent-2, -17px -17px $accent;
+    opacity: 0;
+    animation: inherit;
+    animation-name: lp-swish-dots;
+  }
+}
+
+.lp-shots__swish {
+  animation: lp-noop 4.8s linear infinite both;
+}
+
+/* Tap-to-ping radar ripple. */
+.lp-ping {
+  position: absolute;
+  z-index: -1;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 2px solid rgba($accent, 0.9);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: lp-ping-out 1.3s $spring forwards;
+
+  &::after {
+    position: absolute;
+    inset: -2px;
+    border: 2px solid rgba($emerald, 0.8);
+    border-radius: 50%;
+    content: '';
+    animation: lp-ping-out 1.3s 0.18s $spring forwards;
+  }
+}
+
+/* "Games near you" radar card. */
+.lp-radar {
+  position: relative;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px;
+  background: rgba(18, 19, 23, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 30px 60px -25px rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.lp-radar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lp-radar__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.lp-radar__tag {
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: #9ca3af;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lp-pulse {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: $emerald;
+  box-shadow: 0 0 0 0 rgba($emerald, 0.7);
+  animation: lp-pulse-green 1.6s ease-out infinite;
+}
+
+.lp-radar__scope {
+  position: relative;
+  overflow: hidden;
+  margin: 16px 0;
+  border: 1px solid rgba($accent, 0.35);
+  border-radius: 50%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba($accent, 0.1), rgba(10, 10, 12, 0.65) 72%);
+
+  &::before,
+  &::after {
+    position: absolute;
+    background: rgba($accent, 0.18);
+    content: '';
+  }
+
+  &::before {
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: 1px;
+  }
+
+  &::after {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+  }
+}
+
+.lp-radar__ring {
+  position: absolute;
+  border: 1px dashed rgba($accent, 0.28);
+  border-radius: 50%;
+}
+
+.lp-radar__sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba($accent, 0.5), rgba($accent, 0.08) 18%, transparent 26%);
+  animation: lp-radar-spin 4s linear infinite;
+}
+
+.lp-radar__you {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: $accent;
+  box-shadow: 0 0 0 6px rgba($accent, 0.25);
+  transform: translate(-50%, -50%);
+}
+
+.lp-radar__blip {
+  position: absolute;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: $emerald;
+  animation: lp-pulse-green 2s ease-out infinite;
+}
+
+.lp-radar__label {
+  position: absolute;
+  top: -7px;
+  left: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(10, 10, 12, 0.8);
+  color: #fff;
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+
+  ion-icon {
+    color: $accent;
+  }
+}
+
+.lp-radar__runs {
+  display: grid;
+  gap: 10px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.lp-radar__run-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba($accent, 0.14);
+  color: $accent;
+}
+
+.lp-radar__run-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+
+  strong {
+    color: #fff;
+    font-size: 0.8rem;
+  }
+}
+
+.lp-radar__bar {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, $accent, $accent-2);
+    transform-origin: left;
+    animation: lp-bar-fill 1.2s $spring both;
+  }
+}
+
+.lp-radar__slots {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+/* 3D tilt (pointer devices). */
+.lp-tilt {
+  position: relative;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px));
+  transform-style: preserve-3d;
+  transition: transform 0.6s $spring, border-color 0.35s, box-shadow 0.35s;
+  will-change: transform;
+
+  &.is-tilting {
+    transition: transform 0.08s linear, border-color 0.35s, box-shadow 0.35s;
+  }
+
+  &::after {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.13), transparent 45%);
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  &.is-tilting::after {
+    opacity: 1;
+  }
+}
+
+/* Magnetic pills + spring arrows + ember glow. */
+.lp-magnetic {
+  transform: translate(var(--mx, 0px), var(--my, 0px));
+}
+
+.lp-btn-glow.lp-magnetic:hover,
+.btn-outline-light.lp-magnetic:hover {
+  transform: translate(var(--mx, 0px), calc(var(--my, 0px) - 2px));
+}
+
+.lp-btn-glow {
+  position: relative;
+
+  ion-icon {
+    transition: transform 0.45s $bounce;
+  }
+
+  &:hover ion-icon {
+    transform: translateX(4px);
+  }
+
+  &::after {
+    position: absolute;
+    z-index: -1;
+    inset: 25% 8% -35%;
+    border-radius: 999px;
+    background: radial-gradient(closest-side, rgba($accent, 0.75), transparent);
+    content: '';
+    filter: blur(12px);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  &:hover::after {
+    opacity: 1;
+    animation: lp-ember 1.1s ease-in-out infinite alternate;
+  }
+
+  &:hover {
+    background-color: #ff6e38;
+    border-color: #ff6e38;
+  }
+}
+
+.lp .btn-outline-light {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+
+  &::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 30%, rgba($accent, 0.4) 50%, transparent 70%);
+    content: '';
+    transform: translateX(-120%);
+    transition: transform 0.8s $spring;
+  }
+
+  &:hover {
+    border-color: $accent;
+    background: rgba($accent, 0.08);
+    box-shadow: 0 0 0 1px rgba($accent, 0.4), 0 0 22px -4px rgba($accent, 0.6);
+    color: #fff;
+  }
+
+  &:hover::before {
+    transform: translateX(120%);
+  }
+}
+
+a.lp-chip {
+  &:hover,
+  &:focus-visible {
+    border-color: rgba($accent, 0.6);
+    background: rgba($accent, 0.1);
+    color: #fff;
+    transform: translateY(-2px);
+  }
+
+  &:hover ion-icon,
+  &:focus-visible ion-icon {
+    filter: drop-shadow(0 0 6px $accent);
+  }
+}
+
+/* Floating glass dock (phones/tablets). */
+.lp-dock {
+  position: fixed;
+  z-index: 55;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  display: none;
+  width: min(420px, calc(100% - 24px));
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(18, 19, 23, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 20px 40px -12px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transform: translateX(-50%);
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.lp-dock__indicator {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: calc((100% - 12px) / 4);
+  border-radius: 999px;
+  background: #ff571a;
+  box-shadow: 0 8px 24px -6px rgba(255, 87, 26, 0.75);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform 0.5s $bounce;
+}
+
+.lp-dock__item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 0 6px;
+  border: 0;
+  background: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-family: var(--bs-body-font-family, system-ui, sans-serif);
+  font-size: 0.66rem;
+  font-weight: 800;
+  transition: color 0.3s;
+
+  ion-icon {
+    font-size: 1.25rem;
+    transition: transform 0.45s $bounce;
+  }
+
+  &.is-active {
+    color: #0a0a0c;
+
+    ion-icon {
+      transform: translateY(-1px) scale(1.12);
+    }
+  }
+}
+
+@media (max-width: 991.98px) {
+  .lp-dock {
+    display: grid;
+  }
+
+  .lp-fab {
+    display: none;
+  }
+
+  .lp-toast {
+    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .lp-footer {
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .lp-arena {
+    height: 40%;
+  }
+
+  .lp-arena__circle {
+    width: 180px;
+    height: 180px;
+  }
+}
+
+@keyframes lp-grid-run {
+  to {
+    background-position: 0 64px, 0 0;
+  }
+}
+
+@keyframes lp-court-glow {
+  50% {
+    box-shadow: 0 0 40px rgba($accent, 0.9), inset 0 0 36px rgba($accent, 0.5);
+  }
+}
+
+@keyframes lp-trail {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  6% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  70%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes lp-shot {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  48% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  52%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes lp-swish-ring {
+  0%,
+  46% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  50% {
+    opacity: 1;
+  }
+  72%,
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes lp-swish-dots {
+  0%,
+  46% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes lp-noop {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lp-ping-out {
+  from {
+    opacity: 1;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(6);
+  }
+}
+
+@keyframes lp-radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lp-pulse-green {
+  70%,
+  100% {
+    box-shadow: 0 0 0 10px rgba($emerald, 0);
+  }
+}
+
+@keyframes lp-bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes lp-ember {
+  from {
+    transform: scale(0.92);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-dock__indicator,
+  .lp-dock__item ion-icon {
+    transition: none;
   }
 }
 

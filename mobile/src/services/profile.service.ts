@@ -1,8 +1,8 @@
 import type { Badge } from '@/types/achievement';
 import type { ActivityStats } from '@/types/activity';
 import type { FollowSummary, PublicProfile, UserProfile } from '@/types/profile';
-import { mockActivityStats, mockBadges } from './mock/mock-profile';
 import { apiRequest } from './api-client';
+import { withBadgeIcon } from '@/utils/badges';
 
 /**
  * Profiles are only loaded from the authenticated profiles API. Never substitute a sample
@@ -18,16 +18,17 @@ export async function fetchCurrentProfile(): Promise<UserProfile | null> {
   return null;
 }
 
-export async function fetchActivityStats(): Promise<ActivityStats> {
-  return { ...mockActivityStats };
+export async function fetchAchievements(token: string): Promise<{ activityStats: ActivityStats; badges: Badge[] }> {
+  const result = await apiRequest<{ activityStats: ActivityStats; badges: Badge[] }>('/profiles/me/achievements', { token });
+  return { activityStats: result.activityStats, badges: result.badges.map(withBadgeIcon) };
 }
 
 /** Badge progress and unlock state come precomputed, as the API will send them. */
-export async function fetchBadges(goraPoints = 0): Promise<Badge[]> {
-  return mockBadges.map((badge) => {
-    const progress = badge.requirement.metric === 'goraPoints' ? goraPoints : badge.progress;
-    return { ...badge, progress, unlocked: progress >= badge.target };
-  });
+export async function fetchActivityStats(token: string): Promise<ActivityStats> {
+  return (await fetchAchievements(token)).activityStats;
+}
+export async function fetchBadges(token: string): Promise<Badge[]> {
+  return (await fetchAchievements(token)).badges;
 }
 
 export async function fetchFollowSummary(): Promise<FollowSummary> {

@@ -28,6 +28,8 @@ import { HelpRequestDto } from './dto/help-request.dto';
 import { UpdateUserSettingsDto } from './dto/update-user-settings.dto';
 import { UploadProfilePhotoDto } from './dto/upload-profile-photo.dto';
 import { ProfilePhotoService } from './profile-photo.service';
+import { AchievementsService } from './achievements.service';
+import { DiscoveryCatalogService } from './discovery-catalog.service';
 import { AccountEmailDto } from './dto/account-email.dto';
 import { AccountPhoneDto } from './dto/account-phone.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -46,7 +48,19 @@ export class ProfilesController {
     private readonly userSports: UserSportsService,
     private readonly covers: ProfileCoverService,
     private readonly photos: ProfilePhotoService,
+    private readonly achievements: AchievementsService,
+    private readonly discoveryCatalog: DiscoveryCatalogService,
   ) {}
+
+  @Get('me/achievements')
+  getAchievements(@CurrentUser() viewer: CurrentUserContext) {
+    return this.achievements.read(viewer.id);
+  }
+
+  @Get('discover/players')
+  discoverPlayers(@CurrentUser() viewer: CurrentUserContext) {
+    return this.discoveryCatalog.players(viewer.id);
+  }
 
   @Post('help')
   sendHelpRequest(@CurrentUser() viewer: CurrentUserContext, @Body() dto: HelpRequestDto) {

@@ -32,6 +32,25 @@ export const BADGE_ICONS: Record<BadgeIcon, string> = {
   globe: globeOutline,
 };
 
+/** Default icon per category, used when the API sends a generic one. */
+export const BADGE_CATEGORY_ICONS: Record<BadgeCategory, BadgeIcon> = {
+  GAMES: 'flag',
+  COMPLETION: 'trophy',
+  HOSTING: 'megaphone',
+  HIGHLIGHTS: 'videocam',
+  STORIES: 'book',
+  SOCIAL: 'people',
+  COMMUNITY: 'globe',
+  POINTS: 'flash',
+};
+
+export function withBadgeIcon(badge: Badge): Badge {
+  const icon = badge.icon && badge.icon !== 'medal' && badge.icon in BADGE_ICONS
+    ? badge.icon
+    : (BADGE_CATEGORY_ICONS[badge.category] ?? 'medal');
+  return icon === badge.icon ? badge : { ...badge, icon };
+}
+
 export const BADGE_CATEGORY_LABELS: Record<BadgeCategory, string> = {
   GAMES: 'Playing',
   COMPLETION: 'Completing',

@@ -70,6 +70,32 @@ test('production migrations preserve existing media and restore the complete spo
       assert.equal((await db.query('SELECT count(*)::int AS count FROM "ClubPhoto" WHERE "clubId"=$1 AND "data" IS NULL', [club])).rows[0].count, 2);
     });
 
+    await t.test('accepts a photo-only post with a Cloudinary reference and no database image bytes', async () => {
+      const post = randomUUID();
+      const photo = randomUUID();
+      const sport = (await db.query(`SELECT "id" FROM "Sport" WHERE "name"='Badminton'`)).rows[0].id;
+      await db.query(`INSERT INTO "Post" ("id","userId","caption","sportId","visibility","updatedAt")
+        VALUES ($1,$2,NULL,$3,'PUBLIC',now())`, [post, owner, sport]);
+      await db.query(`INSERT INTO "PostMedia" ("id","postId","mediaType","mediaUrl","photoData","contentType","sortOrder")
+        VALUES ($1,$2,'IMAGE',$3,NULL,'image/jpeg',0)`, [photo, post, `cloudinary:gora/photos/${photo}.jpg`]);
+      const row = (await db.query(`SELECT p."caption",m."mediaUrl",m."photoData" FROM "Post" p
+        JOIN "PostMedia" m ON m."postId"=p."id" WHERE p."id"=$1`, [post])).rows[0];
+      assert.equal(row.caption, null);
+      assert.equal(row.photoData, null);
+      assert.equal(row.mediaUrl, `cloudinary:gora/photos/${photo}.jpg`);
+    });
+
+    await t.test('installs badge definitions without inventing user progress or overwriting managed badges', async () => {
+      const badges = (await db.query('SELECT id,name,target FROM "Badge" ORDER BY name')).rows;
+      assert.ok(badges.length >= 30);
+      assert.ok(badges.every((badge) => badge.target > 0));
+      assert.equal((await db.query('SELECT count(*)::int AS count FROM "UserBadge"')).rows[0].count, 0);
+      await db.query('UPDATE "Badge" SET description=$1 WHERE id=$2', ['Admin-managed description', badges[0].id]);
+      await db.exec(await sql('20261115030000_badge_catalog'));
+      assert.equal((await db.query('SELECT count(*)::int AS count FROM "Badge"')).rows[0].count, badges.length);
+      assert.equal((await db.query('SELECT description FROM "Badge" WHERE id=$1', [badges[0].id])).rows[0].description, 'Admin-managed description');
+    });
+
     await t.test('retains legacy media and accepts authenticated Cloudinary references', async () => {
       assert.equal((await db.query('SELECT "mediaUrl" FROM "Story" WHERE "id"=$1', [oldStory])).rows[0].mediaUrl, `blob:${oldStory}.png`);
       assert.equal((await db.query('SELECT "videoUrl" FROM "Reel" WHERE "id"=$1', [oldReel])).rows[0].videoUrl, `upload:${oldReel}.mp4`);

@@ -9,10 +9,12 @@ import { ProfileCoverService } from './profile-cover.service';
 import { ProfilePhotoController } from './profile-photo.controller';
 import { ProfilePhotoService } from './profile-photo.service';
 import { GoraPointsModule } from '../gora-points/gora-points.module';
+import { AchievementsService } from './achievements.service';
+import { DiscoveryCatalogService } from './discovery-catalog.service';
 
 @Module({
   imports: [SocialModule, SportsModule, UsersModule, GoraPointsModule],
   controllers: [ProfilesController, ProfileCoverController, ProfilePhotoController],
-  providers: [ProfilesService, ProfileCoverService, ProfilePhotoService],
+  providers: [ProfilesService, ProfileCoverService, ProfilePhotoService, AchievementsService, DiscoveryCatalogService],
 })
 export class ProfilesModule {}

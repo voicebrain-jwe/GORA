@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
-import { fetchActivityStats, fetchBadges, fetchCurrentProfile } from '@/services/profile.service';
+import { fetchAchievements } from '@/services/profile.service';
 import {
   getMyProfile,
   getProfile,
@@ -32,8 +32,8 @@ const PROFILE_NOT_FOUND_MESSAGE = "This profile isn't available.";
 
 /**
  * Profiles come from the REST API (/profiles/*) with the signed-in user's JWT; this store
- * never touches the database. Activity stats and badges are still the demo data until
- * their server engines exist. Sport edits live in the sports store, which keeps
+ * never touches the database. Activity and badges come from the authenticated API.
+ * Sport edits live in the sports store, which keeps
  * currentProfile.sports in step through setOwnSports.
  */
 export const useProfileStore = defineStore('profile', () => {
@@ -61,6 +61,11 @@ export const useProfileStore = defineStore('profile', () => {
       loading.value = false;
       saving.value = false;
       error.value = null;
+      badges.value = [];
+      activityStats.value = null;
+      achievementsError.value = null;
+      achievementsLoading.value = false;
+      isLoaded.value = false;
     },
     { flush: 'sync' },
   );
@@ -170,26 +175,31 @@ export const useProfileStore = defineStore('profile', () => {
     }
   }
 
-  // Demo data for the Badges, Activity, Friends, and My Reels pages (no server engine yet).
+  // Account-scoped achievements; no sample progress or unlocked badges.
   const profile = ref<UserProfile | null>(null);
   const activityStats = ref<ActivityStats | null>(null);
   const badges = ref<Badge[]>([]);
   const isLoaded = ref(false);
+  const achievementsLoading = ref(false);
+  const achievementsError = ref<string | null>(null);
 
   async function load(): Promise<void> {
-    const [demoProfile, stats, latestProfile] = await Promise.all([
-      fetchCurrentProfile(),
-      fetchActivityStats(),
-      auth.accessToken ? authorized(getMyProfile).catch(() => null) : Promise.resolve(null),
-    ]);
-
-    if (latestProfile) currentProfile.value = latestProfile;
-    const userBadges = await fetchBadges(latestProfile?.goraPoints ?? currentProfile.value?.goraPoints ?? 0);
-
-    profile.value = demoProfile;
-    activityStats.value = stats;
-    badges.value = userBadges;
-    isLoaded.value = true;
+    if (!auth.accessToken || achievementsLoading.value) return;
+    const isCurrent = captureSession(auth);
+    achievementsLoading.value = true;
+    achievementsError.value = null;
+    try {
+      const achievements = await authorized(fetchAchievements);
+      // Profile badge counts must be read after earned badges have been persisted.
+      const latestProfile = await authorized(getMyProfile);
+      if (!isCurrent()) return;
+      currentProfile.value = latestProfile;
+      activityStats.value = achievements.activityStats;
+      badges.value = achievements.badges;
+      isLoaded.value = true;
+    } catch (caught) {
+      if (isCurrent()) achievementsError.value = describeApiError(caught);
+    } finally { if (isCurrent()) achievementsLoading.value = false; }
   }
 
   return {
@@ -208,6 +218,8 @@ export const useProfileStore = defineStore('profile', () => {
     profile,
     activityStats,
     badges,
+    achievementsLoading,
+    achievementsError,
     isLoaded,
     load,
   };
